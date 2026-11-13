@@ -190,6 +190,28 @@ import { ToastService } from '../services/toast.service';
         </div>
       </div>
 
+      <!-- Empty Session Alert Banner (When user accidentally deleted all sessions) -->
+      <div class="empty-session-warning-card" *ngIf="sessions().length === 0">
+        <div class="empty-warning-content">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <div>
+            <strong>No hay sesiones de inventario activas en el sistema</strong>
+            <p>Los anaqueles físicos se visualizan y operan a través de una sesión. Haz clic para restaurar la sesión oficial y volver a operar los 171 anaqueles.</p>
+          </div>
+        </div>
+        <button class="btn btn-primary" (click)="restoreDefaultSession()" [disabled]="restoringSession()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="1 4 1 10 7 10"></polyline>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          </svg>
+          <span>{{ restoringSession() ? 'Restaurando...' : 'Restaurar 171 Anaqueles (Crear Inventario)' }}</span>
+        </button>
+      </div>
+
       <!-- Main Croquis Canvas Viewport -->
       <div 
         class="blueprint-canvas-wrap" 
@@ -1299,6 +1321,37 @@ import { ToastService } from '../services/toast.service';
       font-size: 0.75rem;
     }
 
+    /* Empty Session Warning Card */
+    .empty-session-warning-card {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-left: 5px solid #2563eb;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+    }
+    .empty-warning-content {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      color: #1e3a8a;
+    }
+    .empty-warning-content strong {
+      font-size: 0.95rem;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .empty-warning-content p {
+      margin: 0;
+      font-size: 0.82rem;
+      color: #3b82f6;
+    }
+
     /* Modal */
     .modal-backdrop {
       position: fixed;
@@ -1620,9 +1673,65 @@ export class CroquisComponent implements OnInit {
           } catch (e) {}
           this.activeSessionId.set(targetId);
           this.loadShelves(targetId);
+        } else {
+          this.loadRawShelvesPreview();
         }
       },
       error: (err: any) => this.toast.error('Error al cargar inventario: ' + (err.error?.message || err.message))
+    });
+  }
+
+  loadRawShelvesPreview() {
+    this.api.getShelves().subscribe({
+      next: (shelves) => {
+        const mapped: ShelfAssignmentDto[] = shelves.map(s => ({
+          assignmentId: 0,
+          shelfId: s.id,
+          shelfCode: s.code,
+          shelfZone: s.zone,
+          shelfDescription: s.description,
+          plant: s.plant,
+          posX: s.posX,
+          posY: s.posY,
+          width: s.width,
+          height: s.height,
+          status: 'PENDIENTE',
+          assignedUserName: 'Sin Asignar',
+          recordCount: 0,
+          totalPieces: 0
+        }));
+        this.allShelves.set(mapped);
+      },
+      error: (err: any) => this.toast.error('Error al cargar catálogo de anaqueles: ' + (err.error?.message || err.message))
+    });
+  }
+
+  restoringSession = signal(false);
+
+  restoreDefaultSession() {
+    this.restoringSession.set(true);
+    const req = {
+      title: 'Inventario Físico General Planta Baja y Planta Alta',
+      warehouseCode: '1',
+      warehouseName: 'Almacén Principal Interflu',
+      notes: 'Control físico digital por anaqueles según croquis oficial de planta.'
+    };
+    this.api.createSession(req).subscribe({
+      next: (created) => {
+        this.toast.success(`Inventario ${created.folio} creado con éxito. 171 anaqueles restaurados.`);
+        this.sessions.set([created]);
+        this.activeSessionId.set(created.id);
+        try {
+          localStorage.setItem('interflu_croquis_sessionId', String(created.id));
+          localStorage.setItem('interflu_active_session', String(created.id));
+        } catch (e) {}
+        this.loadShelves(created.id);
+        this.restoringSession.set(false);
+      },
+      error: (err) => {
+        this.restoringSession.set(false);
+        this.toast.error(err.error?.message || 'Error al restaurar inventario');
+      }
     });
   }
 
@@ -1853,6 +1962,10 @@ export class CroquisComponent implements OnInit {
       this.selectedRackForMove = shelf;
       this.toast.info(`Anaquel ${shelf.shelfCode} seleccionado. Puedes arrastrarlo, ajustar sus px o usar flechas del teclado.`);
     } else {
+      if (this.sessions().length === 0 || this.activeSessionId() === 0) {
+        this.toast.warning('No hay inventario activo. Haz clic en "Restaurar 171 Anaqueles (Crear Inventario)" para iniciar los conteos.');
+        return;
+      }
       this.inspectedShelf = shelf;
     }
   }
