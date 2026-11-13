@@ -1,0 +1,43 @@
+# Git Ignore for Interflu Inventory Enterprise System
+
+# Backend Maven & Java
+backend/target/
+backend/*.log
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# SQLite WAL and lock files
+*.db-wal
+*.db-shm
+*.db-journal
+
+# Frontend Angular & Node
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+node_modules/
+dist/
+.npm/
+
+# IDE & OS Specific
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Agent & Brain temp logs
+.gemini/
+.system_generated/
+scripts/__pycache__/
+*.pyc
+
+# Local Environment & Secrets
+.env
+.env.local

@@ -1,0 +1,30 @@
+# Docker Compose for Interflu Inventory Enterprise System
+# Usage: docker compose up -d --build
+
+services:
+  interflu-inventory:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: interflu-inventory
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - TZ=America/Mexico_City
+      - SPRING_DATASOURCE_URL=jdbc:sqlite:/app/data/interflu_inventory.db
+      - JAVA_OPTS=-Xms256m -Xmx1024m -XX:+UseG1GC
+    volumes:
+      # Persistent storage volume for SQLite database
+      - interflu-sqlite-data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+
+volumes:
+  interflu-sqlite-data:
+    name: interflu-inventory-sqlite-data
+    driver: local

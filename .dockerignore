@@ -1,0 +1,17 @@
+# Ignore for Docker Build Context
+.git
+.gitignore
+.gemini
+.system_generated
+scripts
+backend/target
+frontend/node_modules
+frontend/dist
+frontend/.angular
+*.log
+*.db-wal
+*.db-shm
+*.db-journal
+*.tmp
+.vscode
+.idea
