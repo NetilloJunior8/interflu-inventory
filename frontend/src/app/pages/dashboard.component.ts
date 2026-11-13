@@ -17,6 +17,16 @@ import { ToastService } from '../services/toast.service';
         <p class="page-subtitle">Refaccionaria Industrial Interflu &bull; Gestión integral de existencias físicas y exportación SAE</p>
       </div>
       <div class="header-actions">
+        <!-- Excel Stats Export Button -->
+        <button class="btn btn-secondary" (click)="exportStatsExcel()" [disabled]="exportingStats() || !selectedSession()" title="Descargar libro Excel con estadísticas ejecutivas, avance físico y detalle de 171 anaqueles">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>{{ exportingStats() ? 'Generando Excel...' : 'Exportar Estadísticas (Excel)' }}</span>
+        </button>
+
         <!-- Excel Counts Import Button -->
         <label class="btn btn-secondary btn-file-upload" title="Importar archivo Excel (.xlsx o .csv) con conteos ya realizados">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -174,6 +184,14 @@ import { ToastService } from '../services/toast.service';
                 <span class="tile-desc">Pólizas de inventario</span>
               </div>
             </a>
+
+            <button class="action-tile tile-secondary action-tile-btn" (click)="exportStatsExcel()" [disabled]="exportingStats()" title="Descargar libro Excel con estadísticas ejecutivas y avance de los 171 anaqueles">
+              <svg class="tile-icon text-success" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+              <div class="tile-text">
+                <span class="tile-title">Estadísticas Excel</span>
+                <span class="tile-desc">Reporte oficial y anaqueles</span>
+              </div>
+            </button>
           </div>
 
           <!-- Administration Row -->
@@ -647,6 +665,16 @@ import { ToastService } from '../services/toast.service';
       color: var(--text-muted);
       margin-top: 2px;
     }
+    .action-tile-btn {
+      font-family: inherit;
+      cursor: pointer;
+      text-align: left;
+      border: 1px solid #e2e8f0;
+    }
+    .action-tile-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
 
     .actions-admin-row {
       display: flex;
@@ -922,5 +950,36 @@ export class DashboardComponent implements OnInit {
       case 'EN_CONTEO': return 'badge-info';
       default: return 'badge-neutral';
     }
+  }
+
+  exportingStats = signal(false);
+
+  exportStatsExcel() {
+    const s = this.selectedSession();
+    if (!s) {
+      this.toast.warning('Selecciona una sesión de inventario primero');
+      return;
+    }
+
+    this.exportingStats.set(true);
+    this.api.downloadDashboardStatsExcel(s.id).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        a.download = `Estadisticas_Inventario_${s.folio}_${dateStr}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        this.exportingStats.set(false);
+        this.toast.success(`Estadísticas de ${s.folio} exportadas a Excel exitosamente`);
+      },
+      error: (err) => {
+        this.exportingStats.set(false);
+        this.toast.error(err.error?.message || 'Error al exportar reporte de estadísticas en Excel');
+      }
+    });
   }
 }

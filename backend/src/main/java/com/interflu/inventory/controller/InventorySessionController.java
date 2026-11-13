@@ -5,6 +5,8 @@ import com.interflu.inventory.model.ShelfAssignment;
 import com.interflu.inventory.model.User;
 import com.interflu.inventory.security.CurrentUserHelper;
 import com.interflu.inventory.service.InventorySessionService;
+import com.interflu.inventory.service.SaeExportService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -111,5 +113,15 @@ public class InventorySessionController {
         boolean clearRecords = body != null && Boolean.TRUE.equals(body.get("clearRecords"));
         sessionService.resetShelf(id, shelfId, clearRecords, currentUser);
         return ResponseEntity.ok(Map.of("status", "ok", "shelfStatus", "PENDIENTE"));
+    }
+
+    @GetMapping("/{id}/export-stats-excel")
+    public ResponseEntity<byte[]> exportDashboardStatsExcel(@PathVariable Long id) {
+        User currentUser = userHelper.getCurrentUser();
+        SaeExportService.ExportResult result = sessionService.generateDashboardStatsExcel(id, currentUser);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + result.getFileName() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, result.getContentType())
+                .body(result.getContent());
     }
 }

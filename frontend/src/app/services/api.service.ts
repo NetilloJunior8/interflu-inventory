@@ -341,6 +341,13 @@ export class ApiService {
     return this.http.get<ValidationSummaryDto>(`${this.baseUrl}/validation/${sessionId}`);
   }
 
+  // Dashboard Stats Excel Export
+  downloadDashboardStatsExcel(sessionId: number): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/sessions/${sessionId}/export-stats-excel`, {
+      responseType: 'blob'
+    });
+  }
+
   // SAE Export
   downloadSaeExport(sessionId: number, format: 'EXCEL' | 'CSV' | 'TXT' = 'EXCEL', layout: 'IMPORT' | 'EXISTENCIA_FISICA' | 'RECONCILIACION' = 'EXISTENCIA_FISICA', shelfId?: number): Observable<Blob> {
     const params: any = { format, layout };
