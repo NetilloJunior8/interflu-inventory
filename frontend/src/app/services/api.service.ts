@@ -336,6 +336,10 @@ export class ApiService {
     return this.http.delete(`${this.baseUrl}/counts/${id}`);
   }
 
+  clearSessionCounts(sessionId: number): Observable<{ deletedCount: number; deletedPieces: number; message: string }> {
+    return this.http.delete<{ deletedCount: number; deletedPieces: number; message: string }>(`${this.baseUrl}/counts/session/${sessionId}`);
+  }
+
   // Validation
   getValidationSummary(sessionId: number): Observable<ValidationSummaryDto> {
     return this.http.get<ValidationSummaryDto>(`${this.baseUrl}/validation/${sessionId}`);

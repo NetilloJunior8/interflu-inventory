@@ -213,16 +213,26 @@ public class CountService {
 
         if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
             try (InputStream is = file.getInputStream(); Workbook workbook = WorkbookFactory.create(is)) {
-                Sheet sheet = workbook.getSheetAt(0);
                 DataFormatter formatter = new DataFormatter();
-                for (Row row : sheet) {
-                    List<String> cells = new ArrayList<>();
-                    for (int c = 0; c < Math.max(row.getLastCellNum(), 4); c++) {
-                        Cell cell = row.getCell(c, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                        cells.add(formatter.formatCellValue(cell).trim());
-                    }
-                    if (!cells.isEmpty() && !cells.get(0).isEmpty()) {
-                        parsedRows.add(cells.toArray(new String[0]));
+                // Read ALL sheets in the Excel workbook
+                for (int sIdx = 0; sIdx < workbook.getNumberOfSheets(); sIdx++) {
+                    Sheet sheet = workbook.getSheetAt(sIdx);
+                    for (Row row : sheet) {
+                        if (row == null) continue;
+                        List<String> cells = new ArrayList<>();
+                        int maxCols = Math.max(row.getLastCellNum(), 6);
+                        boolean hasAnyText = false;
+                        for (int c = 0; c < maxCols; c++) {
+                            Cell cell = row.getCell(c, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                            String val = formatter.formatCellValue(cell).trim();
+                            cells.add(val);
+                            if (!val.isBlank()) {
+                                hasAnyText = true;
+                            }
+                        }
+                        if (hasAnyText) {
+                            parsedRows.add(cells.toArray(new String[0]));
+                        }
                     }
                 }
             }
@@ -234,7 +244,16 @@ public class CountService {
                     if (line.trim().isEmpty()) continue;
                     String sep = line.contains("\t") ? "\t" : (line.contains(";") ? ";" : ",");
                     String[] parts = line.split(sep, -1);
-                    parsedRows.add(parts);
+                    boolean hasAnyText = false;
+                    for (int p = 0; p < parts.length; p++) {
+                        parts[p] = parts[p].trim();
+                        if (!parts[p].isBlank()) {
+                            hasAnyText = true;
+                        }
+                    }
+                    if (hasAnyText) {
+                        parsedRows.add(parts);
+                    }
                 }
             }
         }
@@ -243,33 +262,11 @@ public class CountService {
             throw new IllegalArgumentException("El archivo está vacío o no contiene filas legibles.");
         }
 
-        // Identify header columns
-        String[] header = parsedRows.get(0);
         int codeCol = 0;
         int qtyCol = 1;
         int shelfCol = -1;
         int descCol = -1;
 
-        boolean hasHeader = false;
-        for (int i = 0; i < header.length; i++) {
-            String colName = header[i].trim().toUpperCase().replace("\"", "");
-            // Match CLAVE but not CLAVE ESQ (which is an auxiliary SAE column)
-            if ((colName.contains("CVE") || colName.contains("COD") || colName.contains("ART") || colName.contains("CLAVE")) && !colName.contains("ESQ")) {
-                codeCol = i;
-                hasHeader = true;
-            } else if (colName.contains("CANT") || colName.contains("PIEZA") || colName.contains("QTY") || colName.contains("TOTAL") || colName.contains("FISIC") || colName.contains("FÍSIC") || colName.contains("EXISTENCIA")) {
-                qtyCol = i;
-                hasHeader = true;
-            } else if (colName.contains("ANAQUEL") || colName.contains("UBIC") || colName.contains("ZONA") || colName.contains("RACK")) {
-                shelfCol = i;
-                hasHeader = true;
-            } else if (colName.contains("DESC") || colName.contains("NOMBRE")) {
-                descCol = i;
-                hasHeader = true;
-            }
-        }
-
-        int startRow = hasHeader ? 1 : 0;
         int importedCount = 0;
         double totalPiecesImported = 0.0;
         Set<Long> affectedShelves = new HashSet<>();
@@ -284,11 +281,49 @@ public class CountService {
             defaultShelf = allShelves.isEmpty() ? null : allShelves.get(0);
         }
 
-        for (int i = startRow; i < parsedRows.size(); i++) {
+        for (int i = 0; i < parsedRows.size(); i++) {
             String[] row = parsedRows.get(i);
+            if (row.length == 0) continue;
+
+            // Check if this row is a header row (dynamically adjusts column positions for multiple tables/sheets)
+            boolean hasCodeKw = false;
+            boolean hasQtyKw = false;
+            for (int c = 0; c < row.length; c++) {
+                String cu = row[c].toUpperCase().replace("\"", "").trim();
+                if ((cu.contains("CVE") || cu.contains("COD") || cu.contains("ART") || cu.contains("CLAVE")) && !cu.contains("ESQ")) {
+                    hasCodeKw = true;
+                }
+                if (cu.contains("CANT") || cu.contains("PIEZA") || cu.contains("QTY") || cu.contains("TOTAL") || cu.contains("FISIC") || cu.contains("FÍSIC") || cu.contains("EXISTENCIA")) {
+                    hasQtyKw = true;
+                }
+            }
+
+            if (hasCodeKw && hasQtyKw) {
+                // Update column mappings from this header
+                for (int c = 0; c < row.length; c++) {
+                    String cu = row[c].toUpperCase().replace("\"", "").trim();
+                    if ((cu.contains("CVE") || cu.contains("COD") || cu.contains("ART") || cu.contains("CLAVE")) && !cu.contains("ESQ")) {
+                        codeCol = c;
+                    } else if (cu.contains("CANT") || cu.contains("PIEZA") || cu.contains("QTY") || cu.contains("TOTAL") || cu.contains("FISIC") || cu.contains("FÍSIC") || cu.contains("EXISTENCIA")) {
+                        qtyCol = c;
+                    } else if (cu.contains("ANAQUEL") || cu.contains("UBIC") || cu.contains("ZONA") || cu.contains("RACK")) {
+                        shelfCol = c;
+                    } else if (cu.contains("DESC") || cu.contains("NOMBRE")) {
+                        descCol = c;
+                    }
+                }
+                continue; // Skip header row!
+            }
+
             if (row.length <= codeCol) continue;
             String code = row[codeCol].replace("\"", "").trim().toUpperCase();
             if (code.isEmpty()) continue;
+
+            // Header keyword filter
+            if (code.equals("CLAVE") || code.equals("CVE") || code.equals("CODIGO") || code.equals("ARTICULO")
+                    || code.equals("EXISTENCIA") || code.equals("TOTAL") || code.contains("TIPO DE ELEMENTO")) {
+                continue;
+            }
 
             double qty = 0.0;
             if (row.length > qtyCol) {
@@ -307,9 +342,17 @@ public class CountService {
                 if (found.isPresent()) {
                     targetShelf = found.get();
                 } else {
-                    // Create shelf dynamically if not exists
                     Shelf newShelf = new Shelf(shelfName, "Área General", "Importado de Excel", "1", "Planta 1", 10.0, 10.0, 12.0, 8.0);
                     targetShelf = shelfRepo.save(newShelf);
+                }
+            } else if (targetShelfId == null) {
+                // If no specific shelf passed, check if product has an official location in catalog
+                Optional<Product> prodOpt = productRepo.findByCodeIgnoreCase(code);
+                if (prodOpt.isPresent() && prodOpt.get().getLocationSaE() != null && !prodOpt.get().getLocationSaE().isBlank()) {
+                    Optional<Shelf> foundLoc = shelfRepo.findByCodeIgnoreCase(prodOpt.get().getLocationSaE().trim());
+                    if (foundLoc.isPresent()) {
+                        targetShelf = foundLoc.get();
+                    }
                 }
             }
             if (targetShelf == null) continue;
@@ -345,14 +388,13 @@ public class CountService {
                 rec.setCapturedCode(code);
                 rec.setQuantity(qty);
                 rec.setUser(user);
-                rec.setNotes("Importado de archivo Excel: " + file.getOriginalFilename());
+                rec.setNotes("Importado de archivo: " + file.getOriginalFilename());
                 rec.setCountedAt(LocalDateTime.now());
                 rec.setUpdatedAt(LocalDateTime.now());
                 rec.setValidationStatus(CountRecord.ValidationStatus.VALIDO);
                 countRepo.save(rec);
             }
 
-            // Since this Excel contains already counted and verified items, mark shelf as COMPLETADO (Verde en croquis)
             sa.setStatus(ShelfAssignment.Status.COMPLETADO);
             sa.setCompletedAt(LocalDateTime.now());
             assignmentRepo.save(sa);
@@ -379,6 +421,38 @@ public class CountService {
         resp.put("shelvesUpdated", affectedShelves.size());
         resp.put("affectedShelves", affectedCodes);
         return resp;
+    }
+
+    @Transactional
+    public Map<String, Object> clearSessionCounts(Long sessionId, User user) {
+        InventorySession session = sessionRepo.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Sesión no encontrada"));
+
+        List<CountRecord> records = countRepo.findBySessionIdOrderByUpdatedAtDesc(sessionId);
+        int deletedCount = records.size();
+        Double totalPieces = countRepo.sumQuantityBySessionId(sessionId);
+        double pieces = totalPieces != null ? totalPieces : 0.0;
+
+        countRepo.deleteAll(records);
+
+        List<ShelfAssignment> assignments = assignmentRepo.findBySessionIdOrderByShelfCodeAsc(sessionId);
+        for (ShelfAssignment sa : assignments) {
+            sa.setStatus(ShelfAssignment.Status.PENDIENTE);
+            sa.setCompletedAt(null);
+            assignmentRepo.save(sa);
+        }
+
+        auditService.log(session.getId(), session.getFolio(), user.getUsername(), user.getFullName(),
+                "ELIMINAR_CONTEOS_IMPORTADOS", "InventorySession", session.getId(),
+                String.valueOf(deletedCount), "0",
+                String.format("Eliminación total de %d partidas (%.2f pzas) en sesión %s por %s",
+                        deletedCount, pieces, session.getFolio(), user.getFullName()));
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("deletedCount", deletedCount);
+        res.put("deletedPieces", pieces);
+        res.put("message", String.format("Se eliminaron exitosamente %d partidas (%.2f piezas). Los 171 anaqueles volvieron a estado Pendiente.", deletedCount, pieces));
+        return res;
     }
 
     @Transactional

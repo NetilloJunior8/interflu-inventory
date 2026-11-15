@@ -33,6 +33,13 @@ import { ToastService } from '../services/toast.service';
           <span>Importar Conteos de Excel</span>
           <input type="file" accept=".xlsx,.xls,.csv" (change)="onImportExcelCounts($event)" hidden />
         </label>
+
+        <!-- Clear Session Counts Button -->
+        <button class="btn btn-outline-danger" (click)="openClearCountsModal()" [disabled]="!selectedSession() || clearingCounts() || (selectedSession()?.totalRecords === 0)" title="Eliminar conteos de la sesión y restablecer anaqueles a Pendiente">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          <span>{{ clearingCounts() ? 'Limpiando...' : 'Eliminar Conteos' }}</span>
+        </button>
+
         <button class="btn btn-primary" (click)="showNewModal = true">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           Nuevo Inventario
@@ -204,6 +211,10 @@ import { ToastService } from '../services/toast.service';
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>
               Reabrir Cédula
             </button>
+            <button *ngIf="s.isEditable" class="btn btn-danger-subtle btn-sm" (click)="openClearCountsModal()" [disabled]="clearingCounts() || s.totalRecords === 0" title="Eliminar datos importados de este folio y reiniciar anaqueles">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              Limpiar Conteos
+            </button>
             <button class="btn btn-danger-subtle btn-sm" (click)="confirmDeleteSession(s)" title="Eliminar inventario y sus partidas">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               Eliminar Folio
@@ -365,6 +376,30 @@ import { ToastService } from '../services/toast.service';
         <div class="modal-footer">
           <button class="btn btn-secondary" (click)="sessionToDelete = null">Cancelar</button>
           <button class="btn btn-danger" (click)="executeDeleteSession()">Eliminar Definitivamente</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Clear Counts Confirmation -->
+    <div class="modal-backdrop" *ngIf="showClearCountsModal" (click)="showClearCountsModal = false">
+      <div class="modal-box" (click)="$event.stopPropagation()">
+        <h3 class="modal-title text-danger">Eliminar Conteos de la Sesión</h3>
+        <p class="modal-desc" *ngIf="selectedSession() as s">
+          ¿Deseas eliminar todas las partidas capturadas en el folio <strong>{{ s.folio }} &bull; {{ s.title }}</strong>?
+        </p>
+        <div class="delete-warning-box">
+          <strong>Acción de restablecimiento:</strong>
+          <ul style="margin: 6px 0 0 16px; padding: 0;">
+            <li>Se eliminarán todas las {{ selectedSession()?.totalRecords || 0 }} partidas contadas ({{ selectedSession()?.totalPieces | number:'1.0-2' }} piezas).</li>
+            <li>Los 171 anaqueles (87 PB y 84 PA) regresarán a estado <strong>PENDIENTE</strong> con 0 piezas.</li>
+            <li>Podrás importar nuevamente tu archivo Excel completo con todas sus hojas.</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="showClearCountsModal = false" [disabled]="clearingCounts()">Cancelar</button>
+          <button class="btn btn-danger" (click)="executeClearCounts()" [disabled]="clearingCounts()">
+            {{ clearingCounts() ? 'Eliminando...' : 'Sí, Eliminar Conteos' }}
+          </button>
         </div>
       </div>
     </div>
@@ -765,6 +800,27 @@ import { ToastService } from '../services/toast.service';
       background: #fee2e2;
       border-color: #fca5a5;
     }
+    .btn-outline-danger {
+      background: transparent;
+      color: #dc2626;
+      border: 1.5px solid #f87171;
+      font-weight: 600;
+      border-radius: var(--radius-md, 8px);
+      padding: 8px 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .btn-outline-danger:hover:not(:disabled) {
+      background: #fef2f2;
+      border-color: #dc2626;
+    }
+    .btn-outline-danger:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
     .fw-700 { font-weight: 700; }
     .fw-600 { font-weight: 600; }
     .muted { color: var(--text-muted); font-size: 12.5px; margin: 0; }
@@ -806,6 +862,8 @@ export class DashboardComponent implements OnInit {
   reopenReason = '';
 
   sessionToDelete: InventorySessionSummary | null = null;
+  showClearCountsModal = false;
+  clearingCounts = signal(false);
 
   constructor(
     private api: ApiService,
@@ -868,6 +926,32 @@ export class DashboardComponent implements OnInit {
       error: (err) => this.toast.error(err.error?.message || 'Error al importar archivo de Excel')
     });
     input.value = '';
+  }
+
+  openClearCountsModal() {
+    if (!this.selectedSession()) {
+      this.toast.warning('Selecciona primero un inventario');
+      return;
+    }
+    this.showClearCountsModal = true;
+  }
+
+  executeClearCounts() {
+    const s = this.selectedSession();
+    if (!s) return;
+    this.clearingCounts.set(true);
+    this.api.clearSessionCounts(s.id).subscribe({
+      next: (res) => {
+        this.clearingCounts.set(false);
+        this.showClearCountsModal = false;
+        this.toast.success(res.message || 'Conteos eliminados y 171 anaqueles restablecidos a Pendiente.');
+        this.loadData();
+      },
+      error: (err) => {
+        this.clearingCounts.set(false);
+        this.toast.error(err.error?.message || 'Error al eliminar los conteos');
+      }
+    });
   }
 
   openCloseModal(s: InventorySessionSummary) {

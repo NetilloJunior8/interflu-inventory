@@ -95,6 +95,17 @@ public class CountController {
         }
     }
 
+    @DeleteMapping("/session/{sessionId}")
+    public ResponseEntity<?> clearSessionCounts(@PathVariable Long sessionId) {
+        User currentUser = userHelper.getCurrentUser();
+        try {
+            Map<String, Object> result = countService.clearSessionCounts(sessionId, currentUser);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     private Map<String, Object> toDto(CountRecord r) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", r.getId());
