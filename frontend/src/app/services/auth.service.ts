@@ -47,9 +47,29 @@ export class AuthService {
   private loadStoredUser(): AuthUser | null {
     try {
       const raw = localStorage.getItem(this.STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
+      const token = localStorage.getItem(this.TOKEN_KEY);
+      if (!raw || !token) return null;
+      if (this.isTokenExpired(token)) {
+        localStorage.removeItem(this.STORAGE_KEY);
+        localStorage.removeItem(this.TOKEN_KEY);
+        return null;
+      }
+      return JSON.parse(raw);
     } catch {
       return null;
     }
   }
+
+  private isTokenExpired(token: string): boolean {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return true;
+      const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+      if (!payload.exp) return false;
+      return Date.now() >= payload.exp * 1000;
+    } catch {
+      return true;
+    }
+  }
 }
+
