@@ -211,28 +211,66 @@ public class CountService {
         String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase() : "";
         List<String[]> parsedRows = new ArrayList<>();
 
+        // Shelf resolution: either passed explicitly or matched from file name (e.g., "ACEROS 5" -> "PB-ACE-05")
+        Shelf defaultShelf = null;
+        if (targetShelfId != null) {
+            defaultShelf = shelfRepo.findById(targetShelfId).orElse(null);
+        }
+        if (defaultShelf == null && file.getOriginalFilename() != null) {
+            String cleanName = file.getOriginalFilename().toUpperCase();
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("ACEROS?\\s*(\\d+)|PB-ACE-(\\d+)|ACE-(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(cleanName);
+            if (m.find()) {
+                String numStr = m.group(1) != null ? m.group(1) : (m.group(2) != null ? m.group(2) : m.group(3));
+                int num = Integer.parseInt(numStr);
+                String targetCode = String.format("PB-ACE-%02d", num);
+                defaultShelf = shelfRepo.findByCodeIgnoreCase(targetCode).orElse(null);
+            }
+        }
+        if (defaultShelf == null) {
+            List<Shelf> allShelves = shelfRepo.findByActiveTrueOrderByCodeAsc();
+            defaultShelf = allShelves.isEmpty() ? null : allShelves.get(0);
+        }
+
         if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
             try (InputStream is = file.getInputStream(); Workbook workbook = WorkbookFactory.create(is)) {
                 DataFormatter formatter = new DataFormatter();
-                // Read ALL sheets in the Excel workbook
-                for (int sIdx = 0; sIdx < workbook.getNumberOfSheets(); sIdx++) {
-                    Sheet sheet = workbook.getSheetAt(sIdx);
-                    for (Row row : sheet) {
-                        if (row == null) continue;
-                        List<String> cells = new ArrayList<>();
-                        int maxCols = Math.max(row.getLastCellNum(), 6);
-                        boolean hasAnyText = false;
-                        for (int c = 0; c < maxCols; c++) {
-                            Cell cell = row.getCell(c, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                            String val = formatter.formatCellValue(cell).trim();
-                            cells.add(val);
-                            if (!val.isBlank()) {
-                                hasAnyText = true;
-                            }
+
+                // Select the sheet:
+                // Priority 1: If defaultShelf is known, check if any sheet matches shelf code or number
+                // Priority 2: Use the ACTIVE sheet (workbook.getActiveSheetIndex()), which is where user saved data in Excel!
+                int selectedSheetIdx = workbook.getActiveSheetIndex();
+                if (selectedSheetIdx < 0 || selectedSheetIdx >= workbook.getNumberOfSheets()) {
+                    selectedSheetIdx = 0;
+                }
+
+                if (defaultShelf != null) {
+                    for (int sIdx = 0; sIdx < workbook.getNumberOfSheets(); sIdx++) {
+                        String sName = workbook.getSheetName(sIdx).trim().toUpperCase();
+                        if (sName.equalsIgnoreCase(defaultShelf.getCode())
+                                || sName.equalsIgnoreCase(defaultShelf.getCode().replace("PB-", ""))
+                                || sName.equalsIgnoreCase(defaultShelf.getCode().replace("PB-ACE-", ""))) {
+                            selectedSheetIdx = sIdx;
+                            break;
                         }
-                        if (hasAnyText) {
-                            parsedRows.add(cells.toArray(new String[0]));
+                    }
+                }
+
+                Sheet sheet = workbook.getSheetAt(selectedSheetIdx);
+                for (Row row : sheet) {
+                    if (row == null) continue;
+                    List<String> cells = new ArrayList<>();
+                    int maxCols = Math.max(row.getLastCellNum(), 6);
+                    boolean hasAnyText = false;
+                    for (int c = 0; c < maxCols; c++) {
+                        Cell cell = row.getCell(c, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                        String val = formatter.formatCellValue(cell).trim();
+                        cells.add(val);
+                        if (!val.isBlank()) {
+                            hasAnyText = true;
                         }
+                    }
+                    if (hasAnyText) {
+                        parsedRows.add(cells.toArray(new String[0]));
                     }
                 }
             }
@@ -241,6 +279,9 @@ public class CountService {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
+                    if (line.startsWith("\uFEFF")) {
+                        line = line.substring(1);
+                    }
                     if (line.trim().isEmpty()) continue;
                     String sep = line.contains("\t") ? "\t" : (line.contains(";") ? ";" : ",");
                     String[] parts = line.split(sep, -1);
@@ -262,8 +303,8 @@ public class CountService {
             throw new IllegalArgumentException("El archivo está vacío o no contiene filas legibles.");
         }
 
-        int codeCol = 0;
-        int qtyCol = 1;
+        int codeCol = -1;
+        int qtyCol = -1;
         int shelfCol = -1;
         int descCol = -1;
 
@@ -271,34 +312,31 @@ public class CountService {
         double totalPiecesImported = 0.0;
         Set<Long> affectedShelves = new HashSet<>();
 
-        // Default shelf: either passed specifically or first available active shelf
-        Shelf defaultShelf = null;
-        if (targetShelfId != null) {
-            defaultShelf = shelfRepo.findById(targetShelfId).orElse(null);
-        }
-        if (defaultShelf == null) {
-            List<Shelf> allShelves = shelfRepo.findByActiveTrueOrderByCodeAsc();
-            defaultShelf = allShelves.isEmpty() ? null : allShelves.get(0);
+        // If a specific target shelf was selected or inferred, reset its previous counts so physical import is exact
+        if (defaultShelf != null) {
+            List<CountRecord> oldShelfRecords = countRepo.findBySessionIdAndShelfId(session.getId(), defaultShelf.getId());
+            if (!oldShelfRecords.isEmpty()) {
+                countRepo.deleteAll(oldShelfRecords);
+            }
         }
 
         for (int i = 0; i < parsedRows.size(); i++) {
             String[] row = parsedRows.get(i);
             if (row.length == 0) continue;
 
-            // Check if this row is a header row (dynamically adjusts column positions for multiple tables/sheets)
-            boolean hasCodeKw = false;
-            boolean hasQtyKw = false;
+            // Check if this row is a header row
+            boolean isHeader = false;
             for (int c = 0; c < row.length; c++) {
                 String cu = row[c].toUpperCase().replace("\"", "").trim();
                 if ((cu.contains("CVE") || cu.contains("COD") || cu.contains("ART") || cu.contains("CLAVE")) && !cu.contains("ESQ")) {
-                    hasCodeKw = true;
+                    isHeader = true;
                 }
                 if (cu.contains("CANT") || cu.contains("PIEZA") || cu.contains("QTY") || cu.contains("TOTAL") || cu.contains("FISIC") || cu.contains("FÍSIC") || cu.contains("EXISTENCIA")) {
-                    hasQtyKw = true;
+                    isHeader = true;
                 }
             }
 
-            if (hasCodeKw && hasQtyKw) {
+            if (isHeader) {
                 // Update column mappings from this header
                 for (int c = 0; c < row.length; c++) {
                     String cu = row[c].toUpperCase().replace("\"", "").trim();
@@ -315,18 +353,35 @@ public class CountService {
                 continue; // Skip header row!
             }
 
+            // Fallback for headerless rows
+            if (codeCol < 0 || qtyCol < 0) {
+                if (row.length >= 5 && (row[0].equalsIgnoreCase("A") || row[1].equalsIgnoreCase("P"))) {
+                    // Aspel SAE 5-column format: ESTATUS, TIPO, CLAVE, ESQ, EXISTENCIA
+                    codeCol = 2;
+                    qtyCol = 4;
+                } else if (row.length >= 3) {
+                    codeCol = 0;
+                    qtyCol = 2;
+                } else {
+                    codeCol = 0;
+                    qtyCol = 1;
+                }
+            }
+
             if (row.length <= codeCol) continue;
             String code = row[codeCol].replace("\"", "").trim().toUpperCase();
             if (code.isEmpty()) continue;
 
             // Header keyword filter
-            if (code.equals("CLAVE") || code.equals("CVE") || code.equals("CODIGO") || code.equals("ARTICULO")
-                    || code.equals("EXISTENCIA") || code.equals("TOTAL") || code.contains("TIPO DE ELEMENTO")) {
+            if (code.equals("CLAVE") || code.equals("CVE") || code.equals("CVE_ART")
+                    || code.equals("CODIGO") || code.equals("ARTICULO")
+                    || code.equals("EXISTENCIA") || code.equals("EXISTENCIA FÍSICA") || code.equals("TOTAL")
+                    || code.contains("TIPO DE ELEMENTO") || code.equals("ESTATUS")) {
                 continue;
             }
 
             double qty = 0.0;
-            if (row.length > qtyCol) {
+            if (row.length > qtyCol && row[qtyCol] != null) {
                 try {
                     qty = Double.parseDouble(row[qtyCol].replace("\"", "").replace(",", "").trim());
                 } catch (NumberFormatException ignored) {}
@@ -345,8 +400,7 @@ public class CountService {
                     Shelf newShelf = new Shelf(shelfName, "Área General", "Importado de Excel", "1", "Planta 1", 10.0, 10.0, 12.0, 8.0);
                     targetShelf = shelfRepo.save(newShelf);
                 }
-            } else if (targetShelfId == null) {
-                // If no specific shelf passed, check if product has an official location in catalog
+            } else if (targetShelfId == null && defaultShelf == null) {
                 Optional<Product> prodOpt = productRepo.findByCodeIgnoreCase(code);
                 if (prodOpt.isPresent() && prodOpt.get().getLocationSaE() != null && !prodOpt.get().getLocationSaE().isBlank()) {
                     Optional<Shelf> foundLoc = shelfRepo.findByCodeIgnoreCase(prodOpt.get().getLocationSaE().trim());
@@ -369,7 +423,7 @@ public class CountService {
                 return productRepo.save(p);
             });
 
-            // Save or accumulate count
+            // Save or accumulate count for exact physical count
             Optional<CountRecord> existingOpt = countRepo.findBySessionIdAndShelfIdAndCapturedCodeIgnoreCase(
                     session.getId(), finalShelf.getId(), code);
 
@@ -378,7 +432,7 @@ public class CountService {
                 rec.setPreviousQuantity(rec.getQuantity());
                 rec.setQuantity(rec.getQuantity() + qty);
                 rec.setUpdatedAt(LocalDateTime.now());
-                rec.setValidationStatus(CountRecord.ValidationStatus.REPETIDO_SUMADO);
+                rec.setValidationStatus(CountRecord.ValidationStatus.VALIDO);
                 countRepo.save(rec);
             } else {
                 CountRecord rec = new CountRecord();

@@ -393,14 +393,14 @@ export interface SheetRow {
                   <span *ngIf="row.isDuplicate" class="alert-pill duplicate">
                     Repetido ({{ row.duplicateInfo }})
                   </span>
-                  <span *ngIf="row.similarAlert && !row.isDuplicate" class="alert-pill similar-pill" [title]="row.similarAlert.detail">
-                    Similar: {{ row.similarAlert.similarTo }}
-                  </span>
-                  <span *ngIf="!row.isDuplicate && !row.similarAlert && row.inCatalog" class="alert-pill catalog">
+                  <span *ngIf="!row.isDuplicate && row.inCatalog" class="alert-pill catalog">
                     Catálogo
                   </span>
-                  <span *ngIf="!row.isDuplicate && !row.similarAlert && !row.inCatalog && row.code" class="alert-pill new-code">
-                    Nuevo
+                  <span *ngIf="!row.isDuplicate && !row.inCatalog && row.code" class="alert-pill new-code">
+                    Válido
+                  </span>
+                  <span *ngIf="row.similarAlert && !row.isDuplicate && !row.inCatalog" class="alert-pill similar-pill" [title]="row.similarAlert.detail">
+                    Similar: {{ row.similarAlert.similarTo }}
                   </span>
                 </td>
 
@@ -1753,8 +1753,8 @@ export class CaptureComponent implements OnInit {
         r.isDuplicate = false;
         r.duplicateInfo = undefined;
 
-        // Check similar codes (only if not an exact duplicate)
-        if (clean.length >= 3) {
+        // Check similar codes (only if not an exact duplicate and not in catalog)
+        if (clean.length >= 3 && !r.inCatalog && r.isNew) {
           const otherCodes = allSheetCodes.filter((_, i) => i !== idx);
           const alerts = this.patternSuggester.detectSimilarCodes(clean, otherCodes);
           r.similarAlert = alerts.length > 0 ? alerts[0] : undefined;
@@ -1859,14 +1859,62 @@ export class CaptureComponent implements OnInit {
     const lines = rawText.split(/\r?\n/).filter(l => l.trim().length > 0);
     const newItems: SheetRow[] = [];
 
+    let codeCol = -1;
+    let qtyCol = -1;
+
     for (const line of lines) {
-      const parts = line.includes('\t') ? line.split('\t') : line.split(/[,;]/);
-      const code = parts[0]?.trim().toUpperCase();
+      const parts = (line.includes('\t') ? line.split('\t') : line.split(/[,;]/))
+        .map(p => p.trim());
+      if (parts.length === 0 || parts.every(p => p.length === 0)) continue;
+
+      // Header detection:
+      let isHeader = false;
+      for (let c = 0; c < parts.length; c++) {
+        const cu = parts[c].toUpperCase();
+        if ((cu.includes('CVE') || cu.includes('COD') || cu.includes('ART') || cu.includes('CLAVE')) && !cu.includes('ESQ')) {
+          isHeader = true;
+          codeCol = c;
+        }
+        if (cu.includes('CANT') || cu.includes('PIEZA') || cu.includes('QTY') || cu.includes('TOTAL') || cu.includes('FISIC') || cu.includes('FÍSIC') || cu.includes('EXISTENCIA')) {
+          isHeader = true;
+          qtyCol = c;
+        }
+      }
+      if (isHeader) continue; // Skip header line!
+
+      // If columns not determined from header, detect by structure:
+      let cCol = codeCol;
+      let qCol = qtyCol;
+
+      if (cCol < 0 || qCol < 0) {
+        if (parts.length >= 5 && (parts[0].toUpperCase() === 'A' || parts[1].toUpperCase() === 'P')) {
+          // Aspel SAE 5-column format: ESTATUS, TIPO, CLAVE, ESQ, EXISTENCIA FÍSICA
+          cCol = 2;
+          qCol = 4;
+        } else if (parts.length >= 3) {
+          cCol = 0;
+          qCol = 2;
+        } else if (parts.length === 2) {
+          cCol = 0;
+          qCol = 1;
+        } else {
+          cCol = 0;
+          qCol = -1;
+        }
+      }
+
+      if (cCol >= parts.length) continue;
+      const code = parts[cCol]?.trim().toUpperCase().replace(/["']/g, '');
       if (!code) continue;
 
-      let qty = 0;
-      if (parts[1]) {
-        const parsed = parseFloat(parts[1].replace(/[^0-9.]/g, ''));
+      // Filter out header words that might slip through
+      if (code === 'CLAVE' || code === 'CVE' || code === 'CVE_ART' || code === 'CODIGO' || code === 'ESTATUS' || code.includes('TIPO DE ELEMENTO')) {
+        continue;
+      }
+
+      let qty = 1;
+      if (qCol >= 0 && qCol < parts.length && parts[qCol]) {
+        const parsed = parseFloat(parts[qCol].replace(/[^0-9.]/g, ''));
         if (!isNaN(parsed)) qty = parsed;
       }
 
@@ -1875,7 +1923,7 @@ export class CaptureComponent implements OnInit {
         code,
         quantity: qty,
         unit: 'PZA',
-        inCatalog: false,
+        inCatalog: true,
         isNew: true
       });
     }
@@ -1886,7 +1934,7 @@ export class CaptureComponent implements OnInit {
       this.recalculateDuplicates();
       this.hasUnsavedChanges.set(true);
       this.patternSuggester.learnBulk(newItems.map(i => i.code));
-      this.toast.success(`Se insertaron ${newItems.length} renglones de Excel.`);
+      this.toast.success(`Se insertaron ${newItems.length} renglones de Excel correctamente.`);
     }
   }
 
