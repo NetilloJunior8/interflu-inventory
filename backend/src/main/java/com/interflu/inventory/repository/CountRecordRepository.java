@@ -33,4 +33,7 @@ public interface CountRecordRepository extends JpaRepository<CountRecord, Long> 
 
     @Query("SELECT COUNT(DISTINCT c.capturedCode) FROM CountRecord c WHERE c.session.id = :sessionId")
     long countDistinctCodesBySessionId(@Param("sessionId") Long sessionId);
+
+    @Query("SELECT c.shelf.id, COUNT(c.id), COALESCE(SUM(c.quantity), 0.0) FROM CountRecord c WHERE c.session.id = :sessionId GROUP BY c.shelf.id")
+    List<Object[]> getShelfStatsBySessionId(@Param("sessionId") Long sessionId);
 }

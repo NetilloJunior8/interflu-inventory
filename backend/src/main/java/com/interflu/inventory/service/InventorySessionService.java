@@ -309,7 +309,19 @@ public class InventorySessionService {
     public List<Map<String, Object>> getShelfAssignments(Long sessionId, User currentUser) {
         List<ShelfAssignment> assignments = assignmentRepo.findBySessionIdOrderByShelfCodeAsc(sessionId);
 
-        List<Map<String, Object>> list = new ArrayList<>();
+        // Fetch counts and sums for all shelves in 1 single query instead of 342 separate queries
+        List<Object[]> statsRows = countRepo.getShelfStatsBySessionId(sessionId);
+        Map<Long, Long> countMap = new HashMap<>();
+        Map<Long, Double> sumMap = new HashMap<>();
+        for (Object[] row : statsRows) {
+            Long sId = (Long) row[0];
+            Long cnt = ((Number) row[1]).longValue();
+            Double sum = ((Number) row[2]).doubleValue();
+            countMap.put(sId, cnt);
+            sumMap.put(sId, sum);
+        }
+
+        List<Map<String, Object>> list = new ArrayList<>(assignments.size());
         for (ShelfAssignment a : assignments) {
             Map<String, Object> map = new HashMap<>();
             map.put("assignmentId", a.getId());
@@ -326,11 +338,12 @@ public class InventorySessionService {
             map.put("assignedUserId", a.getAssignedUser() != null ? a.getAssignedUser().getId() : null);
             map.put("assignedUserName", a.getAssignedUser() != null ? a.getAssignedUser().getFullName() : "Por Asignar");
 
-            long recordCount = countRepo.countBySessionIdAndShelfId(sessionId, a.getShelf().getId());
-            Double totalPieces = countRepo.sumQuantityBySessionAndShelf(sessionId, a.getShelf().getId());
+            Long sId = a.getShelf().getId();
+            long recordCount = countMap.getOrDefault(sId, 0L);
+            Double totalPieces = sumMap.getOrDefault(sId, 0.0);
 
             map.put("recordCount", recordCount);
-            map.put("totalPieces", totalPieces != null ? totalPieces : 0.0);
+            map.put("totalPieces", totalPieces);
             list.add(map);
         }
         return list;
