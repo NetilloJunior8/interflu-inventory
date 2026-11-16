@@ -735,6 +735,15 @@ import { ToastService } from '../services/toast.service';
               </button>
             </div>
             <div class="footer-right-group">
+              <button
+                *ngIf="inspectedShelf.recordCount > 0 || inspectedShelf.totalPieces > 0"
+                class="btn btn-outline"
+                (click)="downloadShelfMaterialsZip(inspectedShelf)"
+                title="Descargar todos los códigos QR de materiales de este anaquel en archivo ZIP con nombres individuales como CODIGO.png"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                QRs Materiales (.zip)
+              </button>
               <button class="btn btn-outline-primary" (click)="downloadShelfQrPng(inspectedShelf)" title="Descargar código QR puro en PNG con el nombre del anaquel para pegar o rotular">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                 Descargar QR (.png)
@@ -2204,6 +2213,28 @@ export class CroquisComponent implements OnInit {
     } catch (err: any) {
       this.toast.error('Error al generar código QR: ' + err.message);
     }
+  }
+
+  downloadShelfMaterialsZip(shelf: ShelfAssignmentDto) {
+    if (!shelf) return;
+    this.toast.info(`Generando ZIP de materiales para ${shelf.shelfCode}...`);
+    this.api.downloadShelfMaterialsZip(shelf.shelfId, this.activeSessionId()).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const safeName = shelf.shelfCode.replace(/[\/\\:*?"<>|]/g, '_').trim();
+        a.download = `QRs_${safeName}_materiales.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        this.toast.success(`Descargados códigos QR de ${shelf.shelfCode} en ZIP.`);
+      },
+      error: (err) => {
+        this.toast.error('Error al descargar ZIP de materiales: ' + (err.error?.message || err.message));
+      }
+    });
   }
 
   // Rack Clicks and Drag & Drop (Modo Acomodo Fluido)

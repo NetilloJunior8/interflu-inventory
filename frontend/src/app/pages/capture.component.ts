@@ -5,6 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subject, of } from 'rxjs';
 import { debounceTime, switchMap, distinctUntilChanged } from 'rxjs/operators';
 import * as QRCode from 'qrcode';
+import JSZip from 'jszip';
 import {
   ApiService,
   InventorySessionSummary,
@@ -312,6 +313,15 @@ export interface SheetRow {
               Limpiar Filas Vacías
             </button>
             <button
+              class="btn btn-sm btn-outline"
+              [disabled]="validRowCount() === 0"
+              (click)="downloadCurrentShelfMaterialsZip()"
+              title="Descargar todos los códigos QR de materiales de este anaquel en archivo ZIP con nombres individuales como CODIGO.png"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Descargar QRs Materiales (.zip)
+            </button>
+            <button
               class="btn btn-sm btn-ghost text-danger"
               [disabled]="!isEditable() || (validRowCount() === 0 && totalPieces() === 0)"
               (click)="openClearCurrentShelfModal()"
@@ -425,6 +435,15 @@ export interface SheetRow {
                 <!-- Row Actions (Insert Intermediate Row "en media celda", Delete) -->
                 <td class="td-actions" *ngIf="isEditable()">
                   <div class="action-buttons">
+                    <button
+                      type="button"
+                      class="action-btn"
+                      *ngIf="row.code"
+                      (click)="downloadRowMaterialQr(row.code)"
+                      title="Descargar código QR de este material como {{ row.code }}.png"
+                    >
+                      QR (.png)
+                    </button>
                     <button
                       type="button"
                       class="action-btn insert-btn"
@@ -1730,6 +1749,110 @@ export class CaptureComponent implements OnInit {
       this.toast.success(`Código QR de ${sh.shelfCode} descargado como ${sh.shelfCode}.png`);
     } catch (e: any) {
       this.toast.error('Error al generar código QR: ' + e.message);
+    }
+  }
+
+  sanitizeFilename(code: string): string {
+    if (!code) return 'codigo';
+    return code
+      .replace(/[\/\\:*?"<>|]/g, '_')
+      .replace(/\s+/g, '_')
+      .trim();
+  }
+
+  async downloadRowMaterialQr(code: string) {
+    if (!code) return;
+    const cleanCode = code.trim().toUpperCase();
+    try {
+      const qrDataUrl = await QRCode.toDataURL(cleanCode, {
+        width: 500,
+        margin: 2,
+        errorCorrectionLevel: 'H',
+        color: { dark: '#000000', light: '#ffffff' }
+      });
+      const safeFilename = `${this.sanitizeFilename(cleanCode)}.png`;
+      const a = document.createElement('a');
+      a.href = qrDataUrl;
+      a.download = safeFilename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      this.toast.success(`Código QR descargado: ${safeFilename}`);
+    } catch (e: any) {
+      this.toast.error('Error al generar código QR: ' + e.message);
+    }
+  }
+
+  async downloadCurrentShelfMaterialsZip() {
+    const sh = this.currentShelf();
+    if (!sh) return;
+    const rowsWithCode = this.rows().filter(r => r.code && r.code.trim().length > 0);
+    if (rowsWithCode.length === 0) {
+      this.toast.warning('No hay partidas con código en esta cédula.');
+      return;
+    }
+
+    const shelfCode = sh.shelfCode;
+    this.toast.info(`Generando archivo ZIP de códigos para ${shelfCode}...`);
+
+    if (sh.shelfId && this.selectedSessionId() > 0) {
+      this.api.downloadShelfMaterialsZip(sh.shelfId, this.selectedSessionId()).subscribe({
+        next: (blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `QRs_${this.sanitizeFilename(shelfCode)}_materiales.zip`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+          this.toast.success(`Descargados códigos QR de ${shelfCode} en ZIP.`);
+        },
+        error: async () => {
+          await this.generateClientSideShelfRowsZip(shelfCode, rowsWithCode);
+        }
+      });
+    } else {
+      await this.generateClientSideShelfRowsZip(shelfCode, rowsWithCode);
+    }
+  }
+
+  async generateClientSideShelfRowsZip(shelfCode: string, rows: SheetRow[]) {
+    try {
+      const zip = new JSZip();
+      const folder = zip.folder(`QRs_${this.sanitizeFilename(shelfCode)}`);
+
+      const uniqueCodes = new Set<string>();
+      for (const r of rows) {
+        if (r.code && r.code.trim()) {
+          uniqueCodes.add(r.code.trim().toUpperCase());
+        }
+      }
+
+      for (const code of uniqueCodes) {
+        const qrDataUrl = await QRCode.toDataURL(code, {
+          width: 500,
+          margin: 2,
+          errorCorrectionLevel: 'H',
+          color: { dark: '#000000', light: '#ffffff' }
+        });
+        const base64Data = qrDataUrl.replace(/^data:image\/png;base64,/, '');
+        const filename = `${this.sanitizeFilename(code)}.png`;
+        folder?.file(filename, base64Data, { base64: true });
+      }
+
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = window.URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `QRs_${this.sanitizeFilename(shelfCode)}_materiales.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      this.toast.success(`Descargados ${uniqueCodes.size} códigos QR de ${shelfCode} en ZIP.`);
+    } catch (e: any) {
+      this.toast.error('Error al generar archivo ZIP: ' + e.message);
     }
   }
 

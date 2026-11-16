@@ -344,6 +344,26 @@ export class ApiService {
     return this.http.delete<{ deletedCount: number; deletedPieces: number; message: string }>(`${this.baseUrl}/counts/session/${sessionId}`);
   }
 
+  // Material QR Downloads
+  downloadMaterialQrBlob(code: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/qr/material/${encodeURIComponent(code)}`, {
+      responseType: 'blob'
+    });
+  }
+
+  downloadShelfMaterialsZip(shelfId: number, sessionId: number): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/qr/shelf/${shelfId}/materials-zip`, {
+      params: { sessionId },
+      responseType: 'blob'
+    });
+  }
+
+  downloadSessionMaterialsBatchZip(sessionId: number): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/qr/session/${sessionId}/materials-batch-zip`, {
+      responseType: 'blob'
+    });
+  }
+
   // Validation
   getValidationSummary(sessionId: number): Observable<ValidationSummaryDto> {
     return this.http.get<ValidationSummaryDto>(`${this.baseUrl}/validation/${sessionId}`);

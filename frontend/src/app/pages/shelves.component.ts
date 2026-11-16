@@ -88,6 +88,14 @@ import { ToastService } from '../services/toast.service';
           <button class="btn btn-outline btn-sm" (click)="downloadShelfQr(s)" title="Descargar código QR puro en PNG">
             QR (.png)
           </button>
+          <button
+            *ngIf="(s.totalPieces || 0) > 0 || (s.recordCount || 0) > 0"
+            class="btn btn-outline btn-sm"
+            (click)="downloadShelfMaterialsZip(s)"
+            title="Descargar todos los códigos QR de materiales de este anaquel en archivo ZIP con nombres individuales como CODIGO.png"
+          >
+            QRs (.zip)
+          </button>
           <button class="btn btn-secondary btn-sm" (click)="openEditShelf(s)" title="Editar código, zona o sector">
             Editar
           </button>
@@ -534,6 +542,28 @@ export class ShelvesComponent implements OnInit {
       error: (err) => {
         this.clearingShelfCounts.set(false);
         this.toast.error(err.error?.message || 'Error al limpiar conteos del anaquel');
+      }
+    });
+  }
+
+  downloadShelfMaterialsZip(shelf: ShelfAssignmentDto) {
+    if (!shelf) return;
+    this.toast.info(`Generando ZIP de materiales para ${shelf.shelfCode}...`);
+    this.api.downloadShelfMaterialsZip(shelf.shelfId, this.selectedSessionId()).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const safeName = shelf.shelfCode.replace(/[\/\\:*?"<>|]/g, '_').trim();
+        a.download = `QRs_${safeName}_materiales.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        this.toast.success(`Descargados códigos QR de ${shelf.shelfCode} en ZIP.`);
+      },
+      error: (err) => {
+        this.toast.error('Error al descargar ZIP de materiales: ' + (err.error?.message || err.message));
       }
     });
   }

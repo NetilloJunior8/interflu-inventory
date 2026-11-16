@@ -39,23 +39,8 @@ export interface MaterialQrItem {
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="page-container">
-      <!-- Main Tab Switcher: Rótulos de Anaqueles vs Etiquetas de Materiales -->
+      <!-- Main Tab Switcher: Materiales (Primario) vs Rótulos de Anaqueles Físicos -->
       <div class="tabs-main-bar no-print">
-        <button
-          type="button"
-          class="tab-main-btn"
-          [class.active]="activeTab() === 'SHELVES'"
-          (click)="activeTab.set('SHELVES')"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
-            <path d="M3 9h18"></path>
-            <path d="M9 21V9"></path>
-          </svg>
-          <span>Rótulos QR de Anaqueles (171 Físicos)</span>
-          <span class="tab-badge">{{ filteredShelfLabels().length }}</span>
-        </button>
-
         <button
           type="button"
           class="tab-main-btn"
@@ -68,8 +53,23 @@ export interface MaterialQrItem {
             <rect x="14" y="14" width="7" height="7"></rect>
             <rect x="3" y="14" width="7" height="7"></rect>
           </svg>
-          <span>Etiquetas QR por Refacción</span>
+          <span>Códigos QR de Materiales por Anaquel (Individual / Anaquel / Lote)</span>
           <span class="tab-badge">{{ filteredMaterialLabels().length }}</span>
+        </button>
+
+        <button
+          type="button"
+          class="tab-main-btn"
+          [class.active]="activeTab() === 'SHELVES'"
+          (click)="activeTab.set('SHELVES')"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+            <path d="M3 9h18"></path>
+            <path d="M9 21V9"></path>
+          </svg>
+          <span>Rótulos QR de Anaqueles Físicos (171 Racks)</span>
+          <span class="tab-badge">{{ filteredShelfLabels().length }}</span>
         </button>
       </div>
 
@@ -337,16 +337,16 @@ export interface MaterialQrItem {
       </ng-container>
 
       <!-- ==================================================== -->
-      <!-- TAB 2: ETIQUETAS QR POR MATERIAL (REFACCIONES)       -->
+      <!-- TAB: ETIQUETAS QR POR MATERIAL (REFACCIONES POR ANAQUEL) -->
       <!-- ==================================================== -->
       <ng-container *ngIf="activeTab() === 'MATERIALS'">
         <!-- Page Header -->
         <div class="page-header no-print">
           <div class="header-titles">
             <div class="header-badges">
-              <span class="badge badge-brand">Rotulación de Materiales y Refacciones</span>
+              <span class="badge badge-brand">Rotulación Oficial de Materiales</span>
               <span class="badge badge-neutral">
-                {{ filteredMaterialLabels().length }} Códigos QR Listos
+                {{ filteredMaterialLabels().length }} Materiales Mostrados
               </span>
               <span class="badge badge-success" *ngIf="session() as s">
                 Folio: {{ s.folio }}
@@ -355,20 +355,19 @@ export interface MaterialQrItem {
                 Anaquel: {{ selectedShelfFilter }}
               </span>
             </div>
-            <h1 class="page-title">Centro de Etiquetas y Códigos QR por Material</h1>
+            <h1 class="page-title">Códigos QR por Material y Anaquel</h1>
             <p class="page-subtitle">
-              Generación oficial de etiquetas QR para refacciones y partidas contabilizadas en cada anaquel.
-              Si un anaquel contiene 55 códigos diferentes, se generan sus 55 códigos QR para impresión o descarga masiva en ZIP.
+              Generación de códigos QR oficiales para cada uno de los materiales del almacén. Cada código QR se genera con el nombre del código de la refacción (ej. <strong>C90N80.png</strong>). Puedes descargarlos <strong>de forma individual</strong>, <strong>por anaquel específico (ZIP)</strong> o <strong>por lote completo de todo el inventario (ZIP)</strong>.
             </p>
           </div>
 
           <div class="header-actions">
-            <!-- Bulk ZIP Download Button -->
+            <!-- 1. Download Full Batch ZIP (All Shelves) -->
             <button
               class="btn btn-zip"
-              (click)="downloadAllAsZip()"
-              [disabled]="isZipping() || filteredMaterialLabels().length === 0"
-              title="Descargar todos los códigos QR mostrados en un archivo ZIP comprimido"
+              (click)="downloadAllMaterialsZip()"
+              [disabled]="isZipping() || materialLabels().length === 0"
+              title="Descargar todos los códigos QR del inventario completo en un archivo ZIP organizado por carpetas de cada anaquel"
             >
               <svg *ngIf="!isZipping()" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -376,21 +375,38 @@ export interface MaterialQrItem {
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
               <span *ngIf="isZipping()" class="spinner-sm"></span>
-              <span>{{ isZipping() ? 'Generando ZIP...' : 'Descargar ZIP (' + filteredMaterialLabels().length + ')' }}</span>
+              <span>{{ isZipping() ? 'Generando ZIP...' : 'Descargar Lote Completo (Todos los Anaqueles en ZIP)' }}</span>
             </button>
 
-            <!-- Print Batch Button -->
+            <!-- 2. Download Selected Shelf ZIP -->
+            <button
+              *ngIf="selectedShelfFilter !== 'ALL'"
+              class="btn btn-secondary"
+              (click)="downloadShelfMaterialsZip(selectedShelfFilter)"
+              [disabled]="isZipping() || filteredMaterialLabels().length === 0"
+              title="Descargar todos los códigos QR de este anaquel en un archivo ZIP con nombres individuales como CODIGO.png"
+            >
+              <svg *ngIf="!isZipping()" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Descargar Anaquel {{ selectedShelfFilter }} (ZIP)</span>
+            </button>
+
+            <!-- 3. Print Batch Button -->
             <button
               class="btn btn-primary"
               (click)="printBatch()"
               [disabled]="filteredMaterialLabels().length === 0"
+              title="Imprimir hojas de rótulos adhesivos para refacciones"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="6 9 6 2 18 2 18 9"/>
                 <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
                 <rect x="6" y="14" width="12" height="8"/>
               </svg>
-              <span>Imprimir Hoja de Etiquetas</span>
+              <span>Imprimir Rótulos</span>
             </button>
           </div>
         </div>
@@ -415,15 +431,26 @@ export interface MaterialQrItem {
             <!-- 2. Shelf Filter for Materials (Por Anaquel Contabilizado) -->
             <div class="filter-item">
               <label class="filter-label">Filtrar por Anaquel Específico:</label>
-              <select
-                class="select select-sm shelf-select"
-                [(ngModel)]="selectedShelfFilter"
-              >
-                <option value="ALL">-- Todos los Anaqueles ({{ availableCountedShelves().length }} con conteos) --</option>
-                <option *ngFor="let sh of availableCountedShelves()" [value]="sh.code">
-                  {{ sh.code }} &bull; {{ sh.zone }} ({{ sh.count }} partidas)
-                </option>
-              </select>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <select
+                  class="select select-sm shelf-select"
+                  [(ngModel)]="selectedShelfFilter"
+                >
+                  <option value="ALL">-- Todos los Anaqueles ({{ availableCountedShelves().length }} con partidas) --</option>
+                  <option *ngFor="let sh of availableCountedShelves()" [value]="sh.code">
+                    {{ sh.code }} &bull; {{ sh.zone }} ({{ sh.count }} partidas)
+                  </option>
+                </select>
+                <button
+                  *ngIf="selectedShelfFilter !== 'ALL'"
+                  class="btn btn-sm btn-outline"
+                  (click)="downloadShelfMaterialsZip(selectedShelfFilter)"
+                  title="Descargar ZIP de este anaquel"
+                  [disabled]="isZipping()"
+                >
+                  ZIP Anaquel
+                </button>
+              </div>
             </div>
 
             <!-- 3. Plant Filter (Planta Baja / Planta Alta) -->
@@ -542,13 +569,16 @@ export interface MaterialQrItem {
 
                 <!-- Label Footer (Screen Only) -->
                 <div class="label-footer no-print">
-                  <button class="btn btn-ghost btn-xs" (click)="downloadSingleQr(item)" title="Descargar PNG">
+                  <button class="btn btn-primary btn-xs" (click)="downloadSingleMaterialQr(item)" title="Descargar pura imagen PNG con el nombre del código: {{ item.code }}.png">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                       <polyline points="7 10 12 15 17 10"></polyline>
                       <line x1="12" y1="15" x2="12" y2="3"></line>
                     </svg>
-                    PNG
+                    <span>Descargar {{ item.code }}.png</span>
+                  </button>
+                  <button class="btn btn-secondary btn-xs" (click)="downloadShelfMaterialsZip(item.shelf)" title="Descargar todos los códigos de {{ item.shelf }} en ZIP">
+                    ZIP Anaquel
                   </button>
                   <button class="btn btn-ghost btn-xs" (click)="filterByThisShelf(item.shelf)" title="Aislar este anaquel">
                     Ver Anaquel
@@ -1261,7 +1291,7 @@ export interface MaterialQrItem {
   `]
 })
 export class QrLabelsComponent implements OnInit {
-  activeTab = signal<'SHELVES' | 'MATERIALS'>('SHELVES');
+  activeTab = signal<'MATERIALS' | 'SHELVES'>('MATERIALS');
 
   selectedSessionId = signal<number>(0);
   sessions = signal<InventorySessionSummary[]>([]);
@@ -1543,13 +1573,14 @@ export class QrLabelsComponent implements OnInit {
 
         const labelList: MaterialQrItem[] = [];
         for (const item of map.values()) {
-          const qrPayload = `INTERFLU|ITEM|${item.code}|${item.pieces}|${item.unit}|${item.shelf}`;
+          const qrPayload = item.code.trim().toUpperCase();
           let qrDataUrl = '';
           try {
             qrDataUrl = await QRCode.toDataURL(qrPayload, {
-              width: 160,
-              margin: 1,
-              color: { dark: '#0a2472', light: '#ffffff' }
+              width: 500,
+              margin: 2,
+              errorCorrectionLevel: 'H',
+              color: { dark: '#000000', light: '#ffffff' }
             });
           } catch (e) {
             console.error('QR generation error for', item.code, e);
@@ -1751,35 +1782,82 @@ export class QrLabelsComponent implements OnInit {
     window.print();
   }
 
-  downloadSingleQr(item: MaterialQrItem) {
+  sanitizeFilename(code: string): string {
+    if (!code) return 'codigo';
+    return code
+      .replace(/[\/\\:*?"<>|]/g, '_')
+      .replace(/\s+/g, '_')
+      .trim();
+  }
+
+  downloadSingleMaterialQr(item: MaterialQrItem) {
     if (!item.qrDataUrl) return;
     const a = document.createElement('a');
     a.href = item.qrDataUrl;
-    a.download = `QR_${item.shelf}_${item.code}.png`;
+    const safeName = `${this.sanitizeFilename(item.code)}.png`;
+    a.download = safeName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    this.toast.success(`Código QR de ${item.code} (${item.shelf}) descargado.`);
+    this.toast.success(`Código QR descargado: ${safeName}`);
   }
 
-  async downloadAllAsZip() {
-    const items = this.filteredMaterialLabels();
+  // Alias for backward compatibility
+  downloadSingleQr(item: MaterialQrItem) {
+    this.downloadSingleMaterialQr(item);
+  }
+
+  // Download all material QRs for a specific shelf
+  async downloadShelfMaterialsZip(shelfCode: string) {
+    const items = this.materialLabels().filter(m => m.shelf === shelfCode);
     if (items.length === 0) {
-      this.toast.warning('No hay códigos QR de materiales para descargar.');
+      this.toast.warning(`No hay códigos registrados para el anaquel ${shelfCode}`);
       return;
     }
 
+    const shelf = this.shelfLabels().find(s => s.code === shelfCode);
     this.isZipping.set(true);
+
+    if (shelf && this.selectedSessionId() > 0) {
+      this.api.downloadShelfMaterialsZip(shelf.shelfId, this.selectedSessionId()).subscribe({
+        next: (blob) => {
+          this.isZipping.set(false);
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `QRs_${this.sanitizeFilename(shelfCode)}_materiales.zip`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+          this.toast.success(`Descargados ${items.length} códigos QR de ${shelfCode} en ZIP.`);
+        },
+        error: async () => {
+          await this.generateClientSideShelfZip(shelfCode, items);
+        }
+      });
+    } else {
+      await this.generateClientSideShelfZip(shelfCode, items);
+    }
+  }
+
+  async generateClientSideShelfZip(shelfCode: string, items: MaterialQrItem[]) {
     try {
       const zip = new JSZip();
-      const shelfTag = this.selectedShelfFilter !== 'ALL' ? `_${this.selectedShelfFilter}` : '';
-      const folderName = `qr_materiales${shelfTag}`;
-      const folder = zip.folder(folderName);
+      const folder = zip.folder(`QRs_${this.sanitizeFilename(shelfCode)}`);
 
       for (const it of items) {
-        if (!it.qrDataUrl) continue;
-        const base64Data = it.qrDataUrl.replace(/^data:image\/png;base64,/, '');
-        const filename = `QR_${it.shelf}_${it.code}.png`;
+        let dataUrl = it.qrDataUrl;
+        if (!dataUrl) {
+          dataUrl = await QRCode.toDataURL(it.code.trim().toUpperCase(), {
+            width: 500,
+            margin: 2,
+            errorCorrectionLevel: 'H',
+            color: { dark: '#000000', light: '#ffffff' }
+          });
+        }
+        const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
+        const filename = `${this.sanitizeFilename(it.code)}.png`;
         folder?.file(filename, base64Data, { base64: true });
       }
 
@@ -1787,18 +1865,106 @@ export class QrLabelsComponent implements OnInit {
       const url = window.URL.createObjectURL(content);
       const a = document.createElement('a');
       a.href = url;
-      const dateStr = new Date().toISOString().split('T')[0];
-      a.download = `${folderName}_${dateStr}.zip`;
+      a.download = `QRs_${this.sanitizeFilename(shelfCode)}_materiales.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-
-      this.toast.success(`Lote de ${items.length} códigos QR de refacciones descargado exitosamente en ZIP.`);
+      this.toast.success(`Descargados ${items.length} códigos QR de ${shelfCode} en ZIP.`);
     } catch (e: any) {
-      this.toast.error('Ocurrió un error al generar el archivo ZIP: ' + e.message);
+      this.toast.error('Error al generar ZIP del anaquel: ' + e.message);
     } finally {
       this.isZipping.set(false);
     }
+  }
+
+  // Download all material QRs for the ENTIRE inventory (Lote Completo)
+  async downloadAllMaterialsZip() {
+    const items = this.materialLabels();
+    if (items.length === 0) {
+      this.toast.warning('No hay códigos QR de materiales para descargar.');
+      return;
+    }
+
+    this.isZipping.set(true);
+
+    if (this.selectedSessionId() > 0) {
+      this.api.downloadSessionMaterialsBatchZip(this.selectedSessionId()).subscribe({
+        next: (blob) => {
+          this.isZipping.set(false);
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          const folio = this.session()?.folio || 'INVENTARIO';
+          a.download = `Lote_Completo_Materiales_QRs_${this.sanitizeFilename(folio)}.zip`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+          this.toast.success(`Lote completo de ${items.length} códigos QR descargado exitosamente en ZIP.`);
+        },
+        error: async () => {
+          await this.generateClientSideBatchZip(items);
+        }
+      });
+    } else {
+      await this.generateClientSideBatchZip(items);
+    }
+  }
+
+  async generateClientSideBatchZip(items: MaterialQrItem[]) {
+    try {
+      const zip = new JSZip();
+      const folio = this.session()?.folio || 'INVENTARIO';
+      const rootFolder = zip.folder(`Lote_Completo_QRs_${this.sanitizeFilename(folio)}`);
+
+      // Group by shelf
+      const shelfMap = new Map<string, MaterialQrItem[]>();
+      for (const it of items) {
+        const sh = it.shelf || 'GENERAL';
+        if (!shelfMap.has(sh)) {
+          shelfMap.set(sh, []);
+        }
+        shelfMap.get(sh)!.push(it);
+      }
+
+      for (const [shelfCode, shelfItems] of shelfMap.entries()) {
+        const shelfFolder = rootFolder?.folder(this.sanitizeFilename(shelfCode));
+        for (const it of shelfItems) {
+          let dataUrl = it.qrDataUrl;
+          if (!dataUrl) {
+            dataUrl = await QRCode.toDataURL(it.code.trim().toUpperCase(), {
+              width: 500,
+              margin: 2,
+              errorCorrectionLevel: 'H',
+              color: { dark: '#000000', light: '#ffffff' }
+            });
+          }
+          const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
+          const filename = `${this.sanitizeFilename(it.code)}.png`;
+          shelfFolder?.file(filename, base64Data, { base64: true });
+        }
+      }
+
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = window.URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Lote_Completo_Materiales_QRs_${this.sanitizeFilename(folio)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      this.toast.success(`Lote completo de ${items.length} códigos QR descargado exitosamente en ZIP.`);
+    } catch (e: any) {
+      this.toast.error('Error al generar archivo ZIP: ' + e.message);
+    } finally {
+      this.isZipping.set(false);
+    }
+  }
+
+  // Alias for backward compatibility
+  async downloadAllAsZip() {
+    await this.downloadAllMaterialsZip();
   }
 }
