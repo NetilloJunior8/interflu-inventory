@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -1585,7 +1585,8 @@ export class QrLabelsComponent implements OnInit {
   constructor(
     private api: ApiService,
     private toast: ToastService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -1643,56 +1644,74 @@ export class QrLabelsComponent implements OnInit {
   }
 
   triggerShelfQrs() {
-    setTimeout(() => this.generateVisibleShelfQrs(), 15);
+    this.generateVisibleShelfQrs();
   }
 
   triggerMaterialQrs() {
-    setTimeout(() => this.generateVisibleMaterialQrs(), 15);
+    this.generateVisibleMaterialQrs();
   }
 
   async generateVisibleShelfQrs() {
     const visible = this.paginatedShelfLabels();
     const sessionId = this.selectedSessionId();
-    await Promise.all(visible.map(async (item) => {
-      if (item.qrDataUrl) return;
+    let updated = false;
+
+    for (const item of visible) {
+      if (item.qrDataUrl) continue;
       const cacheKey = `SHELF_${item.shelfId}`;
       if (this.shelfQrCache.has(cacheKey)) {
         item.qrDataUrl = this.shelfQrCache.get(cacheKey)!;
-        return;
+        updated = true;
+        continue;
       }
       try {
         const targetUrl = `${window.location.origin}/capture?sessionId=${sessionId}&shelfId=${item.shelfId}`;
         const dataUrl = await QRCode.toDataURL(targetUrl, {
-          width: 600,
-          margin: 2,
-          errorCorrectionLevel: 'H',
+          width: 260,
+          margin: 1,
+          errorCorrectionLevel: 'M',
           color: { dark: '#0a2472', light: '#ffffff' }
         });
         this.shelfQrCache.set(cacheKey, dataUrl);
         item.qrDataUrl = dataUrl;
+        updated = true;
       } catch (e) {}
-    }));
+    }
+
+    if (updated) {
+      this.cdr.markForCheck();
+      this.cdr.detectChanges();
+    }
   }
 
   async generateVisibleMaterialQrs() {
     const visible = this.paginatedMaterialLabels();
-    await Promise.all(visible.map(async (item) => {
-      if (item.qrDataUrl) return;
+    let updated = false;
+
+    for (const item of visible) {
+      if (item.qrDataUrl) continue;
       if (this.materialQrCache.has(item.code)) {
         item.qrDataUrl = this.materialQrCache.get(item.code)!;
-        return;
+        updated = true;
+        continue;
       }
       try {
         const dataUrl = await QRCode.toDataURL(item.code, {
-          width: 500,
-          margin: 2,
-          errorCorrectionLevel: 'H',
+          width: 240,
+          margin: 1,
+          errorCorrectionLevel: 'M',
           color: { dark: '#000000', light: '#ffffff' }
         });
         this.materialQrCache.set(item.code, dataUrl);
         item.qrDataUrl = dataUrl;
+        updated = true;
       } catch (e) {}
-    }));
+    }
+
+    if (updated) {
+      this.cdr.markForCheck();
+      this.cdr.detectChanges();
+    }
   }
 
   onSessionChange(id: number) {

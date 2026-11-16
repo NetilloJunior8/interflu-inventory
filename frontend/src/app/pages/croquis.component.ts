@@ -197,7 +197,7 @@ export interface SectionStat {
             (click)="statusQuickFilter.set('PENDING')"
             title="Resaltar únicamente anaqueles pendientes por contar"
           >
-            <span class="dot dot-pending-review"></span>
+            <span class="dot dot-pending-neutral"></span>
             <strong>Pendientes ({{ pendingCount() }})</strong>
           </button>
         </div>
@@ -219,7 +219,7 @@ export interface SectionStat {
         </div>
         <div class="p-metric">
           <span class="p-label">Pendientes</span>
-          <span class="p-value text-danger">{{ pendingCount() }}</span>
+          <span class="p-value text-slate">{{ pendingCount() }}</span>
         </div>
         <div class="p-metric">
           <span class="p-label">Avance Físico</span>
@@ -820,11 +820,8 @@ export interface SectionStat {
               <span *ngIf="isCompleted(inspectedShelf)" class="text-success font-sm">
                 &bull; Contabilizado (Marcado en verde)
               </span>
-              <span *ngIf="isPending(inspectedShelf)" class="text-danger font-sm">
-                &bull; Pendiente de revisión (Marcado en rojo)
-              </span>
-              <span *ngIf="isUntouched(inspectedShelf)" class="text-muted font-sm">
-                &bull; Sin iniciar (Sin color en el croquis)
+              <span *ngIf="!isCompleted(inspectedShelf)" class="text-muted font-sm">
+                &bull; Pendiente por contar (Estado neutral)
               </span>
             </div>
           </div>
@@ -1132,9 +1129,9 @@ export interface SectionStat {
       background: #059669; /* Verde Contabilizado */
       box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.25);
     }
-    .dot-pending-review {
-      background: #dc2626; /* Rojo Pendiente */
-      box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.25);
+    .dot-pending-neutral {
+      background: #64748b; /* Gris Pizarra Neutro Operativo */
+      box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.25);
     }
     .dot-untouched {
       background: #ffffff; /* Sin color / Neutro */
@@ -1166,54 +1163,68 @@ export interface SectionStat {
     }
     .text-primary-brand { color: #1d4ed8; }
     .text-success { color: #059669; }
-    .text-danger { color: #dc2626; }
+    .text-slate { color: #475569; }
 
-    /* Croquis Layout Grid: Canvas + Sidebar (Stays side-by-side on desktop, stacks only on phones <= 768px) */
+    /* Croquis Layout Grid: Canvas + Sidebar strictly Side-by-Side on desktop & laptops */
     .croquis-main-layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 215px;
-      gap: 0.65rem;
+      display: flex;
+      flex-direction: row;
       align-items: flex-start;
+      gap: 0.75rem;
       width: 100%;
       min-width: 0;
       transition: all 0.2s ease;
     }
-    .croquis-main-layout.sidebar-collapsed {
-      grid-template-columns: minmax(0, 1fr);
-    }
-    @media (max-width: 768px) {
-      .croquis-main-layout {
-        grid-template-columns: 1fr;
-      }
+    .croquis-main-layout.sidebar-collapsed .croquis-canvas-col {
+      max-width: 100%;
+      flex: 1 1 100%;
     }
     .croquis-canvas-col {
+      flex: 1 1 0%;
       min-width: 0;
+      max-width: calc(100% - 240px);
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
       overflow: hidden;
     }
+    @media (max-width: 640px) {
+      .croquis-main-layout {
+        flex-direction: column;
+      }
+      .croquis-canvas-col {
+        max-width: 100%;
+      }
+    }
 
-    /* Sections & Progress Sidebar (Micro-compact Right-aligned) */
+    /* Sections & Progress Sidebar (Lateral con Barras de Porcentaje a la Derecha) */
     .sections-progress-sidebar {
       background: #ffffff;
       border: 1px solid #cbd5e1;
       border-radius: 10px;
-      padding: 0.55rem 0.5rem;
+      padding: 0.65rem 0.6rem;
       box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
-      max-height: 800px;
+      max-height: 820px;
       overflow-y: auto;
       scrollbar-width: thin;
       scrollbar-color: #cbd5e1 #f8fafc;
       box-sizing: border-box;
-      width: 215px;
+      width: 228px;
+      min-width: 228px;
+      max-width: 228px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 10px;
     }
-    @media (max-width: 768px) {
+    @media (max-width: 640px) {
       .sections-progress-sidebar {
         width: 100%;
+        min-width: 100%;
+        max-width: 100%;
+        position: static;
       }
     }
     .sections-sidebar-header {
@@ -1387,8 +1398,9 @@ export interface SectionStat {
       border-color: #15803d;
     }
     .legend-filter-btn.filter-pending.active {
-      background: #b91c1c;
-      border-color: #b91c1c;
+      background: #334155;
+      border-color: #334155;
+      color: #ffffff;
     }
     .dot-all {
       width: 8px;
@@ -1743,10 +1755,9 @@ export interface SectionStat {
     .rack-sec-default .rack-code-text { color: #475569 !important; }
     .rack-sec-default .rack-qty-text { color: #64748b !important; }
 
-    /* 3. BORDE ROJO: En Conteo / Pendiente de revisión */
+    /* 3. PENDIENTES: Limpio y natural según su familia de producto, sin alarmas rojas */
     .color-pending {
-      outline: 2px solid #dc2626 !important;
-      box-shadow: 0 0 6px rgba(220, 38, 38, 0.4) !important;
+      opacity: 0.98;
     }
 
     /* 4. SIN INICIAR */
@@ -1793,8 +1804,7 @@ export interface SectionStat {
       flex-shrink: 0;
     }
     .dot-green { background: #059669; }
-    .dot-red { background: #dc2626; }
-    .dot-gray { background: #cbd5e1; }
+    .dot-gray { background: #94a3b8; }
 
     .rack-zone-text {
       font-size: 0.58rem;
@@ -2513,19 +2523,16 @@ export class CroquisComponent implements OnInit {
 
   dotColorClass(s: ShelfAssignmentDto): string {
     if (this.isCompleted(s)) return 'dot-green';
-    if (this.isPending(s)) return 'dot-red';
     return 'dot-gray';
   }
 
   statusLabel(s: ShelfAssignmentDto): string {
     if (this.isCompleted(s)) return 'Contabilizado';
-    if (this.isPending(s)) return 'Pendiente';
-    return 'Sin Iniciar';
+    return 'Pendiente';
   }
 
   badgeForStatus(s: ShelfAssignmentDto): string {
     if (this.isCompleted(s)) return 'badge-success';
-    if (this.isPending(s)) return 'badge-danger';
     return 'badge-secondary';
   }
 
