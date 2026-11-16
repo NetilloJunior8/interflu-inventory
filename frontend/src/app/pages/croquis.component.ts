@@ -105,6 +105,21 @@ export interface SectionStat {
             <span class="opacity-val">{{ blueprintOpacity() }}%</span>
           </div>
 
+          <!-- Toggle Sidebar Avance Button -->
+          <button
+            class="btn btn-sm"
+            [class.btn-primary]="showSidebar()"
+            [class.btn-outline]="!showSidebar()"
+            (click)="showSidebar.set(!showSidebar())"
+            [title]="showSidebar() ? 'Ocultar barra de avance de secciones' : 'Mostrar barra de avance de secciones'"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <line x1="15" y1="3" x2="15" y2="21"></line>
+            </svg>
+            {{ showSidebar() ? 'Ocultar Avance' : 'Ver Avance' }}
+          </button>
+
           <!-- Edit Mode Toggle -->
           <button
             class="btn"
@@ -153,20 +168,38 @@ export interface SectionStat {
           <button *ngIf="searchQuery" class="clear-btn" (click)="searchQuery = ''">✕</button>
         </div>
 
-        <!-- Official Status Semáforo Legend -->
+        <!-- Official Status Semáforo Interactive Filter Buttons -->
         <div class="blueprint-legend">
-          <span class="legend-item" title="Anaqueles con conteo registrado y finalizado">
+          <button
+            type="button"
+            class="legend-filter-btn"
+            [class.active]="statusQuickFilter() === 'ALL'"
+            (click)="statusQuickFilter.set('ALL')"
+            title="Mostrar todos los anaqueles"
+          >
+            <span class="dot dot-all"></span>
+            <strong>Todos ({{ plantShelves().length }})</strong>
+          </button>
+          <button
+            type="button"
+            class="legend-filter-btn filter-completed"
+            [class.active]="statusQuickFilter() === 'COMPLETED'"
+            (click)="statusQuickFilter.set('COMPLETED')"
+            title="Resaltar únicamente anaqueles terminados (Verde)"
+          >
             <span class="dot dot-completed"></span>
-            <strong>Completados (Verde)</strong>
-          </span>
-          <span class="legend-item" title="Colores asignados por tipo de anaquel (Acero, Kuriyama, YPC, Dixon, CHID...)">
-            <span class="dot dot-section-color"></span>
-            <strong>Por Sección (Colores)</strong>
-          </span>
-          <span class="legend-item" title="Anaqueles en conteo o revisión">
+            <strong>Completados ({{ completedCount() }})</strong>
+          </button>
+          <button
+            type="button"
+            class="legend-filter-btn filter-pending"
+            [class.active]="statusQuickFilter() === 'PENDING'"
+            (click)="statusQuickFilter.set('PENDING')"
+            title="Resaltar únicamente anaqueles pendientes por contar"
+          >
             <span class="dot dot-pending-review"></span>
-            <strong>En Conteo (Borde Rojo)</strong>
-          </span>
+            <strong>Pendientes ({{ pendingCount() }})</strong>
+          </button>
         </div>
       </div>
 
@@ -225,7 +258,7 @@ export interface SectionStat {
           </svg>
           <div>
             <strong>No hay sesiones de inventario activas en el sistema</strong>
-            <p>Los anaqueles físicos se visualizan y operan a través de una sesión. Haz clic para restaurar la sesión oficial y volver a operar los 171 anaqueles.</p>
+            <p>Los anaqueles físicos se visualizan y operan a través de una sesión. Haz clic para restaurar la sesión oficial y volver a operar los 170 anaqueles.</p>
           </div>
         </div>
         <button class="btn btn-primary" (click)="restoreDefaultSession()" [disabled]="restoringSession()">
@@ -233,12 +266,12 @@ export interface SectionStat {
             <polyline points="1 4 1 10 7 10"></polyline>
             <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
           </svg>
-          <span>{{ restoringSession() ? 'Restaurando...' : 'Restaurar 171 Anaqueles (Crear Inventario)' }}</span>
+          <span>{{ restoringSession() ? 'Restaurando...' : 'Restaurar 170 Anaqueles (Crear Inventario)' }}</span>
         </button>
       </div>
 
       <!-- Main Croquis Layout: Canvas Column + Sections Progress Sidebar -->
-      <div class="croquis-main-layout">
+      <div class="croquis-main-layout" [class.sidebar-collapsed]="!showSidebar()">
         <div class="croquis-canvas-col">
           <!-- Main Croquis Canvas Viewport -->
           <div 
@@ -398,6 +431,13 @@ export interface SectionStat {
                     <g>
                       <rect x="238" y="169" width="98" height="22" rx="4" class="svg-badge-pill" />
                       <text x="287" y="180" text-anchor="middle" class="svg-badge-text">LATERAL OESTE</text>
+                    </g>
+
+                    <!-- Área Estática Documentos (No es anaquel, solo zona arquitectónica de referencia) -->
+                    <g transform="translate(260, 432)">
+                      <rect x="0" y="0" width="54" height="54" rx="4" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,3" />
+                      <text x="27" y="24" text-anchor="middle" font-size="8" font-weight="700" fill="#64748b" letter-spacing="0.5">ÁREA</text>
+                      <text x="27" y="36" text-anchor="middle" font-size="8" font-weight="700" fill="#64748b" letter-spacing="0.5">DOCS</text>
                     </g>
 
                     <!-- Res. Acero NW -->
@@ -629,7 +669,7 @@ export interface SectionStat {
         </div>
 
         <!-- Sections & Progress Sidebar (Lateral con Barras de Porcentaje por Tipo) -->
-        <aside class="sections-progress-sidebar">
+        <aside class="sections-progress-sidebar" *ngIf="showSidebar()">
           <div class="sections-sidebar-header">
             <div>
               <div class="sidebar-kicker">SECCIONES DE ALMACÉN</div>
@@ -674,7 +714,7 @@ export interface SectionStat {
                 <div 
                   class="sec-progress-fill" 
                   [style.width.%]="sec.percentage"
-                  [style.background-color]="sec.percentage === 100 ? '#059669' : sec.color"
+                  [style.background-color]="sec.percentage === 100 ? '#16a34a' : sec.color"
                 ></div>
               </div>
 
@@ -1134,15 +1174,19 @@ export interface SectionStat {
     .text-success { color: #059669; }
     .text-danger { color: #dc2626; }
 
-    /* Croquis Layout Grid: Canvas + Sidebar */
+    /* Croquis Layout Grid: Canvas + Sidebar (Compact Right-aligned) */
     .croquis-main-layout {
       display: grid;
-      grid-template-columns: 1fr 310px;
-      gap: 1rem;
+      grid-template-columns: 1fr 248px;
+      gap: 0.85rem;
       align-items: flex-start;
       width: 100%;
+      transition: all 0.2s ease;
     }
-    @media (max-width: 1280px) {
+    .croquis-main-layout.sidebar-collapsed {
+      grid-template-columns: 1fr;
+    }
+    @media (max-width: 1100px) {
       .croquis-main-layout {
         grid-template-columns: 1fr;
       }
@@ -1154,17 +1198,17 @@ export interface SectionStat {
       gap: 0.5rem;
     }
 
-    /* Sections & Progress Sidebar */
+    /* Sections & Progress Sidebar (Compact Right-aligned) */
     .sections-progress-sidebar {
       background: #ffffff;
       border: 1px solid #cbd5e1;
-      border-radius: 12px;
-      padding: 1rem;
-      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+      border-radius: 10px;
+      padding: 0.75rem 0.65rem;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
       display: flex;
       flex-direction: column;
-      gap: 0.85rem;
-      max-height: 820px;
+      gap: 0.65rem;
+      max-height: 800px;
       overflow-y: auto;
       scrollbar-width: thin;
       scrollbar-color: #cbd5e1 #f8fafc;
@@ -1174,18 +1218,18 @@ export interface SectionStat {
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid #f1f5f9;
-      padding-bottom: 0.5rem;
+      padding-bottom: 0.45rem;
     }
     .sidebar-kicker {
-      font-size: 0.68rem;
+      font-size: 0.62rem;
       font-weight: 700;
       color: #64748b;
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
     .sidebar-title {
-      margin: 2px 0 0 0;
-      font-size: 1.05rem;
+      margin: 1px 0 0 0;
+      font-size: 0.95rem;
       font-weight: 800;
       color: #0f172a;
     }
@@ -1193,11 +1237,11 @@ export interface SectionStat {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
       border-radius: 6px;
-      padding: 6px 10px;
+      padding: 5px 8px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.78rem;
+      font-size: 0.72rem;
       color: #475569;
     }
     .sections-summary-pill strong {
@@ -1206,29 +1250,29 @@ export interface SectionStat {
     .sections-list {
       display: flex;
       flex-direction: column;
-      gap: 0.65rem;
+      gap: 0.45rem;
     }
     .section-card {
       background: #ffffff;
-      border: 1.5px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 0.75rem 0.85rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 0.55rem 0.65rem;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: all 0.12s ease;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
       position: relative;
     }
     .section-card:hover {
       border-color: var(--sec-accent, #2563eb);
       transform: translateY(-1px);
-      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
     }
     .section-card.active {
       border-color: var(--sec-accent, #2563eb);
       background: #f8fafc;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
     }
     .section-card-header {
       display: flex;
@@ -1238,36 +1282,40 @@ export interface SectionStat {
     .sec-name-wrap {
       display: flex;
       align-items: center;
-      gap: 7px;
+      gap: 6px;
     }
     .sec-color-badge {
-      width: 10px;
-      height: 10px;
-      border-radius: 3px;
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
       flex-shrink: 0;
     }
     .sec-name-text {
-      font-size: 0.85rem;
+      font-size: 0.78rem;
       font-weight: 700;
       color: #1e293b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 135px;
     }
     .sec-pct-chip {
-      font-size: 0.75rem;
+      font-size: 0.68rem;
       font-weight: 800;
       font-family: 'JetBrains Mono', monospace;
       color: #475569;
       background: #f1f5f9;
-      padding: 2px 6px;
+      padding: 1px 5px;
       border-radius: 4px;
     }
     .sec-pct-chip.pct-complete {
-      background: #ecfdf5;
-      color: #059669;
+      background: #dcfce7;
+      color: #15803d;
     }
     .sec-progress-track {
       width: 100%;
-      height: 6px;
-      background: #f1f5f9;
+      height: 5px;
+      background: #e2e8f0;
       border-radius: 3px;
       overflow: hidden;
     }
@@ -1280,7 +1328,7 @@ export interface SectionStat {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.73rem;
+      font-size: 0.68rem;
       color: #64748b;
     }
     .sec-count-text strong {
@@ -1289,10 +1337,59 @@ export interface SectionStat {
     .sec-pieces-text {
       color: #0a2472;
       font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
     }
     .sec-status-text {
-      color: #059669;
+      color: #15803d;
       font-weight: 700;
+    }
+
+    /* Interactive Status Filter Buttons */
+    .blueprint-legend {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .legend-filter-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.76rem;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .legend-filter-btn:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+    .legend-filter-btn.active {
+      background: #0a2472;
+      border-color: #0a2472;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(10, 36, 114, 0.25);
+    }
+    .legend-filter-btn.active .dot {
+      box-shadow: 0 0 0 2px #ffffff;
+    }
+    .legend-filter-btn.filter-completed.active {
+      background: #15803d;
+      border-color: #15803d;
+    }
+    .legend-filter-btn.filter-pending.active {
+      background: #b91c1c;
+      border-color: #b91c1c;
+    }
+    .dot-all {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #3b82f6;
     }
 
     .dimmed-by-section {
@@ -1510,112 +1607,136 @@ export interface SectionStat {
       box-shadow: 0 6px 16px rgba(15, 23, 42, 0.2);
     }
 
-    /* 1. VERDE: Contabilizado / Completado (TIENE PRIORIDAD MÁXIMA EN TODO EL CROQUIS) */
+    /* 1. VERDE EXCLUSIVO: Contabilizado / Completado (ÚNICO VERDE PERMITIDO EN TODO EL CROQUIS) */
     .color-completed {
-      background: #ecfdf5 !important;
-      border-color: #059669 !important;
-      color: #064e3b !important;
-      box-shadow: 0 1px 4px rgba(5, 150, 105, 0.25) !important;
+      background: #dcfce7 !important;
+      border: 2px solid #16a34a !important;
+      color: #14532d !important;
+      box-shadow: 0 1px 4px rgba(22, 163, 74, 0.35) !important;
     }
     .color-completed .rack-code-text {
-      color: #065f46 !important;
+      color: #14532d !important;
       font-weight: 800 !important;
     }
     .color-completed .rack-qty-text {
-      color: #047857 !important;
+      color: #15803d !important;
       font-weight: 800 !important;
     }
 
-    /* 2. TEMAS DE COLOR POR TIPO DE SECCIÓN (Cuando NO están completados) */
+    /* 2. TEMAS DE COLOR POR TIPO DE SECCIÓN (PROHIBIDO CUALQUIER TONO VERDE) */
+    /* Planta Baja */
     .rack-sec-acero {
       background: #eff6ff !important;
-      border-color: #2563eb !important;
+      border-color: #3b82f6 !important;
     }
     .rack-sec-acero .rack-code-text { color: #1d4ed8 !important; }
 
     .rack-sec-kuriyama {
       background: #fffbeb !important;
-      border-color: #d97706 !important;
+      border-color: #f59e0b !important;
     }
     .rack-sec-kuriyama .rack-code-text { color: #b45309 !important; }
 
     .rack-sec-ypc {
-      background: #f0fdf4 !important;
-      border-color: #059669 !important;
+      background: #eef2ff !important;
+      border-color: #6366f1 !important;
     }
-    .rack-sec-ypc .rack-code-text { color: #047857 !important; }
+    .rack-sec-ypc .rack-code-text { color: #4338ca !important; }
 
     .rack-sec-dixon {
       background: #f5f3ff !important;
-      border-color: #7c3aed !important;
+      border-color: #8b5cf6 !important;
     }
     .rack-sec-dixon .rack-code-text { color: #6d28d9 !important; }
 
     .rack-sec-chid {
-      background: #ecfeff !important;
-      border-color: #0891b2 !important;
+      background: #f0f9ff !important;
+      border-color: #0284c7 !important;
     }
-    .rack-sec-chid .rack-code-text { color: #0e7490 !important; }
+    .rack-sec-chid .rack-code-text { color: #0369a1 !important; }
 
     .rack-sec-cyber {
       background: #fff1f2 !important;
-      border-color: #e11d48 !important;
+      border-color: #f43f5e !important;
     }
     .rack-sec-cyber .rack-code-text { color: #be123c !important; }
 
     .rack-sec-inox {
-      background: #eef2ff !important;
-      border-color: #4f46e5 !important;
+      background: #f1f5f9 !important;
+      border-color: #475569 !important;
     }
-    .rack-sec-inox .rack-code-text { color: #4338ca !important; }
+    .rack-sec-inox .rack-code-text { color: #1e293b !important; }
 
-    .rack-sec-p1 {
-      background: #f0f9ff !important;
-      border-color: #0284c7 !important;
-    }
-    .rack-sec-p1 .rack-code-text { color: #0369a1 !important; }
-
-    .rack-sec-p2 {
-      background: #f0fdfa !important;
-      border-color: #0d9488 !important;
-    }
-    .rack-sec-p2 .rack-code-text { color: #0f766e !important; }
-
-    .rack-sec-p3 {
-      background: #fffbeb !important;
-      border-color: #d97706 !important;
-    }
-    .rack-sec-p3 .rack-code-text { color: #b45309 !important; }
-
-    .rack-sec-p4 {
-      background: #f5f3ff !important;
-      border-color: #7c3aed !important;
-    }
-    .rack-sec-p4 .rack-code-text { color: #6d28d9 !important; }
-
-    .rack-sec-p5 {
+    /* Planta Alta: SELLOS TODOS UNIFICADOS EN EL MISMO COLOR */
+    .rack-sec-sellos {
       background: #faf5ff !important;
-      border-color: #9333ea !important;
+      border-color: #a855f7 !important;
     }
-    .rack-sec-p5 .rack-code-text { color: #7e22ce !important; }
+    .rack-sec-sellos .rack-code-text { color: #7e22ce !important; }
 
-    .rack-sec-east {
-      background: #eef2ff !important;
-      border-color: #4f46e5 !important;
-    }
-    .rack-sec-east .rack-code-text { color: #4338ca !important; }
-
-    .rack-sec-res {
+    /* Planta Alta: Pasillos */
+    .rack-sec-p1 {
       background: #eff6ff !important;
       border-color: #2563eb !important;
     }
-    .rack-sec-res .rack-code-text { color: #1d4ed8 !important; }
+    .rack-sec-p1 .rack-code-text { color: #1e40af !important; }
 
+    .rack-sec-p2 {
+      background: #fff7ed !important;
+      border-color: #f97316 !important;
+    }
+    .rack-sec-p2 .rack-code-text { color: #c2410c !important; }
+
+    .rack-sec-p3 {
+      background: #fefce8 !important;
+      border-color: #eab308 !important;
+    }
+    .rack-sec-p3 .rack-code-text { color: #a16207 !important; }
+
+    /* Planta Alta: Lateral Oeste */
+    .rack-sec-fnh {
+      background: #f0f9ff !important;
+      border-color: #0284c7 !important;
+    }
+    .rack-sec-fnh .rack-code-text { color: #0369a1 !important; }
+
+    .rack-sec-htm {
+      background: #fdf2f8 !important;
+      border-color: #db2777 !important;
+    }
+    .rack-sec-htm .rack-code-text { color: #9d174d !important; }
+
+    .rack-sec-abr {
+      background: #fef3c7 !important;
+      border-color: #d97706 !important;
+    }
+    .rack-sec-abr .rack-code-text { color: #92400e !important; }
+
+    .rack-sec-enp {
+      background: #f5f3ff !important;
+      border-color: #7c3aed !important;
+    }
+    .rack-sec-enp .rack-code-text { color: #5b21b6 !important; }
+
+    .rack-sec-res {
+      background: #eff6ff !important;
+      border-color: #3b82f6 !important;
+    }
+    .rack-sec-res .rack-code-text { color: #1e3a8a !important; }
+
+    .rack-sec-pvc {
+      background: #f0f9ff !important;
+      border-color: #06b6d4 !important;
+    }
+    .rack-sec-pvc .rack-code-text { color: #0e7490 !important; }
+
+    /* 3. PENDIENTES O SIN ASIGNAR: TOTALMENTE SIN COLOR (NEUTRAL LIMPIO) */
     .rack-sec-default {
-      background: #f8fafc !important;
-      border-color: #94a3b8 !important;
+      background: #ffffff !important;
+      border-color: #cbd5e1 !important;
     }
     .rack-sec-default .rack-code-text { color: #475569 !important; }
+    .rack-sec-default .rack-qty-text { color: #64748b !important; }
 
     /* 3. BORDE ROJO: En Conteo / Pendiente de revisión */
     .color-pending {
@@ -2046,6 +2167,8 @@ export class CroquisComponent implements OnInit {
 
   // Section Progress & Filtering (Avance por familias en panel lateral)
   selectedSectionFilter = signal<string | null>(null);
+  showSidebar = signal<boolean>(true);
+  statusQuickFilter = signal<'ALL' | 'COMPLETED' | 'PENDING'>('ALL');
 
   // Viewport Drag-to-Pan (Desplazamiento fluido al hacer zoom)
   isPanning = false;
@@ -2132,14 +2255,23 @@ export class CroquisComponent implements OnInit {
     if (code.includes('CYB') || code.includes('UNI') || zone.includes('CYBER') || zone.includes('UNIVERSAL')) return 'cyber';
     if (code.includes('INOX') || zone.includes('INOX')) return 'inox';
 
-    // Planta Alta
+    // Planta Alta: Sellos TODOS con el mismo color unificado (P4, P5, Muro Este)
+    if (code.includes('SEL') || code.includes('PA-P4') || code.includes('PA-P5') || zone.includes('SELLOS')) return 'sellos';
+
+    // Planta Alta: Pasillos
     if (code.includes('PA-P1') || zone.includes('P1') || zone.includes('HCO')) return 'p1';
     if (code.includes('PA-P2') || zone.includes('P2') || zone.includes('NEUM')) return 'p2';
     if (code.includes('PA-P3') || zone.includes('P3') || zone.includes('FESTO') || zone.includes('SMC')) return 'p3';
-    if (code.includes('PA-P4') || zone.includes('P4') || zone.includes('SELLOS 1')) return 'p4';
-    if (code.includes('PA-P5') || zone.includes('P5') || zone.includes('SELLOS 2')) return 'p5';
-    if (code.includes('SEL-W') || code.includes('EAST') || zone.includes('ESTE')) return 'east';
-    if (code.includes('LAT') || code.includes('RES') || code.includes('PVC') || zone.includes('LATERAL') || zone.includes('RESERVA')) return 'res';
+
+    // Planta Alta: Lateral Oeste específico
+    if (code.includes('FNH') || zone.includes('FNH')) return 'fnh';
+    if (code.includes('HTM') || zone.includes('HTM') || zone.includes('HIM')) return 'htm';
+    if (code.includes('ABR') || zone.includes('ABRAZADERA')) return 'abr';
+    if (code.includes('ENP') || zone.includes('ENPA') || zone.includes('EMPAQUE')) return 'enp';
+
+    // Planta Alta: Reservas y PVC
+    if (code.includes('PVC') || zone.includes('PVC')) return 'pvc';
+    if (code.includes('RES') || zone.includes('RESERVA')) return 'res';
 
     return 'default';
   }
@@ -2153,12 +2285,20 @@ export class CroquisComponent implements OnInit {
   }
 
   isDimmedBySection(s: ShelfAssignmentDto): boolean {
+    const qf = this.statusQuickFilter();
+    if (qf === 'COMPLETED' && !this.isCompleted(s)) return true;
+    if (qf === 'PENDING' && this.isCompleted(s)) return true;
+
     const filter = this.selectedSectionFilter();
     if (!filter) return false;
     return this.getSectionType(s) !== filter;
   }
 
   isHighlightedBySection(s: ShelfAssignmentDto): boolean {
+    const qf = this.statusQuickFilter();
+    if (qf === 'COMPLETED' && this.isCompleted(s)) return true;
+    if (qf === 'PENDING' && !this.isCompleted(s)) return true;
+
     const filter = this.selectedSectionFilter();
     if (!filter) return false;
     return this.getSectionType(s) === filter;
@@ -2171,23 +2311,26 @@ export class CroquisComponent implements OnInit {
     const defs = isPB
       ? [
           { id: 'acero', name: 'Acero (1-19)', codePrefix: 'PB-ACE', color: '#2563eb', lightBg: '#eff6ff', borderColor: '#3b82f6' },
-          { id: 'kuriyama', name: 'Kuriyama (A | B)', codePrefix: 'PB-KUR', color: '#d97706', lightBg: '#fffbeb', borderColor: '#f59e0b' },
-          { id: 'ypc', name: 'YPC (Pasillo & B|C)', codePrefix: 'PB-YPC', color: '#059669', lightBg: '#ecfdf5', borderColor: '#10b981' },
-          { id: 'dixon', name: 'Dixon (1-2)', codePrefix: 'PB-DIX', color: '#7c3aed', lightBg: '#f5f3ff', borderColor: '#8b5cf6' },
-          { id: 'chid', name: 'Conex. Hidráulicas', codePrefix: 'PB-CHID', color: '#0891b2', lightBg: '#ecfeff', borderColor: '#06b6d4' },
-          { id: 'cyber', name: 'Cybermatics / Univ.', codePrefix: 'PB-CYB', color: '#e11d48', lightBg: '#fff1f2', borderColor: '#f43f5e' },
-          { id: 'inox', name: 'Parker Inox', codePrefix: 'PB-INOX', color: '#4f46e5', lightBg: '#eef2ff', borderColor: '#6366f1' },
-          { id: 'default', name: 'Pendientes / Otras', codePrefix: 'PB-GEN', color: '#64748b', lightBg: '#f8fafc', borderColor: '#94a3b8' }
+          { id: 'kuriyama', name: 'Kuriyama (A | B)', codePrefix: 'PB-KUR', color: '#ea580c', lightBg: '#fffbeb', borderColor: '#f59e0b' },
+          { id: 'ypc', name: 'YPC (Pasillo & B|C)', codePrefix: 'PB-YPC', color: '#6366f1', lightBg: '#eef2ff', borderColor: '#818cf8' },
+          { id: 'dixon', name: 'Dixon (1-2)', codePrefix: 'PB-DIX', color: '#8b5cf6', lightBg: '#f5f3ff', borderColor: '#a78bfa' },
+          { id: 'chid', name: 'Conex. Hidráulicas', codePrefix: 'PB-CHID', color: '#0284c7', lightBg: '#f0f9ff', borderColor: '#38bdf8' },
+          { id: 'cyber', name: 'Cybermatics / Univ.', codePrefix: 'PB-CYB', color: '#f43f5e', lightBg: '#fff1f2', borderColor: '#fb7185' },
+          { id: 'inox', name: 'Parker Inox', codePrefix: 'PB-INOX', color: '#475569', lightBg: '#f1f5f9', borderColor: '#64748b' },
+          { id: 'default', name: 'Pendientes / Sin Asignar', codePrefix: 'PB-GEN', color: '#94a3b8', lightBg: '#ffffff', borderColor: '#cbd5e1' }
         ]
       : [
-          { id: 'p1', name: 'P1: HCO / Hidr.', codePrefix: 'PA-P1', color: '#0284c7', lightBg: '#f0f9ff', borderColor: '#38bdf8' },
-          { id: 'p2', name: 'P2: Neumática', codePrefix: 'PA-P2', color: '#0d9488', lightBg: '#f0fdfa', borderColor: '#14b8a6' },
-          { id: 'p3', name: 'P3: Festo / SMC', codePrefix: 'PA-P3', color: '#d97706', lightBg: '#fffbeb', borderColor: '#f59e0b' },
-          { id: 'p4', name: 'P4: Sellos 1', codePrefix: 'PA-P4', color: '#7c3aed', lightBg: '#f5f3ff', borderColor: '#8b5cf6' },
-          { id: 'p5', name: 'P5: Sellos 2', codePrefix: 'PA-P5', color: '#9333ea', lightBg: '#faf5ff', borderColor: '#a855f7' },
-          { id: 'east', name: 'Sellos Muro Este', codePrefix: 'PA-SEL-W', color: '#4f46e5', lightBg: '#eef2ff', borderColor: '#6366f1' },
-          { id: 'res', name: 'Lateral & Reservas', codePrefix: 'PA-RES', color: '#2563eb', lightBg: '#eff6ff', borderColor: '#3b82f6' },
-          { id: 'default', name: 'Pendientes PA', codePrefix: 'PA-GEN', color: '#64748b', lightBg: '#f8fafc', borderColor: '#94a3b8' }
+          { id: 'sellos', name: 'Sellos (P4, P5, Muro)', codePrefix: 'PA-SEL', color: '#9333ea', lightBg: '#faf5ff', borderColor: '#c084fc' },
+          { id: 'p1', name: 'P1: HCO / Hidr.', codePrefix: 'PA-P1', color: '#2563eb', lightBg: '#eff6ff', borderColor: '#3b82f6' },
+          { id: 'p2', name: 'P2: Neumática', codePrefix: 'PA-P2', color: '#ea580c', lightBg: '#fff7ed', borderColor: '#f97316' },
+          { id: 'p3', name: 'P3: Festo / SMC', codePrefix: 'PA-P3', color: '#d97706', lightBg: '#fefce8', borderColor: '#eab308' },
+          { id: 'fnh', name: 'FNH', codePrefix: 'PA-FNH', color: '#0284c7', lightBg: '#f0f9ff', borderColor: '#38bdf8' },
+          { id: 'htm', name: 'HTM', codePrefix: 'PA-HTM', color: '#db2777', lightBg: '#fdf2f8', borderColor: '#f472b6' },
+          { id: 'abr', name: 'Abrazaderas', codePrefix: 'PA-ABR', color: '#d97706', lightBg: '#fef3c7', borderColor: '#f59e0b' },
+          { id: 'enp', name: 'ENPA (Empaques)', codePrefix: 'PA-ENP', color: '#7c3aed', lightBg: '#f5f3ff', borderColor: '#a78bfa' },
+          { id: 'res', name: 'Reserva Acero', codePrefix: 'PA-RES', color: '#1e40af', lightBg: '#eff6ff', borderColor: '#3b82f6' },
+          { id: 'pvc', name: 'PVC', codePrefix: 'PA-PVC', color: '#0891b2', lightBg: '#f0f9ff', borderColor: '#06b6d4' },
+          { id: 'default', name: 'Pendientes PA', codePrefix: 'PA-GEN', color: '#94a3b8', lightBg: '#ffffff', borderColor: '#cbd5e1' }
         ];
 
     return defs.map(d => {
@@ -2300,7 +2443,7 @@ export class CroquisComponent implements OnInit {
     };
     this.api.createSession(req).subscribe({
       next: (created) => {
-        this.toast.success(`Inventario ${created.folio} creado con éxito. 171 anaqueles restaurados.`);
+        this.toast.success(`Inventario ${created.folio} creado con éxito. 170 anaqueles restaurados.`);
         this.sessions.set([created]);
         this.activeSessionId.set(created.id);
         try {
@@ -2693,7 +2836,7 @@ export class CroquisComponent implements OnInit {
       this.toast.info(`Anaquel ${shelf.shelfCode} seleccionado. Puedes arrastrarlo, ajustar sus px o usar flechas del teclado.`);
     } else {
       if (this.sessions().length === 0 || this.activeSessionId() === 0) {
-        this.toast.warning('No hay inventario activo. Haz clic en "Restaurar 171 Anaqueles (Crear Inventario)" para iniciar los conteos.');
+        this.toast.warning('No hay inventario activo. Haz clic en "Restaurar 170 Anaqueles (Crear Inventario)" para iniciar los conteos.');
         return;
       }
       this.inspectedShelf = shelf;

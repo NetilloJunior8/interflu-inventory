@@ -505,7 +505,7 @@ public class CountService {
         Map<String, Object> res = new HashMap<>();
         res.put("deletedCount", deletedCount);
         res.put("deletedPieces", pieces);
-        res.put("message", String.format("Se eliminaron exitosamente %d partidas (%.2f piezas). Los 171 anaqueles volvieron a estado Pendiente.", deletedCount, pieces));
+        res.put("message", String.format("Se eliminaron exitosamente %d partidas (%.2f piezas). Los 170 anaqueles volvieron a estado Pendiente.", deletedCount, pieces));
         return res;
     }
 

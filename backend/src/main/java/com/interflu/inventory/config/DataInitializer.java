@@ -317,12 +317,11 @@ public class DataInitializer implements CommandLineRunner {
             new Shelf("PB-UNI-02", "Universal", "Universal 2", "1", "Planta Baja", 737.5, 721.4, 54.0, 48.0),
             new Shelf("PB-UNI-03", "Universal", "Universal 3", "1", "Planta Baja", 796.5, 721.4, 54.0, 48.0),
 
-            // === PLANTA ALTA (84 Anaqueles Reales: Reserva Acero y PVC Divididos según Croquis Oficial) ===
+            // === PLANTA ALTA (83 Anaqueles Reales: Total 170 anaqueles oficiales sin Documentos) ===
             new Shelf("PA-FNH-01", "FNH", "FNH Estante 1", "1", "Planta Alta", 260.0, 195.1, 54.0, 54.0),
             new Shelf("PA-HTM-01", "HTM", "HTM Estante 1", "1", "Planta Alta", 260.0, 254.5, 54.0, 54.0),
             new Shelf("PA-ABR-01", "Abrazaderas", "Abrazaderas Estante 1", "1", "Planta Alta", 260.0, 313.6, 54.0, 54.0),
             new Shelf("PA-ENP-01", "ENPA", "ENPA Estante 1", "1", "Planta Alta", 260.0, 372.9, 54.0, 54.0),
-            new Shelf("PA-DOC-01", "Documentos", "Documentos Estante 1", "1", "Planta Alta", 260.0, 432.0, 54.0, 54.0),
 
             // Reserva Acero Noroeste, Noreste y Sur (Cajas horizontales sobre contorno arquitectonico exacto)
             new Shelf("PA-RES-01", "Reserva Acero", "Reserva Acero Noroeste", "1", "Planta Alta", 380.0, 107.0, 74.0, 42.0),

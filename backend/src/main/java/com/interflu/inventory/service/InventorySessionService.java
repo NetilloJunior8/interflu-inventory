@@ -676,9 +676,9 @@ public class InventorySessionService {
             sheet1.setColumnWidth(4, Math.max(sheet1.getColumnWidth(4), 5000));
 
             // ==========================================
-            // SHEET 2: Detalle de los 171 Anaqueles
+            // SHEET 2: Detalle de los 170 Anaqueles
             // ==========================================
-            XSSFSheet sheet2 = wb.createSheet("Detalle 171 Anaqueles");
+            XSSFSheet sheet2 = wb.createSheet("Detalle 170 Anaqueles");
             sheet2.setDisplayGridlines(true);
 
             Row rShHdr = sheet2.createRow(0);
@@ -793,7 +793,7 @@ public class InventorySessionService {
                     currentUser != null ? currentUser.getFullName() : "Sistema",
                     "EXPORTAR_ESTADISTICAS_EXCEL", "Dashboard", session.getId(),
                     null, null,
-                    "Descarga de reporte ejecutivo de estadísticas y avance de 171 anaqueles en formato Excel (.xlsx).");
+                    "Descarga de reporte ejecutivo de estadísticas y avance de 170 anaqueles en formato Excel (.xlsx).");
 
             return new SaeExportService.ExportResult(fileName, bos.toByteArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", null);
 

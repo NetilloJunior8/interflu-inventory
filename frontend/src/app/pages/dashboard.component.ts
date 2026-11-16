@@ -18,7 +18,7 @@ import { ToastService } from '../services/toast.service';
       </div>
       <div class="header-actions">
         <!-- Excel Stats Export Button -->
-        <button class="btn btn-secondary" (click)="exportStatsExcel()" [disabled]="exportingStats() || !selectedSession()" title="Descargar libro Excel con estadísticas ejecutivas, avance físico y detalle de 171 anaqueles">
+        <button class="btn btn-secondary" (click)="exportStatsExcel()" [disabled]="exportingStats() || !selectedSession()" title="Descargar libro Excel con estadísticas ejecutivas, avance físico y detalle de 170 anaqueles">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="7 10 12 15 17 10"></polyline>
@@ -56,7 +56,7 @@ import { ToastService } from '../services/toast.service';
 
       <div class="kpi-card card-kpi-global" *ngIf="selectedSession() as s">
         <div class="kpi-top">
-          <span class="kpi-label">Avance Global (171)</span>
+          <span class="kpi-label">Avance Global (170)</span>
           <span class="kpi-pill-percent">{{ s.progressPercent }}%</span>
         </div>
         <span class="kpi-value text-brand-navy">{{ s.completedShelves }} <span class="kpi-unit">/ {{ s.totalShelves }} anaqueles</span></span>
@@ -186,7 +186,7 @@ import { ToastService } from '../services/toast.service';
               </div>
             </a>
 
-            <button class="action-tile tile-secondary action-tile-btn" (click)="exportStatsExcel()" [disabled]="exportingStats()" title="Descargar libro Excel con estadísticas ejecutivas y avance de los 171 anaqueles">
+            <button class="action-tile tile-secondary action-tile-btn" (click)="exportStatsExcel()" [disabled]="exportingStats()" title="Descargar libro Excel con estadísticas ejecutivas y avance de los 170 anaqueles">
               <svg class="tile-icon text-success" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
               <div class="tile-text">
                 <span class="tile-title">Estadísticas Excel</span>
@@ -385,7 +385,7 @@ import { ToastService } from '../services/toast.service';
           <strong>Acción de restablecimiento:</strong>
           <ul style="margin: 6px 0 0 16px; padding: 0;">
             <li>Se eliminarán todas las {{ selectedSession()?.totalRecords || 0 }} partidas contadas ({{ selectedSession()?.totalPieces | number:'1.0-2' }} piezas).</li>
-            <li>Los 171 anaqueles (87 PB y 84 PA) regresarán a estado <strong>PENDIENTE</strong> con 0 piezas.</li>
+            <li>Los 170 anaqueles (87 PB y 83 PA) regresarán a estado <strong>PENDIENTE</strong> con 0 piezas.</li>
             <li>Podrás importar nuevamente tu archivo Excel completo con todas sus hojas.</li>
           </ul>
         </div>
@@ -944,7 +944,7 @@ export class DashboardComponent implements OnInit {
       next: (res) => {
         this.clearingCounts.set(false);
         this.showClearCountsModal = false;
-        this.toast.success(res.message || 'Conteos eliminados y 171 anaqueles restablecidos a Pendiente.');
+        this.toast.success(res.message || 'Conteos eliminados y 170 anaqueles restablecidos a Pendiente.');
         this.loadData();
       },
       error: (err) => {

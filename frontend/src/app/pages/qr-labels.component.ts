@@ -68,7 +68,7 @@ export interface MaterialQrItem {
             <path d="M3 9h18"></path>
             <path d="M9 21V9"></path>
           </svg>
-          <span>Rótulos QR de Anaqueles Físicos (171 Racks)</span>
+          <span>Rótulos QR de Anaqueles Físicos (170 Racks)</span>
           <span class="tab-badge">{{ filteredShelfLabels().length }}</span>
         </button>
       </div>
@@ -94,7 +94,7 @@ export interface MaterialQrItem {
             </div>
             <h1 class="page-title">Centro de Rótulos y Códigos QR por Anaquel</h1>
             <p class="page-subtitle">
-              Generación de códigos QR oficiales para rotular los 171 anaqueles físicos del almacén (87 Planta Baja y 84 Planta Alta).
+              Generación de códigos QR oficiales para rotular los 170 anaqueles físicos del almacén (87 Planta Baja y 83 Planta Alta).
               Puedes descargar la pura imagen PNG con el código del anaquel (ej. <strong>PB-ACE-05.png</strong>) para pegarla directamente a los anaqueles, o descargar el paquete completo en ZIP.
             </p>
           </div>
