@@ -434,7 +434,7 @@ export interface SectionStat {
                     </g>
 
                     <!-- Obsolete Area Docs Mask (Hides background image text) -->
-                    <rect x="246" y="420" width="48" height="125" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3,3" />
+                    <rect x="246" y="425" width="76" height="145" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3,3" />
 
 
                     <!-- Res. Acero NW -->
@@ -643,30 +643,31 @@ export interface SectionStat {
               </div>
             </div>
           </div>
-
-          <!-- Canvas Zoom & Dimension Navigation Bar -->
-          <div class="canvas-nav-footer">
-            <div class="nav-hint-text">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="5 9 2 12 5 15"></polyline>
-                <polyline points="9 5 12 2 15 5"></polyline>
-                <polyline points="15 19 12 22 9 19"></polyline>
-                <polyline points="19 9 22 12 19 15"></polyline>
-                <line x1="2" y1="12" x2="22" y2="12"></line>
-                <line x1="12" y1="2" x2="12" y2="22"></line>
-              </svg>
-              <span>Desplazamiento horizontal y vertical activo: Usa la barra de desplazamiento o arrastra sobre el plano.</span>
-            </div>
-            <div class="canvas-dim-chip">
-              <span>Dimensiones Renderizadas:</span>
-              <strong class="mono">{{ (1440 * (zoomLevel() / 100)) | number:'1.0-0' }} &times; {{ (810 * (zoomLevel() / 100)) | number:'1.0-0' }} px</strong>
-              <span class="dim-scale-tag">({{ zoomLevel() }}%)</span>
-            </div>
-          </div>
         </div>
 
-        <!-- Sections & Progress Sidebar (Lateral con Barras de Porcentaje por Tipo) -->
-        <aside class="sections-progress-sidebar" *ngIf="showSidebar()">
+        <!-- Canvas Zoom & Dimension Navigation Bar -->
+        <div class="canvas-nav-footer">
+          <div class="nav-hint-text">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="5 9 2 12 5 15"></polyline>
+              <polyline points="9 5 12 2 15 5"></polyline>
+              <polyline points="15 19 12 22 9 19"></polyline>
+              <polyline points="19 9 22 12 19 15"></polyline>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <line x1="12" y1="2" x2="12" y2="22"></line>
+            </svg>
+            <span>Desplazamiento activo: Usa la barra de desplazamiento o arrastra sobre el plano.</span>
+          </div>
+          <div class="canvas-dim-chip">
+            <span>Dimensiones:</span>
+            <strong class="mono">{{ (1440 * (zoomLevel() / 100)) | number:'1.0-0' }} &times; {{ (810 * (zoomLevel() / 100)) | number:'1.0-0' }} px</strong>
+            <span class="dim-scale-tag">({{ zoomLevel() }}%)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sections & Progress Sidebar (Lateral con Barras de Porcentaje por Tipo) -->
+      <aside class="sections-progress-sidebar" *ngIf="showSidebar()">
           <div class="sections-sidebar-header">
             <div>
               <div class="sidebar-kicker">SECCIONES DE ALMACÉN</div>
@@ -1174,7 +1175,7 @@ export interface SectionStat {
       flex-direction: row !important;
       flex-wrap: nowrap !important;
       align-items: flex-start !important;
-      gap: 12px !important;
+      gap: 14px !important;
       width: 100% !important;
       min-width: 0 !important;
       box-sizing: border-box !important;
@@ -1189,32 +1190,28 @@ export interface SectionStat {
       flex: 1 1 0% !important;
       min-width: 0 !important;
       width: 0 !important;
-      max-width: calc(100% - 242px) !important;
+      max-width: calc(100% - 250px) !important;
       display: flex !important;
       flex-direction: column !important;
-      gap: 8px !important;
+      gap: 6px !important;
       overflow: hidden !important;
       box-sizing: border-box !important;
     }
 
     /* Sections & Progress Sidebar (Lateral con Barras de Porcentaje a la Derecha Permanente) */
     .sections-progress-sidebar {
-      flex: 0 0 230px !important;
-      width: 230px !important;
-      min-width: 230px !important;
-      max-width: 230px !important;
+      flex: 0 0 236px !important;
+      width: 236px !important;
+      min-width: 236px !important;
+      max-width: 236px !important;
       background: #ffffff !important;
       border: 1px solid #cbd5e1 !important;
-      border-radius: 10px !important;
-      padding: 0.65rem 0.6rem !important;
+      border-radius: 12px !important;
+      padding: 0.65rem 0.65rem !important;
       box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05) !important;
       display: flex !important;
       flex-direction: column !important;
-      gap: 0.5rem !important;
-      max-height: calc(100vh - 140px) !important;
-      overflow-y: auto !important;
-      scrollbar-width: thin;
-      scrollbar-color: #cbd5e1 #f8fafc;
+      gap: 0.4rem !important;
       box-sizing: border-box !important;
       position: sticky !important;
       top: 10px !important;
