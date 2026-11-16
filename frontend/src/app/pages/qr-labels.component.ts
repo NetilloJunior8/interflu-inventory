@@ -88,8 +88,8 @@ export interface MaterialQrItem {
               <span class="badge badge-success" *ngIf="session() as s">
                 Folio: {{ s.folio }}
               </span>
-              <span class="badge badge-info" *ngIf="shelfPlantFilter !== 'ALL'">
-                Planta: {{ shelfPlantFilter }}
+              <span class="badge badge-info" *ngIf="shelfPlantFilter() !== 'ALL'">
+                Planta: {{ shelfPlantFilter() }}
               </span>
             </div>
             <h1 class="page-title">Centro de Rótulos y Códigos QR por Anaquel</h1>
@@ -157,24 +157,24 @@ export interface MaterialQrItem {
                 <button
                   type="button"
                   class="pill-btn"
-                  [class.active]="shelfPlantFilter === 'ALL'"
-                  (click)="shelfPlantFilter = 'ALL'"
+                  [class.active]="shelfPlantFilter() === 'ALL'"
+                  (click)="setShelfPlantFilter('ALL')"
                 >
                   Todas ({{ shelfLabels().length }})
                 </button>
                 <button
                   type="button"
                   class="pill-btn"
-                  [class.active]="shelfPlantFilter === 'Planta Baja'"
-                  (click)="shelfPlantFilter = 'Planta Baja'"
+                  [class.active]="shelfPlantFilter() === 'Planta Baja'"
+                  (click)="setShelfPlantFilter('Planta Baja')"
                 >
                   Planta Baja ({{ countShelvesByPlant('Planta Baja') }})
                 </button>
                 <button
                   type="button"
                   class="pill-btn"
-                  [class.active]="shelfPlantFilter === 'Planta Alta'"
-                  (click)="shelfPlantFilter = 'Planta Alta'"
+                  [class.active]="shelfPlantFilter() === 'Planta Alta'"
+                  (click)="setShelfPlantFilter('Planta Alta')"
                 >
                   Planta Alta ({{ countShelvesByPlant('Planta Alta') }})
                 </button>
@@ -186,7 +186,8 @@ export interface MaterialQrItem {
               <label class="filter-label">Zona / Sector:</label>
               <select
                 class="select select-sm shelf-select"
-                [(ngModel)]="shelfZoneFilter"
+                [ngModel]="shelfZoneFilter()"
+                (ngModelChange)="shelfZoneFilter.set($event); shelfPage.set(1); triggerShelfQrs()"
               >
                 <option value="ALL">-- Todas las Zonas ({{ availableShelfZones().length }}) --</option>
                 <option *ngFor="let z of availableShelfZones()" [value]="z">{{ z }}</option>
@@ -203,10 +204,11 @@ export interface MaterialQrItem {
                 </svg>
                 <input
                   class="search-input"
-                  [(ngModel)]="shelfSearchTerm"
+                  [ngModel]="shelfSearchTerm()"
+                  (ngModelChange)="shelfSearchTerm.set($event); shelfPage.set(1); triggerShelfQrs()"
                   placeholder="Buscar por código (ej. PB-ACE-05, PA-SEL) o descripción..."
                 />
-                <button *ngIf="shelfSearchTerm" class="clear-btn" (click)="shelfSearchTerm = ''">✕</button>
+                <button *ngIf="shelfSearchTerm()" class="clear-btn" (click)="shelfSearchTerm.set(''); shelfPage.set(1); triggerShelfQrs()">✕</button>
               </div>
             </div>
           </div>
@@ -215,18 +217,18 @@ export interface MaterialQrItem {
           <div class="filter-footer-bar">
             <div class="status-summary">
               Mostrando <strong>{{ filteredShelfLabels().length }}</strong> de <strong>{{ shelfLabels().length }}</strong> anaqueles físicos.
-              <span *ngIf="shelfPlantFilter !== 'ALL'" class="tag-filter-active">
-                {{ shelfPlantFilter }}
-                <button class="tag-close-btn" (click)="shelfPlantFilter = 'ALL'">✕</button>
+              <span *ngIf="shelfPlantFilter() !== 'ALL'" class="tag-filter-active">
+                {{ shelfPlantFilter() }}
+                <button class="tag-close-btn" (click)="setShelfPlantFilter('ALL')">✕</button>
               </span>
-              <span *ngIf="shelfZoneFilter !== 'ALL'" class="tag-filter-active">
-                Zona: {{ shelfZoneFilter }}
-                <button class="tag-close-btn" (click)="shelfZoneFilter = 'ALL'">✕</button>
+              <span *ngIf="shelfZoneFilter() !== 'ALL'" class="tag-filter-active">
+                Zona: {{ shelfZoneFilter() }}
+                <button class="tag-close-btn" (click)="shelfZoneFilter.set('ALL'); shelfPage.set(1); triggerShelfQrs()">✕</button>
               </span>
             </div>
             <button
               class="btn btn-ghost btn-xs"
-              *ngIf="shelfSearchTerm || shelfPlantFilter !== 'ALL' || shelfZoneFilter !== 'ALL'"
+              *ngIf="shelfSearchTerm() || shelfPlantFilter() !== 'ALL' || shelfZoneFilter() !== 'ALL'"
               (click)="resetShelfFilters()"
             >
               Limpiar Filtros
@@ -237,13 +239,37 @@ export interface MaterialQrItem {
         <!-- Loading State -->
         <div class="card loading-card" *ngIf="loadingShelves()">
           <div class="spinner"></div>
-          <p>Generando códigos QR oficiales de anaqueles en alta resolución...</p>
+          <p>Cargando anaqueles oficiales...</p>
         </div>
 
         <!-- Grid of Shelf QR Labels -->
         <div *ngIf="!loadingShelves()">
+          <!-- Shelf Pagination Controls (Top) -->
+          <div class="pagination-bar no-print" *ngIf="filteredShelfLabels().length > shelfPageSize()">
+            <div class="page-info">
+              Mostrando <strong>{{ (shelfPage() - 1) * shelfPageSize() + 1 }}</strong> - <strong>{{ min(shelfPage() * shelfPageSize(), filteredShelfLabels().length) }}</strong> de <strong>{{ filteredShelfLabels().length }}</strong> anaqueles
+            </div>
+            <div class="page-controls">
+              <button 
+                class="btn btn-sm btn-outline" 
+                [disabled]="shelfPage() === 1" 
+                (click)="setShelfPage(shelfPage() - 1)"
+              >
+                &larr; Anterior
+              </button>
+              <span class="page-current">Página {{ shelfPage() }} de {{ shelfTotalPages() }}</span>
+              <button 
+                class="btn btn-sm btn-outline" 
+                [disabled]="shelfPage() === shelfTotalPages()" 
+                (click)="setShelfPage(shelfPage() + 1)"
+              >
+                Siguiente &rarr;
+              </button>
+            </div>
+          </div>
+
           <div class="labels-grid print-sheet" *ngIf="filteredShelfLabels().length > 0">
-            <div class="label-card shelf-qr-card" *ngFor="let item of filteredShelfLabels()">
+            <div class="label-card shelf-qr-card" *ngFor="let item of paginatedShelfLabels()">
               <div class="label-inner">
                 <!-- Label Header -->
                 <div class="label-header">
@@ -263,6 +289,9 @@ export interface MaterialQrItem {
                 <div class="label-body shelf-label-body">
                   <div class="qr-col shelf-qr-col">
                     <img *ngIf="item.qrDataUrl" [src]="item.qrDataUrl" [alt]="item.code" class="qr-img shelf-qr-img" />
+                    <div *ngIf="!item.qrDataUrl" class="qr-placeholder">
+                      <span class="spinner-sm"></span>
+                    </div>
                     <span class="qr-scan-hint no-print">Escanear para abrir cédula</span>
                   </div>
                   <div class="info-col shelf-info-col">
@@ -316,6 +345,29 @@ export interface MaterialQrItem {
             </div>
           </div>
 
+          <!-- Shelf Pagination Controls (Bottom) -->
+          <div class="pagination-bar no-print" *ngIf="filteredShelfLabels().length > shelfPageSize()">
+            <div class="page-info">
+              Página <strong>{{ shelfPage() }}</strong> de <strong>{{ shelfTotalPages() }}</strong>
+            </div>
+            <div class="page-controls">
+              <button 
+                class="btn btn-sm btn-outline" 
+                [disabled]="shelfPage() === 1" 
+                (click)="setShelfPage(shelfPage() - 1)"
+              >
+                &larr; Anterior
+              </button>
+              <button 
+                class="btn btn-sm btn-outline" 
+                [disabled]="shelfPage() === shelfTotalPages()" 
+                (click)="setShelfPage(shelfPage() + 1)"
+              >
+                Siguiente &rarr;
+              </button>
+            </div>
+          </div>
+
           <!-- Empty State -->
           <div class="empty-state card no-print" *ngIf="filteredShelfLabels().length === 0">
             <div class="empty-icon-wrap">
@@ -327,7 +379,7 @@ export interface MaterialQrItem {
             </div>
             <h3 class="empty-title">No se encontraron anaqueles</h3>
             <p class="empty-desc">
-              No hay anaqueles que coincidan con los filtros seleccionados (Planta: {{ shelfPlantFilter }}, Zona: {{ shelfZoneFilter }}, Búsqueda: "{{ shelfSearchTerm }}").
+              No hay anaqueles que coincidan con los filtros seleccionados (Planta: {{ shelfPlantFilter() }}, Zona: {{ shelfZoneFilter() }}, Búsqueda: "{{ shelfSearchTerm() }}").
             </p>
             <button class="btn btn-secondary btn-sm" (click)="resetShelfFilters()">
               Restablecer Filtros de Anaqueles
@@ -351,8 +403,8 @@ export interface MaterialQrItem {
               <span class="badge badge-success" *ngIf="session() as s">
                 Folio: {{ s.folio }}
               </span>
-              <span class="badge badge-info" *ngIf="selectedShelfFilter !== 'ALL'">
-                Anaquel: {{ selectedShelfFilter }}
+              <span class="badge badge-info" *ngIf="selectedShelfFilter() !== 'ALL'">
+                Anaquel: {{ selectedShelfFilter() }}
               </span>
             </div>
             <h1 class="page-title">Códigos QR por Material y Anaquel</h1>
@@ -380,9 +432,9 @@ export interface MaterialQrItem {
 
             <!-- 2. Download Selected Shelf ZIP -->
             <button
-              *ngIf="selectedShelfFilter !== 'ALL'"
+              *ngIf="selectedShelfFilter() !== 'ALL'"
               class="btn btn-secondary"
-              (click)="downloadShelfMaterialsZip(selectedShelfFilter)"
+              (click)="downloadShelfMaterialsZip(selectedShelfFilter())"
               [disabled]="isZipping() || filteredMaterialLabels().length === 0"
               title="Descargar todos los códigos QR de este anaquel en un archivo ZIP con nombres individuales como CODIGO.png"
             >
@@ -391,7 +443,7 @@ export interface MaterialQrItem {
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-              <span>Descargar Anaquel {{ selectedShelfFilter }} (ZIP)</span>
+              <span>Descargar Anaquel {{ selectedShelfFilter() }} (ZIP)</span>
             </button>
 
             <!-- 3. Print Batch Button -->
@@ -434,7 +486,8 @@ export interface MaterialQrItem {
               <div style="display: flex; gap: 6px; align-items: center;">
                 <select
                   class="select select-sm shelf-select"
-                  [(ngModel)]="selectedShelfFilter"
+                  [ngModel]="selectedShelfFilter()"
+                  (ngModelChange)="selectedShelfFilter.set($event); materialPage.set(1); triggerMaterialQrs()"
                 >
                   <option value="ALL">-- Todos los Anaqueles ({{ availableCountedShelves().length }} con partidas) --</option>
                   <option *ngFor="let sh of availableCountedShelves()" [value]="sh.code">
@@ -442,9 +495,9 @@ export interface MaterialQrItem {
                   </option>
                 </select>
                 <button
-                  *ngIf="selectedShelfFilter !== 'ALL'"
+                  *ngIf="selectedShelfFilter() !== 'ALL'"
                   class="btn btn-sm btn-outline"
-                  (click)="downloadShelfMaterialsZip(selectedShelfFilter)"
+                  (click)="downloadShelfMaterialsZip(selectedShelfFilter())"
                   title="Descargar ZIP de este anaquel"
                   [disabled]="isZipping()"
                 >
@@ -460,24 +513,24 @@ export interface MaterialQrItem {
                 <button
                   type="button"
                   class="pill-btn"
-                  [class.active]="selectedPlantFilter === 'ALL'"
-                  (click)="selectedPlantFilter = 'ALL'"
+                  [class.active]="selectedPlantFilter() === 'ALL'"
+                  (click)="setSelectedPlantFilter('ALL')"
                 >
                   Todas
                 </button>
                 <button
                   type="button"
                   class="pill-btn"
-                  [class.active]="selectedPlantFilter === 'Planta Baja'"
-                  (click)="selectedPlantFilter = 'Planta Baja'"
+                  [class.active]="selectedPlantFilter() === 'Planta Baja'"
+                  (click)="setSelectedPlantFilter('Planta Baja')"
                 >
                   Planta Baja
                 </button>
                 <button
                   type="button"
                   class="pill-btn"
-                  [class.active]="selectedPlantFilter === 'Planta Alta'"
-                  (click)="selectedPlantFilter = 'Planta Alta'"
+                  [class.active]="selectedPlantFilter() === 'Planta Alta'"
+                  (click)="setSelectedPlantFilter('Planta Alta')"
                 >
                   Planta Alta
                 </button>
@@ -494,10 +547,11 @@ export interface MaterialQrItem {
                 </svg>
                 <input
                   class="search-input"
-                  [(ngModel)]="searchTerm"
+                  [ngModel]="searchTerm()"
+                  (ngModelChange)="searchTerm.set($event); materialPage.set(1); triggerMaterialQrs()"
                   placeholder="Buscar por código de refacción (ej. C90N80) o descripción..."
                 />
-                <button *ngIf="searchTerm" class="clear-btn" (click)="searchTerm = ''">✕</button>
+                <button *ngIf="searchTerm()" class="clear-btn" (click)="searchTerm.set(''); materialPage.set(1); triggerMaterialQrs()">✕</button>
               </div>
             </div>
           </div>
@@ -506,14 +560,14 @@ export interface MaterialQrItem {
           <div class="filter-footer-bar" *ngIf="rawCountRecords().length > 0">
             <div class="status-summary">
               Mostrando <strong>{{ filteredMaterialLabels().length }}</strong> etiquetas QR de refacciones listas.
-              <span *ngIf="selectedShelfFilter !== 'ALL'" class="tag-filter-active">
-                Anaquel: {{ selectedShelfFilter }}
-                <button class="tag-close-btn" (click)="selectedShelfFilter = 'ALL'">✕</button>
+              <span *ngIf="selectedShelfFilter() !== 'ALL'" class="tag-filter-active">
+                Anaquel: {{ selectedShelfFilter() }}
+                <button class="tag-close-btn" (click)="selectedShelfFilter.set('ALL'); materialPage.set(1); triggerMaterialQrs()">✕</button>
               </span>
             </div>
             <button
               class="btn btn-ghost btn-xs"
-              *ngIf="searchTerm || selectedShelfFilter !== 'ALL' || selectedPlantFilter !== 'ALL'"
+              *ngIf="searchTerm() || selectedShelfFilter() !== 'ALL' || selectedPlantFilter() !== 'ALL'"
               (click)="resetFilters()"
             >
               Limpiar Filtros
@@ -524,13 +578,37 @@ export interface MaterialQrItem {
         <!-- Loading State -->
         <div class="card loading-card" *ngIf="loading()">
           <div class="spinner"></div>
-          <p>Generando códigos QR oficiales en alta resolución para cada refacción...</p>
+          <p>Cargando catálogo de materiales del inventario...</p>
         </div>
 
         <!-- Grid of Material QR Labels -->
         <div *ngIf="!loading()">
+          <!-- Material Pagination Toolbar (Top) -->
+          <div class="pagination-bar no-print" *ngIf="filteredMaterialLabels().length > materialPageSize()">
+            <div class="page-info">
+              Mostrando <strong>{{ (materialPage() - 1) * materialPageSize() + 1 }}</strong> - <strong>{{ min(materialPage() * materialPageSize(), filteredMaterialLabels().length) }}</strong> de <strong>{{ filteredMaterialLabels().length }}</strong> refacciones
+            </div>
+            <div class="page-controls">
+              <button 
+                class="btn btn-sm btn-outline" 
+                [disabled]="materialPage() === 1" 
+                (click)="setMaterialPage(materialPage() - 1)"
+              >
+                &larr; Anterior
+              </button>
+              <span class="page-current">Página {{ materialPage() }} de {{ materialTotalPages() }}</span>
+              <button 
+                class="btn btn-sm btn-outline" 
+                [disabled]="materialPage() === materialTotalPages()" 
+                (click)="setMaterialPage(materialPage() + 1)"
+              >
+                Siguiente &rarr;
+              </button>
+            </div>
+          </div>
+
           <div class="labels-grid print-sheet" *ngIf="filteredMaterialLabels().length > 0">
-            <div class="label-card material-card" *ngFor="let item of filteredMaterialLabels()">
+            <div class="label-card material-card" *ngFor="let item of paginatedMaterialLabels()">
               <div class="label-inner">
                 <!-- Label Header -->
                 <div class="label-header">
@@ -550,6 +628,9 @@ export interface MaterialQrItem {
                 <div class="label-body">
                   <div class="qr-col">
                     <img *ngIf="item.qrDataUrl" [src]="item.qrDataUrl" [alt]="item.code" class="qr-img" />
+                    <div *ngIf="!item.qrDataUrl" class="qr-placeholder">
+                      <span class="spinner-sm"></span>
+                    </div>
                   </div>
                   <div class="info-col">
                     <div class="mono material-code" [title]="item.code">{{ item.code }}</div>
@@ -588,6 +669,29 @@ export interface MaterialQrItem {
             </div>
           </div>
 
+          <!-- Material Pagination Toolbar (Bottom) -->
+          <div class="pagination-bar no-print" *ngIf="filteredMaterialLabels().length > materialPageSize()">
+            <div class="page-info">
+              Página <strong>{{ materialPage() }}</strong> de <strong>{{ materialTotalPages() }}</strong>
+            </div>
+            <div class="page-controls">
+              <button 
+                class="btn btn-sm btn-outline" 
+                [disabled]="materialPage() === 1" 
+                (click)="setMaterialPage(materialPage() - 1)"
+              >
+                &larr; Anterior
+              </button>
+              <button 
+                class="btn btn-sm btn-outline" 
+                [disabled]="materialPage() === materialTotalPages()" 
+                (click)="setMaterialPage(materialPage() + 1)"
+              >
+                Siguiente &rarr;
+              </button>
+            </div>
+          </div>
+
           <!-- Empty State (When no count records exist yet) -->
           <div class="empty-state card no-print" *ngIf="filteredMaterialLabels().length === 0">
             <div class="empty-icon-wrap">
@@ -608,7 +712,7 @@ export interface MaterialQrItem {
               Conforme realices conteos en la <strong>Cédula de Conteo</strong> o importes un archivo Excel, aquí aparecerán de inmediato los códigos QR de cada partida.
             </p>
             <p class="empty-desc" *ngIf="rawCountRecords().length > 0">
-              No se encontraron refacciones con el filtro seleccionado (<strong>{{ selectedShelfFilter !== 'ALL' ? 'Anaquel ' + selectedShelfFilter : searchTerm }}</strong>).
+              No se encontraron refacciones con el filtro seleccionado (<strong>{{ selectedShelfFilter() !== 'ALL' ? 'Anaquel ' + selectedShelfFilter() : searchTerm() }}</strong>).
             </p>
 
             <div class="empty-actions" *ngIf="rawCountRecords().length === 0">
@@ -1267,6 +1371,51 @@ export interface MaterialQrItem {
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    .pagination-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.65rem 1rem;
+      margin: 0.75rem 0;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .page-info {
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+    .page-info strong {
+      color: #0f172a;
+    }
+    .page-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+    .page-current {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #334155;
+      padding: 0 4px;
+    }
+    .qr-placeholder {
+      width: 90px;
+      height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      border-radius: 4px;
+    }
+    .shelf-qr-col .qr-placeholder {
+      width: 130px;
+      height: 130px;
+    }
+
     /* Print Specific Styles */
     @media print {
       .no-print { display: none !important; }
@@ -1297,20 +1446,28 @@ export class QrLabelsComponent implements OnInit {
   sessions = signal<InventorySessionSummary[]>([]);
   session = signal<InventorySessionSummary | null>(null);
 
-  // Shelf QR Models & Filtering
+  // Shelf QR Models & Filtering (Signals para reactividad instantánea)
   shelfLabels = signal<ShelfQrItem[]>([]);
   loadingShelves = signal(false);
-  shelfPlantFilter: 'ALL' | 'Planta Baja' | 'Planta Alta' = 'ALL';
-  shelfZoneFilter = 'ALL';
-  shelfSearchTerm = '';
+  shelfPlantFilter = signal<'ALL' | 'Planta Baja' | 'Planta Alta'>('ALL');
+  shelfZoneFilter = signal<string>('ALL');
+  shelfSearchTerm = signal<string>('');
+  shelfPage = signal<number>(1);
+  shelfPageSize = signal<number>(24);
 
-  // Material QR Models & Filtering
+  // Material QR Models & Filtering (Signals para reactividad instantánea)
   rawCountRecords = signal<CountRecordDto[]>([]);
   materialLabels = signal<MaterialQrItem[]>([]);
   loading = signal(false);
-  selectedShelfFilter = 'ALL';
-  selectedPlantFilter: 'ALL' | 'Planta Baja' | 'Planta Alta' = 'ALL';
-  searchTerm = '';
+  selectedShelfFilter = signal<string>('ALL');
+  selectedPlantFilter = signal<'ALL' | 'Planta Baja' | 'Planta Alta'>('ALL');
+  searchTerm = signal<string>('');
+  materialPage = signal<number>(1);
+  materialPageSize = signal<number>(24);
+
+  // In-Memory Fast QR Caches (Evitan regeneraciones pesadas y congelamiento del navegador)
+  materialQrCache = new Map<string, string>();
+  shelfQrCache = new Map<string, string>();
 
   // Common Async Flags
   isZipping = signal(false);
@@ -1336,15 +1493,17 @@ export class QrLabelsComponent implements OnInit {
   filteredShelfLabels = computed(() => {
     let list = this.shelfLabels();
 
-    if (this.shelfPlantFilter !== 'ALL') {
-      list = list.filter(sh => sh.plant === this.shelfPlantFilter);
+    const plant = this.shelfPlantFilter();
+    if (plant !== 'ALL') {
+      list = list.filter(sh => sh.plant === plant);
     }
 
-    if (this.shelfZoneFilter !== 'ALL') {
-      list = list.filter(sh => sh.zone === this.shelfZoneFilter);
+    const zone = this.shelfZoneFilter();
+    if (zone !== 'ALL') {
+      list = list.filter(sh => sh.zone === zone);
     }
 
-    const q = this.shelfSearchTerm.trim().toUpperCase();
+    const q = this.shelfSearchTerm().trim().toUpperCase();
     if (q) {
       list = list.filter(sh =>
         sh.code.toUpperCase().includes(q) ||
@@ -1354,6 +1513,19 @@ export class QrLabelsComponent implements OnInit {
     }
 
     return list;
+  });
+
+  paginatedShelfLabels = computed(() => {
+    const list = this.filteredShelfLabels();
+    const page = this.shelfPage();
+    const size = this.shelfPageSize();
+    const start = (page - 1) * size;
+    return list.slice(start, start + size);
+  });
+
+  shelfTotalPages = computed(() => {
+    const total = this.filteredShelfLabels().length;
+    return Math.max(1, Math.ceil(total / this.shelfPageSize()));
   });
 
   // Available Counted Shelves for Material Tab
@@ -1375,15 +1547,17 @@ export class QrLabelsComponent implements OnInit {
   filteredMaterialLabels = computed(() => {
     let list = this.materialLabels();
 
-    if (this.selectedShelfFilter !== 'ALL') {
-      list = list.filter(m => m.shelf === this.selectedShelfFilter);
+    const shelf = this.selectedShelfFilter();
+    if (shelf !== 'ALL') {
+      list = list.filter(m => m.shelf === shelf);
     }
 
-    if (this.selectedPlantFilter !== 'ALL') {
-      list = list.filter(m => m.plant === this.selectedPlantFilter);
+    const plant = this.selectedPlantFilter();
+    if (plant !== 'ALL') {
+      list = list.filter(m => m.plant === plant);
     }
 
-    const q = this.searchTerm.trim().toUpperCase();
+    const q = this.searchTerm().trim().toUpperCase();
     if (q) {
       list = list.filter(m =>
         m.code.toUpperCase().includes(q) ||
@@ -1393,6 +1567,19 @@ export class QrLabelsComponent implements OnInit {
     }
 
     return list;
+  });
+
+  paginatedMaterialLabels = computed(() => {
+    const list = this.filteredMaterialLabels();
+    const page = this.materialPage();
+    const size = this.materialPageSize();
+    const start = (page - 1) * size;
+    return list.slice(start, start + size);
+  });
+
+  materialTotalPages = computed(() => {
+    const total = this.filteredMaterialLabels().length;
+    return Math.max(1, Math.ceil(total / this.materialPageSize()));
   });
 
   constructor(
@@ -1415,8 +1602,8 @@ export class QrLabelsComponent implements OnInit {
         const activeId = querySessionId || savedId || sessions[0]?.id || 0;
 
         if (queryShelfCode) {
-          this.selectedShelfFilter = queryShelfCode;
-          this.shelfSearchTerm = queryShelfCode;
+          this.selectedShelfFilter.set(queryShelfCode);
+          this.shelfSearchTerm.set(queryShelfCode);
         }
 
         if (activeId) {
@@ -1427,6 +1614,85 @@ export class QrLabelsComponent implements OnInit {
       },
       error: (err) => this.toast.error('Error al cargar inventarios: ' + (err.error?.message || err.message))
     });
+  }
+
+  min(a: number, b: number): number {
+    return Math.min(a, b);
+  }
+
+  setShelfPlantFilter(plant: 'ALL' | 'Planta Baja' | 'Planta Alta') {
+    this.shelfPlantFilter.set(plant);
+    this.shelfPage.set(1);
+    this.triggerShelfQrs();
+  }
+
+  setSelectedPlantFilter(plant: 'ALL' | 'Planta Baja' | 'Planta Alta') {
+    this.selectedPlantFilter.set(plant);
+    this.materialPage.set(1);
+    this.triggerMaterialQrs();
+  }
+
+  setShelfPage(page: number) {
+    this.shelfPage.set(page);
+    this.triggerShelfQrs();
+  }
+
+  setMaterialPage(page: number) {
+    this.materialPage.set(page);
+    this.triggerMaterialQrs();
+  }
+
+  triggerShelfQrs() {
+    setTimeout(() => this.generateVisibleShelfQrs(), 15);
+  }
+
+  triggerMaterialQrs() {
+    setTimeout(() => this.generateVisibleMaterialQrs(), 15);
+  }
+
+  async generateVisibleShelfQrs() {
+    const visible = this.paginatedShelfLabels();
+    const sessionId = this.selectedSessionId();
+    await Promise.all(visible.map(async (item) => {
+      if (item.qrDataUrl) return;
+      const cacheKey = `SHELF_${item.shelfId}`;
+      if (this.shelfQrCache.has(cacheKey)) {
+        item.qrDataUrl = this.shelfQrCache.get(cacheKey)!;
+        return;
+      }
+      try {
+        const targetUrl = `${window.location.origin}/capture?sessionId=${sessionId}&shelfId=${item.shelfId}`;
+        const dataUrl = await QRCode.toDataURL(targetUrl, {
+          width: 600,
+          margin: 2,
+          errorCorrectionLevel: 'H',
+          color: { dark: '#0a2472', light: '#ffffff' }
+        });
+        this.shelfQrCache.set(cacheKey, dataUrl);
+        item.qrDataUrl = dataUrl;
+      } catch (e) {}
+    }));
+  }
+
+  async generateVisibleMaterialQrs() {
+    const visible = this.paginatedMaterialLabels();
+    await Promise.all(visible.map(async (item) => {
+      if (item.qrDataUrl) return;
+      if (this.materialQrCache.has(item.code)) {
+        item.qrDataUrl = this.materialQrCache.get(item.code)!;
+        return;
+      }
+      try {
+        const dataUrl = await QRCode.toDataURL(item.code, {
+          width: 500,
+          margin: 2,
+          errorCorrectionLevel: 'H',
+          color: { dark: '#000000', light: '#ffffff' }
+        });
+        this.materialQrCache.set(item.code, dataUrl);
+        item.qrDataUrl = dataUrl;
+      } catch (e) {}
+    }));
   }
 
   onSessionChange(id: number) {
@@ -1442,37 +1708,21 @@ export class QrLabelsComponent implements OnInit {
   loadShelfQrs(sessionId: number) {
     this.loadingShelves.set(true);
     this.api.getSessionShelves(sessionId).subscribe({
-      next: async (shelves) => {
-        const items: ShelfQrItem[] = [];
-        for (const sh of shelves) {
-          // Direct scan capture URL for mobile operator
-          const targetUrl = `${window.location.origin}/capture?sessionId=${sessionId}&shelfId=${sh.shelfId}`;
-          let qrDataUrl = '';
-          try {
-            qrDataUrl = await QRCode.toDataURL(targetUrl, {
-              width: 600,
-              margin: 2,
-              errorCorrectionLevel: 'H',
-              color: { dark: '#0a2472', light: '#ffffff' }
-            });
-          } catch (e) {
-            console.error('Error creating shelf QR for', sh.shelfCode, e);
-          }
-
-          items.push({
-            shelfId: sh.shelfId,
-            code: sh.shelfCode,
-            zone: sh.shelfZone || 'General',
-            description: sh.shelfDescription || '',
-            plant: sh.plant || (sh.shelfCode.startsWith('PA-') ? 'Planta Alta' : 'Planta Baja'),
-            totalPieces: sh.totalPieces || 0,
-            recordCount: sh.recordCount || 0,
-            status: sh.status || 'PENDIENTE',
-            qrDataUrl
-          });
-        }
+      next: (shelves) => {
+        const items: ShelfQrItem[] = shelves.map(sh => ({
+          shelfId: sh.shelfId,
+          code: sh.shelfCode,
+          zone: sh.shelfZone || 'General',
+          description: sh.shelfDescription || '',
+          plant: sh.plant || (sh.shelfCode.startsWith('PA-') ? 'Planta Alta' : 'Planta Baja'),
+          totalPieces: sh.totalPieces || 0,
+          recordCount: sh.recordCount || 0,
+          status: sh.status || 'PENDIENTE',
+          qrDataUrl: this.shelfQrCache.get(`SHELF_${sh.shelfId}`) || ''
+        }));
         this.shelfLabels.set(items);
         this.loadingShelves.set(false);
+        this.triggerShelfQrs();
       },
       error: (err) => {
         this.loadingShelves.set(false);
@@ -1484,34 +1734,21 @@ export class QrLabelsComponent implements OnInit {
   loadAllShelvesWithoutSession() {
     this.loadingShelves.set(true);
     this.api.getShelves().subscribe({
-      next: async (shelves) => {
-        const items: ShelfQrItem[] = [];
-        for (const sh of shelves) {
-          const targetUrl = `${window.location.origin}/capture?shelfId=${sh.id}`;
-          let qrDataUrl = '';
-          try {
-            qrDataUrl = await QRCode.toDataURL(targetUrl, {
-              width: 600,
-              margin: 2,
-              errorCorrectionLevel: 'H',
-              color: { dark: '#0a2472', light: '#ffffff' }
-            });
-          } catch (e) {}
-
-          items.push({
-            shelfId: sh.id,
-            code: sh.code,
-            zone: sh.zone || 'General',
-            description: sh.description || '',
-            plant: sh.plant || (sh.code.startsWith('PA-') ? 'Planta Alta' : 'Planta Baja'),
-            totalPieces: 0,
-            recordCount: 0,
-            status: 'PENDIENTE',
-            qrDataUrl
-          });
-        }
+      next: (shelves) => {
+        const items: ShelfQrItem[] = shelves.map(sh => ({
+          shelfId: sh.id,
+          code: sh.code,
+          zone: sh.zone || 'General',
+          description: sh.description || '',
+          plant: sh.plant || (sh.code.startsWith('PA-') ? 'Planta Alta' : 'Planta Baja'),
+          totalPieces: 0,
+          recordCount: 0,
+          status: 'PENDIENTE',
+          qrDataUrl: this.shelfQrCache.get(`SHELF_${sh.id}`) || ''
+        }));
         this.shelfLabels.set(items);
         this.loadingShelves.set(false);
+        this.triggerShelfQrs();
       },
       error: () => this.loadingShelves.set(false)
     });
@@ -1526,7 +1763,7 @@ export class QrLabelsComponent implements OnInit {
 
     this.loading.set(true);
     this.api.getCounts(sessionId).subscribe({
-      next: async (counts) => {
+      next: (counts) => {
         this.rawCountRecords.set(counts || []);
 
         if (!counts || counts.length === 0) {
@@ -1535,35 +1772,26 @@ export class QrLabelsComponent implements OnInit {
           return;
         }
 
-        const map = new Map<string, {
-          id: number;
-          code: string;
-          description: string;
-          unit: string;
-          shelf: string;
-          shelfZone: string;
-          plant: string;
-          pieces: number;
-          countedBy: string;
-          countedAt: string;
-        }>();
-
+        const map = new Map<string, MaterialQrItem>();
         for (const c of counts) {
-          const key = `${c.shelfCode}|${c.capturedCode.trim().toUpperCase()}`;
-          const plant = c.shelfCode.startsWith('PA-') ? 'Planta Alta' : 'Planta Baja';
+          const code = (c.capturedCode || '').trim().toUpperCase();
+          if (!code) continue;
+          const key = `${c.shelfCode}|${code}`;
+          const plant = (c.shelfCode || '').startsWith('PA-') ? 'Planta Alta' : 'Planta Baja';
 
           if (!map.has(key)) {
             map.set(key, {
               id: c.id,
-              code: c.capturedCode.trim().toUpperCase(),
-              description: c.description || c.capturedCode,
+              code,
+              description: c.description || code,
               unit: c.unit || 'PZA',
-              shelf: c.shelfCode,
+              shelf: c.shelfCode || 'SIN_UBIC',
               shelfZone: c.shelfZone || 'General',
               plant,
               pieces: c.quantity || 0,
               countedBy: c.userName || 'Operador',
-              countedAt: c.countedAt
+              countedAt: c.countedAt,
+              qrDataUrl: this.materialQrCache.get(code) || ''
             });
           } else {
             const existing = map.get(key)!;
@@ -1571,29 +1799,9 @@ export class QrLabelsComponent implements OnInit {
           }
         }
 
-        const labelList: MaterialQrItem[] = [];
-        for (const item of map.values()) {
-          const qrPayload = item.code.trim().toUpperCase();
-          let qrDataUrl = '';
-          try {
-            qrDataUrl = await QRCode.toDataURL(qrPayload, {
-              width: 500,
-              margin: 2,
-              errorCorrectionLevel: 'H',
-              color: { dark: '#000000', light: '#ffffff' }
-            });
-          } catch (e) {
-            console.error('QR generation error for', item.code, e);
-          }
-
-          labelList.push({
-            ...item,
-            qrDataUrl
-          });
-        }
-
-        this.materialLabels.set(labelList);
+        this.materialLabels.set(Array.from(map.values()));
         this.loading.set(false);
+        this.triggerMaterialQrs();
       },
       error: (err) => {
         console.error('Error fetching material counts for QR', err);
@@ -1605,15 +1813,31 @@ export class QrLabelsComponent implements OnInit {
   }
 
   // Shelf QR Download (Pure PNG named after shelf code, e.g. PB-ACE-05.png)
-  downloadSingleShelfQr(item: ShelfQrItem) {
-    if (!item.qrDataUrl) return;
-    const a = document.createElement('a');
-    a.href = item.qrDataUrl;
-    a.download = `${item.code}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    this.toast.success(`Código QR descargado: ${item.code}.png`);
+  async downloadSingleShelfQr(item: ShelfQrItem) {
+    let dataUrl = item.qrDataUrl || this.shelfQrCache.get(`SHELF_${item.shelfId}`);
+    if (!dataUrl) {
+      try {
+        const targetUrl = `${window.location.origin}/capture?sessionId=${this.selectedSessionId()}&shelfId=${item.shelfId}`;
+        dataUrl = await QRCode.toDataURL(targetUrl, {
+          width: 600,
+          margin: 2,
+          errorCorrectionLevel: 'H',
+          color: { dark: '#0a2472', light: '#ffffff' }
+        });
+        this.shelfQrCache.set(`SHELF_${item.shelfId}`, dataUrl);
+        item.qrDataUrl = dataUrl;
+      } catch (e) {}
+    }
+
+    if (dataUrl) {
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `${item.code}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      this.toast.success(`Código QR descargado: ${item.code}.png`);
+    }
   }
 
   // Bulk ZIP Download for Shelves
@@ -1763,19 +1987,25 @@ export class QrLabelsComponent implements OnInit {
   }
 
   resetShelfFilters() {
-    this.shelfPlantFilter = 'ALL';
-    this.shelfZoneFilter = 'ALL';
-    this.shelfSearchTerm = '';
+    this.shelfPlantFilter.set('ALL');
+    this.shelfZoneFilter.set('ALL');
+    this.shelfSearchTerm.set('');
+    this.shelfPage.set(1);
+    this.triggerShelfQrs();
   }
 
   resetFilters() {
-    this.selectedShelfFilter = 'ALL';
-    this.selectedPlantFilter = 'ALL';
-    this.searchTerm = '';
+    this.selectedShelfFilter.set('ALL');
+    this.selectedPlantFilter.set('ALL');
+    this.searchTerm.set('');
+    this.materialPage.set(1);
+    this.triggerMaterialQrs();
   }
 
   filterByThisShelf(shelfCode: string) {
-    this.selectedShelfFilter = shelfCode;
+    this.selectedShelfFilter.set(shelfCode);
+    this.materialPage.set(1);
+    this.triggerMaterialQrs();
   }
 
   printBatch() {
@@ -1790,16 +2020,31 @@ export class QrLabelsComponent implements OnInit {
       .trim();
   }
 
-  downloadSingleMaterialQr(item: MaterialQrItem) {
-    if (!item.qrDataUrl) return;
-    const a = document.createElement('a');
-    a.href = item.qrDataUrl;
-    const safeName = `${this.sanitizeFilename(item.code)}.png`;
-    a.download = safeName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    this.toast.success(`Código QR descargado: ${safeName}`);
+  async downloadSingleMaterialQr(item: MaterialQrItem) {
+    let dataUrl = item.qrDataUrl || this.materialQrCache.get(item.code);
+    if (!dataUrl) {
+      try {
+        dataUrl = await QRCode.toDataURL(item.code.trim().toUpperCase(), {
+          width: 600,
+          margin: 2,
+          errorCorrectionLevel: 'H',
+          color: { dark: '#0a2472', light: '#ffffff' }
+        });
+        this.materialQrCache.set(item.code, dataUrl);
+        item.qrDataUrl = dataUrl;
+      } catch (e) {}
+    }
+
+    if (dataUrl) {
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      const safeName = `${this.sanitizeFilename(item.code)}.png`;
+      a.download = safeName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      this.toast.success(`Código QR descargado: ${safeName}`);
+    }
   }
 
   // Alias for backward compatibility

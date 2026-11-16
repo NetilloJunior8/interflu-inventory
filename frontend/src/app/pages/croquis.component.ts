@@ -6,6 +6,21 @@ import * as QRCode from 'qrcode';
 import { ApiService, ShelfAssignmentDto, InventorySessionSummary } from '../services/api.service';
 import { ToastService } from '../services/toast.service';
 
+export interface SectionStat {
+  id: string;
+  name: string;
+  codePrefix: string;
+  color: string;
+  lightBg: string;
+  borderColor: string;
+  totalShelves: number;
+  completedShelves: number;
+  pendingShelves: number;
+  untouchedShelves: number;
+  totalPieces: number;
+  percentage: number;
+}
+
 @Component({
   selector: 'app-croquis',
   standalone: true,
@@ -142,15 +157,15 @@ import { ToastService } from '../services/toast.service';
         <div class="blueprint-legend">
           <span class="legend-item" title="Anaqueles con conteo registrado y finalizado">
             <span class="dot dot-completed"></span>
-            <strong>Contabilizados (Verde)</strong>
+            <strong>Completados (Verde)</strong>
           </span>
-          <span class="legend-item" title="Anaqueles pendientes de revisión o con conteo en proceso">
+          <span class="legend-item" title="Colores asignados por tipo de anaquel (Acero, Kuriyama, YPC, Dixon, CHID...)">
+            <span class="dot dot-section-color"></span>
+            <strong>Por Sección (Colores)</strong>
+          </span>
+          <span class="legend-item" title="Anaqueles en conteo o revisión">
             <span class="dot dot-pending-review"></span>
-            <strong>Pendientes (Rojo)</strong>
-          </span>
-          <span class="legend-item" title="Anaqueles sin iniciar / todavía no tocados">
-            <span class="dot dot-untouched"></span>
-            <strong>Sin iniciar (Sin color)</strong>
+            <strong>En Conteo (Borde Rojo)</strong>
           </span>
         </div>
       </div>
@@ -222,390 +237,461 @@ import { ToastService } from '../services/toast.service';
         </button>
       </div>
 
-      <!-- Main Croquis Canvas Viewport -->
-      <div 
-        class="blueprint-canvas-wrap" 
-        #viewportContainer 
-        [class.is-panning]="isPanning"
-        (mousedown)="onViewportMouseDown($event)"
-        (wheel)="onWheel($event)"
-      >
-        <div 
-          class="canvas-sizer" 
-          [style.width.px]="1440 * (zoomLevel() / 100)" 
-          [style.height.px]="810 * (zoomLevel() / 100)"
-        >
-          <div class="canvas-scroll-wrapper" [style.transform]="'scale(' + (zoomLevel() / 100) + ')'" [style.transformOrigin]="'top left'">
-            <div
-              #canvasElement
-              class="blueprint-canvas-1440"
-              [class.edit-canvas]="editMode()"
-              (click)="onCanvasClick($event)"
-              (mousemove)="onCanvasMouseMove($event)"
-              (mouseup)="onCanvasMouseUp($event)"
-              (mouseleave)="onCanvasMouseUp($event)"
+      <!-- Main Croquis Layout: Canvas Column + Sections Progress Sidebar -->
+      <div class="croquis-main-layout">
+        <div class="croquis-canvas-col">
+          <!-- Main Croquis Canvas Viewport -->
+          <div 
+            class="blueprint-canvas-wrap" 
+            #viewportContainer 
+            [class.is-panning]="isPanning"
+            (mousedown)="onViewportMouseDown($event)"
+            (wheel)="onWheel($event)"
+          >
+            <div 
+              class="canvas-sizer" 
+              [style.width.px]="1440 * (zoomLevel() / 100)" 
+              [style.height.px]="810 * (zoomLevel() / 100)"
             >
-            <!-- Background Original Blueprint Image (with adjustable opacity) -->
-            <img
-              [src]="selectedPlant() === 'Planta Baja' ? '/croquis_raw_1.png' : '/croquis_raw_2.png'"
-              alt="Plano Original Interflu"
-              class="blueprint-img-underlay"
-              [style.opacity]="blueprintOpacity() / 100"
-            />
+              <div class="canvas-scroll-wrapper" [style.transform]="'scale(' + (zoomLevel() / 100) + ')'" [style.transformOrigin]="'top left'">
+                <div
+                  #canvasElement
+                  class="blueprint-canvas-1440"
+                  [class.edit-canvas]="editMode()"
+                  (click)="onCanvasClick($event)"
+                  (mousemove)="onCanvasMouseMove($event)"
+                  (mouseup)="onCanvasMouseUp($event)"
+                  (mouseleave)="onCanvasMouseUp($event)"
+                >
+                <!-- Background Original Blueprint Image (with adjustable opacity) -->
+                <img
+                  [src]="selectedPlant() === 'Planta Baja' ? '/croquis_raw_1.png' : '/croquis_raw_2.png'"
+                  alt="Plano Original Interflu"
+                  class="blueprint-img-underlay"
+                  [style.opacity]="blueprintOpacity() / 100"
+                />
 
-            <!-- Architectural Engineering SVG Overlay (Crisp vector walls and labels) -->
-            <!-- Architectural Engineering SVG Overlay (Crisp vector walls and labels) -->
-            <svg class="architectural-svg" viewBox="0 0 1440 810" preserveAspectRatio="none">
-              <!-- Slanted Outer Warehouse Walls matching Blueprint East Inclination (-7.8°) -->
-              <polygon points="250,90 1380,90 1285,780 250,780" fill="none" stroke="#334155" stroke-width="3.5" stroke-linejoin="round" />
-              <polygon points="254,94 1374,94 1281,776 254,776" fill="none" stroke="#64748b" stroke-width="1" stroke-dasharray="8,6" stroke-linejoin="round" />
+                <!-- Architectural Engineering SVG Overlay (Crisp vector walls and labels) -->
+                <svg class="architectural-svg" viewBox="0 0 1440 810" preserveAspectRatio="none">
+                  <!-- Slanted Outer Warehouse Walls matching Blueprint East Inclination (-7.8°) -->
+                  <polygon points="250,90 1380,90 1285,780 250,780" fill="none" stroke="#334155" stroke-width="3.5" stroke-linejoin="round" />
+                  <polygon points="254,94 1374,94 1281,776 254,776" fill="none" stroke="#64748b" stroke-width="1" stroke-dasharray="8,6" stroke-linejoin="round" />
 
-              <!-- Common Walkways & Grid Guidelines -->
-              <line x1="250" y1="480" x2="1326" y2="480" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="6,6" />
-              <line x1="750" y1="90" x2="750" y2="780" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="6,6" />
+                  <!-- Common Walkways & Grid Guidelines -->
+                  <line x1="250" y1="480" x2="1326" y2="480" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="6,6" />
+                  <line x1="750" y1="90" x2="750" y2="780" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="6,6" />
 
-              <!-- Planta Baja Specific Architectural Features (Exact User Image 2 Order) -->
-              <ng-container *ngIf="selectedPlant() === 'Planta Baja'">
-                <!-- 1. Zona de Desembarque (Top) -->
-                <rect x="250" y="90" width="230" height="215" fill="#f8fafc" stroke="#334155" stroke-width="2.5" />
-                <rect x="275" y="115" width="180" height="150" fill="#f1f5f9" stroke="#0f172a" stroke-width="2" />
-                <text x="365" y="185" text-anchor="middle" class="svg-room-label">ZONA DE</text>
-                <text x="365" y="205" text-anchor="middle" class="svg-room-label">DESEMBARQUE</text>
+                  <!-- Planta Baja Specific Architectural Features (Exact User Image 2 Order) -->
+                  <ng-container *ngIf="selectedPlant() === 'Planta Baja'">
+                    <!-- 1. Zona de Desembarque (Top) -->
+                    <rect x="250" y="90" width="230" height="215" fill="#f8fafc" stroke="#334155" stroke-width="2.5" />
+                    <rect x="275" y="115" width="180" height="150" fill="#f1f5f9" stroke="#0f172a" stroke-width="2" />
+                    <text x="365" y="185" text-anchor="middle" class="svg-room-label">ZONA DE</text>
+                    <text x="365" y="205" text-anchor="middle" class="svg-room-label">DESEMBARQUE</text>
 
-                <!-- 2. Cocina / Comedor (Middle 1) -->
-                <rect x="250" y="305" width="230" height="185" fill="#f8fafc" stroke="#334155" stroke-width="2.5" />
-                <rect x="275" y="330" width="180" height="135" fill="#f1f5f9" stroke="#0f172a" stroke-width="2" />
-                <text x="365" y="392" text-anchor="middle" class="svg-room-label">COCINA /</text>
-                <text x="365" y="412" text-anchor="middle" class="svg-room-label">COMEDOR</text>
+                    <!-- 2. Cocina / Comedor (Middle 1) -->
+                    <rect x="250" y="305" width="230" height="185" fill="#f8fafc" stroke="#334155" stroke-width="2.5" />
+                    <rect x="275" y="330" width="180" height="135" fill="#f1f5f9" stroke="#0f172a" stroke-width="2" />
+                    <text x="365" y="392" text-anchor="middle" class="svg-room-label">COCINA /</text>
+                    <text x="365" y="412" text-anchor="middle" class="svg-room-label">COMEDOR</text>
 
-                <!-- 3. Baño Hombres (Middle 2) -->
-                <rect x="250" y="490" width="230" height="145" fill="#f8fafc" stroke="#334155" stroke-width="2.5" />
-                <rect x="275" y="515" width="180" height="100" fill="#f1f5f9" stroke="#0f172a" stroke-width="2" />
-                <text x="365" y="572" text-anchor="middle" class="svg-room-label">BAÑO HOMBRES</text>
+                    <!-- 3. Baño Hombres (Middle 2) -->
+                    <rect x="250" y="490" width="230" height="145" fill="#f8fafc" stroke="#334155" stroke-width="2.5" />
+                    <rect x="275" y="515" width="180" height="100" fill="#f1f5f9" stroke="#0f172a" stroke-width="2" />
+                    <text x="365" y="572" text-anchor="middle" class="svg-room-label">BAÑO HOMBRES</text>
 
-                <!-- 4. Baño Mujeres (Bottom) -->
-                <rect x="250" y="635" width="230" height="145" fill="#f8fafc" stroke="#334155" stroke-width="2.5" />
-                <rect x="275" y="658" width="180" height="102" fill="#f1f5f9" stroke="#0f172a" stroke-width="2" />
-                <text x="365" y="716" text-anchor="middle" class="svg-room-label">BAÑO MUJERES</text>
+                    <!-- 4. Baño Mujeres (Bottom) -->
+                    <rect x="250" y="635" width="230" height="145" fill="#f8fafc" stroke="#334155" stroke-width="2.5" />
+                    <rect x="275" y="658" width="180" height="102" fill="#f1f5f9" stroke="#0f172a" stroke-width="2" />
+                    <text x="365" y="716" text-anchor="middle" class="svg-room-label">BAÑO MUJERES</text>
 
-                <!-- Tuberías Area Boundary -->
-                <rect x="1040" y="105" width="150" height="385" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,4" />
-                <text x="1115" y="295" text-anchor="middle" class="svg-zone-title" transform="rotate(-90 1115 295)">ÁREA DE TUBERÍAS</text>
+                    <!-- Tuberías Area Boundary -->
+                    <rect x="1040" y="105" width="150" height="385" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,4" />
+                    <text x="1115" y="295" text-anchor="middle" class="svg-zone-title" transform="rotate(-90 1115 295)">ÁREA DE TUBERÍAS</text>
 
-                <!-- Escalera (Slanted along East wall) -->
-                <polygon points="1215,525 1320,525 1285,775 1215,775" fill="#f1f5f9" stroke="#475569" stroke-width="2" stroke-linejoin="round" />
-                <line x1="1215" y1="560" x2="1315" y2="560" stroke="#64748b" stroke-width="1.5" />
-                <line x1="1215" y1="595" x2="1310" y2="595" stroke="#64748b" stroke-width="1.5" />
-                <line x1="1215" y1="630" x2="1305" y2="630" stroke="#64748b" stroke-width="1.5" />
-                <line x1="1215" y1="665" x2="1300" y2="665" stroke="#64748b" stroke-width="1.5" />
-                <line x1="1215" y1="700" x2="1295" y2="700" stroke="#64748b" stroke-width="1.5" />
-                <line x1="1215" y1="735" x2="1290" y2="735" stroke="#64748b" stroke-width="1.5" />
-                <text x="1255" y="650" text-anchor="middle" class="svg-room-label" transform="rotate(-90 1255 650)">ESCALERA</text>
+                    <!-- Escalera (Slanted along East wall) -->
+                    <polygon points="1215,525 1320,525 1285,775 1215,775" fill="#f1f5f9" stroke="#475569" stroke-width="2" stroke-linejoin="round" />
+                    <line x1="1215" y1="560" x2="1315" y2="560" stroke="#64748b" stroke-width="1.5" />
+                    <line x1="1215" y1="595" x2="1310" y2="595" stroke="#64748b" stroke-width="1.5" />
+                    <line x1="1215" y1="630" x2="1305" y2="630" stroke="#64748b" stroke-width="1.5" />
+                    <line x1="1215" y1="665" x2="1300" y2="665" stroke="#64748b" stroke-width="1.5" />
+                    <line x1="1215" y1="700" x2="1295" y2="700" stroke="#64748b" stroke-width="1.5" />
+                    <line x1="1215" y1="735" x2="1290" y2="735" stroke="#64748b" stroke-width="1.5" />
+                    <text x="1255" y="650" text-anchor="middle" class="svg-room-label" transform="rotate(-90 1255 650)">ESCALERA</text>
 
-                <!-- Mangueras PB Area Boundary -->
-                <rect x="1000" y="495" width="185" height="190" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,4" />
-                <text x="1092" y="595" text-anchor="middle" class="svg-zone-title">ÁREA MANGUERAS PB</text>
+                    <!-- Mangueras PB Area Boundary -->
+                    <rect x="1000" y="495" width="185" height="190" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,4" />
+                    <text x="1092" y="595" text-anchor="middle" class="svg-zone-title">ÁREA MANGUERAS PB</text>
 
-                <!-- Architectural Badge Pills (Planta Baja - Crisp Vector, Non-Overlapping & Masking Underlay) -->
-                <!-- Kuriyama Header -->
-                <g>
-                  <rect x="640" y="232" width="120" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="700" y="243" text-anchor="middle" class="svg-badge-text">KURIYAMA (A | B)</text>
-                </g>
+                    <!-- Architectural Badge Pills (Planta Baja - Crisp Vector, Non-Overlapping & Masking Underlay) -->
+                    <!-- Kuriyama Header -->
+                    <g>
+                      <rect x="640" y="232" width="120" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="700" y="243" text-anchor="middle" class="svg-badge-text">KURIYAMA (A | B)</text>
+                    </g>
 
-                <!-- Pendiente -->
-                <g>
-                  <rect x="748" y="66" width="70" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="783" y="77" text-anchor="middle" class="svg-badge-text">PENDIENTE</text>
-                </g>
+                    <!-- Pendiente -->
+                    <g>
+                      <rect x="748" y="66" width="70" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="783" y="77" text-anchor="middle" class="svg-badge-text">PENDIENTE</text>
+                    </g>
 
-                <!-- Acero 1-19 -->
-                <g>
-                  <rect x="822" y="66" width="72" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="858" y="77" text-anchor="middle" class="svg-badge-text">ACERO (1-19)</text>
-                </g>
+                    <!-- Acero 1-19 -->
+                    <g>
+                      <rect x="822" y="66" width="72" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="858" y="77" text-anchor="middle" class="svg-badge-text">ACERO (1-19)</text>
+                    </g>
 
-                <!-- Pasillo YPC A -->
-                <g>
-                  <rect x="898" y="66" width="70" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="933" y="77" text-anchor="middle" class="svg-badge-text">PASILLO YPC</text>
-                </g>
+                    <!-- Pasillo YPC A -->
+                    <g>
+                      <rect x="898" y="66" width="70" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="933" y="77" text-anchor="middle" class="svg-badge-text">PASILLO YPC</text>
+                    </g>
 
-                <!-- Estantería YPC B/C -->
-                <g>
-                  <rect x="972" y="66" width="84" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="1014" y="77" text-anchor="middle" class="svg-badge-text">YPC (B | C)</text>
-                </g>
+                    <!-- Estantería YPC B/C -->
+                    <g>
+                      <rect x="972" y="66" width="84" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="1014" y="77" text-anchor="middle" class="svg-badge-text">YPC (B | C)</text>
+                    </g>
 
-                <!-- Dixon (Nivel 1 Columna) -->
-                <g>
-                  <rect x="1172" y="66" width="74" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="1209" y="77" text-anchor="middle" class="svg-badge-text">DIXON (1-2)</text>
-                </g>
+                    <!-- Dixon (Nivel 1 Columna) -->
+                    <g>
+                      <rect x="1172" y="66" width="74" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="1209" y="77" text-anchor="middle" class="svg-badge-text">DIXON (1-2)</text>
+                    </g>
 
-                <!-- Conexiones Hidráulicas (Nivel 2-6 Columna) sub-header -->
-                <g>
-                  <rect x="1158" y="185" width="102" height="15" rx="3" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
-                  <text x="1209" y="193" text-anchor="middle" class="svg-badge-text-sub">C. HIDRÁULICAS (A|B)</text>
-                </g>
+                    <!-- Conexiones Hidráulicas (Nivel 2-6 Columna) sub-header -->
+                    <g>
+                      <rect x="1158" y="185" width="102" height="15" rx="3" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
+                      <text x="1209" y="193" text-anchor="middle" class="svg-badge-text-sub">C. HIDRÁULICAS (A|B)</text>
+                    </g>
 
-                <!-- Parker Inox (Muro Norte Horizontal) -->
-                <g>
-                  <rect x="1255" y="66" width="74" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="1292" y="77" text-anchor="middle" class="svg-badge-text">PARKER INOX</text>
-                </g>
+                    <!-- Parker Inox (Muro Norte Horizontal) -->
+                    <g>
+                      <rect x="1255" y="66" width="74" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="1292" y="77" text-anchor="middle" class="svg-badge-text">PARKER INOX</text>
+                    </g>
 
-                <!-- Conexiones Hidráulicas Muro Este (Inclinado) -->
-                <g transform="rotate(-7.8 1326 77)">
-                  <rect x="1265" y="66" width="122" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="1326" y="77" text-anchor="middle" class="svg-badge-text">CHID MURO ESTE</text>
-                </g>
+                    <!-- Conexiones Hidráulicas Muro Este (Inclinado) -->
+                    <g transform="rotate(-7.8 1326 77)">
+                      <rect x="1265" y="66" width="122" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="1326" y="77" text-anchor="middle" class="svg-badge-text">CHID MURO ESTE</text>
+                    </g>
 
-                <!-- Basura Architectural Box (Northeast Corner) -->
-                <g transform="rotate(-7.8 1350 130)">
-                  <rect x="1334" y="98" width="34" height="66" rx="4" fill="#f8fafc" stroke="#64748b" stroke-width="1.5" stroke-dasharray="3,3" />
-                  <text x="1351" y="133" text-anchor="middle" font-size="9" font-weight="700" fill="#64748b" letter-spacing="0.5">BASURA</text>
-                </g>
+                    <!-- Basura Architectural Box (Northeast Corner) -->
+                    <g transform="rotate(-7.8 1350 130)">
+                      <rect x="1334" y="98" width="34" height="66" rx="4" fill="#f8fafc" stroke="#64748b" stroke-width="1.5" stroke-dasharray="3,3" />
+                      <text x="1351" y="133" text-anchor="middle" font-size="9" font-weight="700" fill="#64748b" letter-spacing="0.5">BASURA</text>
+                    </g>
 
-                <!-- Cybermatics / Universal -->
-                <g>
-                  <rect x="580" y="696" width="160" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="660" y="707" text-anchor="middle" class="svg-badge-text">CYBERMATICS / UNIVERSAL</text>
-                </g>
-              </ng-container>
+                    <!-- Cybermatics / Universal -->
+                    <g>
+                      <rect x="580" y="696" width="160" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="660" y="707" text-anchor="middle" class="svg-badge-text">CYBERMATICS / UNIVERSAL</text>
+                    </g>
+                  </ng-container>
 
-              <!-- Planta Alta Specific Architectural Features -->
-              <ng-container *ngIf="selectedPlant() === 'Planta Alta'">
-                <!-- Architectural Badge Pills (Planta Alta - Crisp Vector, Non-Overlapping & Masking Underlay) -->
-                <!-- Lateral Oeste -->
-                <g>
-                  <rect x="238" y="169" width="98" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="287" y="180" text-anchor="middle" class="svg-badge-text">LATERAL OESTE</text>
-                </g>
+                  <!-- Planta Alta Specific Architectural Features -->
+                  <ng-container *ngIf="selectedPlant() === 'Planta Alta'">
+                    <!-- Architectural Badge Pills (Planta Alta - Crisp Vector, Non-Overlapping & Masking Underlay) -->
+                    <!-- Lateral Oeste -->
+                    <g>
+                      <rect x="238" y="169" width="98" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="287" y="180" text-anchor="middle" class="svg-badge-text">LATERAL OESTE</text>
+                    </g>
 
-                <!-- Res. Acero NW -->
-                <g>
-                  <rect x="375" y="66" width="80" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="415" y="77" text-anchor="middle" class="svg-badge-text">RES. NW</text>
-                </g>
+                    <!-- Res. Acero NW -->
+                    <g>
+                      <rect x="375" y="66" width="80" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="415" y="77" text-anchor="middle" class="svg-badge-text">RES. NW</text>
+                    </g>
 
-                <!-- Acero | PVC Central (Elevated cleanly above boundary) -->
-                <g>
-                  <rect x="430" y="40" width="88" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="474" y="51" text-anchor="middle" class="svg-badge-text">ACERO | PVC</text>
-                </g>
+                    <!-- Acero | PVC Central (Elevated cleanly above boundary) -->
+                    <g>
+                      <rect x="430" y="40" width="88" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="474" y="51" text-anchor="middle" class="svg-badge-text">ACERO | PVC</text>
+                    </g>
 
-                <!-- Res. Acero NE -->
-                <g>
-                  <rect x="500" y="66" width="80" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="540" y="77" text-anchor="middle" class="svg-badge-text">RES. NE</text>
-                </g>
+                    <!-- Res. Acero NE -->
+                    <g>
+                      <rect x="500" y="66" width="80" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="540" y="77" text-anchor="middle" class="svg-badge-text">RES. NE</text>
+                    </g>
 
-                <!-- Reserva Acero Sur -->
-                <g>
-                  <rect x="420" y="445" width="108" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="474" y="456" text-anchor="middle" class="svg-badge-text">RES. ACERO SUR</text>
-                </g>
+                    <!-- Reserva Acero Sur -->
+                    <g>
+                      <rect x="420" y="445" width="108" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="474" y="456" text-anchor="middle" class="svg-badge-text">RES. ACERO SUR</text>
+                    </g>
 
-                <!-- Pasillo 1 (P1: HCO / HIDR.) -->
-                <g>
-                  <rect x="578" y="66" width="90" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="623" y="77" text-anchor="middle" class="svg-badge-text">P1: HCO / HIDR.</text>
-                </g>
+                    <!-- Pasillo 1 (P1: HCO / HIDR.) -->
+                    <g>
+                      <rect x="578" y="66" width="90" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="623" y="77" text-anchor="middle" class="svg-badge-text">P1: HCO / HIDR.</text>
+                    </g>
 
-                <!-- Pasillo 2 (P2: NEUMÁTICO) -->
-                <g>
-                  <rect x="822" y="66" width="90" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="867" y="77" text-anchor="middle" class="svg-badge-text">P2: NEUMÁTICO</text>
-                </g>
+                    <!-- Pasillo 2 (P2: NEUMÁTICO) -->
+                    <g>
+                      <rect x="822" y="66" width="90" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="867" y="77" text-anchor="middle" class="svg-badge-text">P2: NEUMÁTICO</text>
+                    </g>
 
-                <!-- Pasillo 3 (P3: FESTO / SMC) -->
-                <g>
-                  <rect x="919" y="66" width="90" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="964" y="77" text-anchor="middle" class="svg-badge-text">P3: FESTO/SMC</text>
-                </g>
+                    <!-- Pasillo 3 (P3: FESTO / SMC) -->
+                    <g>
+                      <rect x="919" y="66" width="90" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="964" y="77" text-anchor="middle" class="svg-badge-text">P3: FESTO/SMC</text>
+                    </g>
 
-                <!-- Pasillo 4 (P4: SELLOS 1) -->
-                <g>
-                  <rect x="1019" y="66" width="82" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="1060" y="77" text-anchor="middle" class="svg-badge-text">P4: SELLOS 1</text>
-                </g>
+                    <!-- Pasillo 4 (P4: SELLOS 1) -->
+                    <g>
+                      <rect x="1019" y="66" width="82" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="1060" y="77" text-anchor="middle" class="svg-badge-text">P4: SELLOS 1</text>
+                    </g>
 
-                <!-- Pasillo 5 (P5: SELLOS 2) -->
-                <g>
-                  <rect x="1138" y="66" width="82" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="1179" y="77" text-anchor="middle" class="svg-badge-text">P5: SELLOS 2</text>
-                </g>
+                    <!-- Pasillo 5 (P5: SELLOS 2) -->
+                    <g>
+                      <rect x="1138" y="66" width="82" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="1179" y="77" text-anchor="middle" class="svg-badge-text">P5: SELLOS 2</text>
+                    </g>
 
-                <!-- Sellos Muro Este (Inclinado) -->
-                <g transform="rotate(-7.8 1320 77)">
-                  <rect x="1265" y="66" width="110" height="22" rx="4" class="svg-badge-pill" />
-                  <text x="1320" y="77" text-anchor="middle" class="svg-badge-text">SELLOS MURO ESTE</text>
-                </g>
+                    <!-- Sellos Muro Este (Inclinado) -->
+                    <g transform="rotate(-7.8 1320 77)">
+                      <rect x="1265" y="66" width="110" height="22" rx="4" class="svg-badge-pill" />
+                      <text x="1320" y="77" text-anchor="middle" class="svg-badge-text">SELLOS MURO ESTE</text>
+                    </g>
 
-                <!-- Escalera (Slanted along East wall) -->
-                <polygon points="1215,525 1320,525 1285,775 1215,775" fill="#f1f5f9" stroke="#475569" stroke-width="2" stroke-linejoin="round" />
-                <line x1="1215" y1="560" x2="1315" y2="560" stroke="#64748b" stroke-width="1.5" />
-                <line x1="1215" y1="595" x2="1310" y2="595" stroke="#64748b" stroke-width="1.5" />
-                <line x1="1215" y1="630" x2="1305" y2="630" stroke="#64748b" stroke-width="1.5" />
-                <line x1="1215" y1="665" x2="1300" y2="665" stroke="#64748b" stroke-width="1.5" />
-                <line x1="1215" y1="700" x2="1295" y2="700" stroke="#64748b" stroke-width="1.5" />
-                <line x1="1215" y1="735" x2="1290" y2="735" stroke="#64748b" stroke-width="1.5" />
-                <text x="1255" y="650" text-anchor="middle" class="svg-room-label" transform="rotate(-90 1255 650)">ESCALERA</text>
+                    <!-- Escalera (Slanted along East wall) -->
+                    <polygon points="1215,525 1320,525 1285,775 1215,775" fill="#f1f5f9" stroke="#475569" stroke-width="2" stroke-linejoin="round" />
+                    <line x1="1215" y1="560" x2="1315" y2="560" stroke="#64748b" stroke-width="1.5" />
+                    <line x1="1215" y1="595" x2="1310" y2="595" stroke="#64748b" stroke-width="1.5" />
+                    <line x1="1215" y1="630" x2="1305" y2="630" stroke="#64748b" stroke-width="1.5" />
+                    <line x1="1215" y1="665" x2="1300" y2="665" stroke="#64748b" stroke-width="1.5" />
+                    <line x1="1215" y1="700" x2="1295" y2="700" stroke="#64748b" stroke-width="1.5" />
+                    <line x1="1215" y1="735" x2="1290" y2="735" stroke="#64748b" stroke-width="1.5" />
+                    <text x="1255" y="650" text-anchor="middle" class="svg-room-label" transform="rotate(-90 1255 650)">ESCALERA</text>
 
-                <!-- ÁREA DE MANGUERAS INDUSTRIALES (Referencia en plano sin numeración) -->
-                <rect x="390" y="485" width="670" height="280" rx="8" fill="#f8fafc" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6,4" />
-                <text x="725" y="520" text-anchor="middle" class="svg-zone-title">ÁREA DE MANGUERAS INDUSTRIALES · ALMACÉN A GRANEL</text>
+                    <!-- ÁREA DE MANGUERAS INDUSTRIALES (Referencia en plano sin numeración) -->
+                    <rect x="390" y="485" width="670" height="280" rx="8" fill="#f8fafc" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6,4" />
+                    <text x="725" y="520" text-anchor="middle" class="svg-zone-title">ÁREA DE MANGUERAS INDUSTRIALES · ALMACÉN A GRANEL</text>
 
-                <!-- Fila 1 de Carretes (cy = 585) -->
-                <g class="svg-hose-reel">
-                  <circle cx="460" cy="585" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
-                  <circle cx="460" cy="585" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
-                  <circle cx="460" cy="585" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
-                  <circle cx="460" cy="585" r="5" fill="#0369a1" />
-                  <line x1="422" y1="585" x2="498" y2="585" stroke="#94a3b8" stroke-width="1" />
-                  <line x1="460" y1="547" x2="460" y2="623" stroke="#94a3b8" stroke-width="1" />
-                </g>
-                <g class="svg-hose-reel">
-                  <circle cx="580" cy="585" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
-                  <circle cx="580" cy="585" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
-                  <circle cx="580" cy="585" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
-                  <circle cx="580" cy="585" r="5" fill="#0369a1" />
-                  <line x1="542" y1="585" x2="618" y2="585" stroke="#94a3b8" stroke-width="1" />
-                  <line x1="580" y1="547" x2="580" y2="623" stroke="#94a3b8" stroke-width="1" />
-                </g>
-                <g class="svg-hose-reel">
-                  <circle cx="700" cy="585" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
-                  <circle cx="700" cy="585" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
-                  <circle cx="700" cy="585" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
-                  <circle cx="700" cy="585" r="5" fill="#0369a1" />
-                  <line x1="662" y1="585" x2="738" y2="585" stroke="#94a3b8" stroke-width="1" />
-                  <line x1="700" y1="547" x2="700" y2="623" stroke="#94a3b8" stroke-width="1" />
-                </g>
-                <g class="svg-hose-reel">
-                  <circle cx="820" cy="585" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
-                  <circle cx="820" cy="585" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
-                  <circle cx="820" cy="585" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
-                  <circle cx="820" cy="585" r="5" fill="#0369a1" />
-                  <line x1="782" y1="585" x2="858" y2="585" stroke="#94a3b8" stroke-width="1" />
-                  <line x1="820" y1="547" x2="820" y2="623" stroke="#94a3b8" stroke-width="1" />
-                </g>
-                <g class="svg-hose-reel">
-                  <circle cx="940" cy="585" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
-                  <circle cx="940" cy="585" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
-                  <circle cx="940" cy="585" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
-                  <circle cx="940" cy="585" r="5" fill="#0369a1" />
-                  <line x1="902" y1="585" x2="978" y2="585" stroke="#94a3b8" stroke-width="1" />
-                  <line x1="940" y1="547" x2="940" y2="623" stroke="#94a3b8" stroke-width="1" />
-                </g>
+                    <!-- Fila 1 de Carretes (cy = 585) -->
+                    <g class="svg-hose-reel">
+                      <circle cx="460" cy="585" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
+                      <circle cx="460" cy="585" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
+                      <circle cx="460" cy="585" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
+                      <circle cx="460" cy="585" r="5" fill="#0369a1" />
+                      <line x1="422" y1="585" x2="498" y2="585" stroke="#94a3b8" stroke-width="1" />
+                      <line x1="460" y1="547" x2="460" y2="623" stroke="#94a3b8" stroke-width="1" />
+                    </g>
+                    <g class="svg-hose-reel">
+                      <circle cx="580" cy="585" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
+                      <circle cx="580" cy="585" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
+                      <circle cx="580" cy="585" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
+                      <circle cx="580" cy="585" r="5" fill="#0369a1" />
+                      <line x1="542" y1="585" x2="618" y2="585" stroke="#94a3b8" stroke-width="1" />
+                      <line x1="580" y1="547" x2="580" y2="623" stroke="#94a3b8" stroke-width="1" />
+                    </g>
+                    <g class="svg-hose-reel">
+                      <circle cx="700" cy="585" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
+                      <circle cx="700" cy="585" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
+                      <circle cx="700" cy="585" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
+                      <circle cx="700" cy="585" r="5" fill="#0369a1" />
+                      <line x1="662" y1="585" x2="738" y2="585" stroke="#94a3b8" stroke-width="1" />
+                      <line x1="700" y1="547" x2="700" y2="623" stroke="#94a3b8" stroke-width="1" />
+                    </g>
+                    <g class="svg-hose-reel">
+                      <circle cx="820" cy="585" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
+                      <circle cx="820" cy="585" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
+                      <circle cx="820" cy="585" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
+                      <circle cx="820" cy="585" r="5" fill="#0369a1" />
+                      <line x1="782" y1="585" x2="858" y2="585" stroke="#94a3b8" stroke-width="1" />
+                      <line x1="820" y1="547" x2="820" y2="623" stroke="#94a3b8" stroke-width="1" />
+                    </g>
+                    <g class="svg-hose-reel">
+                      <circle cx="940" cy="585" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
+                      <circle cx="940" cy="585" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
+                      <circle cx="940" cy="585" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
+                      <circle cx="940" cy="585" r="5" fill="#0369a1" />
+                      <line x1="902" y1="585" x2="978" y2="585" stroke="#94a3b8" stroke-width="1" />
+                      <line x1="940" y1="547" x2="940" y2="623" stroke="#94a3b8" stroke-width="1" />
+                    </g>
 
-                <!-- Fila 2 de Carretes (cy = 690) -->
-                <g class="svg-hose-reel">
-                  <circle cx="460" cy="690" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
-                  <circle cx="460" cy="690" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
-                  <circle cx="460" cy="690" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
-                  <circle cx="460" cy="690" r="5" fill="#0369a1" />
-                  <line x1="422" y1="690" x2="498" y2="690" stroke="#94a3b8" stroke-width="1" />
-                  <line x1="460" y1="652" x2="460" y2="728" stroke="#94a3b8" stroke-width="1" />
-                </g>
-                <g class="svg-hose-reel">
-                  <circle cx="580" cy="690" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
-                  <circle cx="580" cy="690" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
-                  <circle cx="580" cy="690" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
-                  <circle cx="580" cy="690" r="5" fill="#0369a1" />
-                  <line x1="542" y1="690" x2="618" y2="690" stroke="#94a3b8" stroke-width="1" />
-                  <line x1="580" y1="652" x2="580" y2="728" stroke="#94a3b8" stroke-width="1" />
-                </g>
-                <g class="svg-hose-reel">
-                  <circle cx="700" cy="690" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
-                  <circle cx="700" cy="690" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
-                  <circle cx="700" cy="690" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
-                  <circle cx="700" cy="690" r="5" fill="#0369a1" />
-                  <line x1="662" y1="690" x2="738" y2="690" stroke="#94a3b8" stroke-width="1" />
-                  <line x1="700" y1="652" x2="700" y2="728" stroke="#94a3b8" stroke-width="1" />
-                </g>
-                <g class="svg-hose-reel">
-                  <circle cx="820" cy="690" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
-                  <circle cx="820" cy="690" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
-                  <circle cx="820" cy="690" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
-                  <circle cx="820" cy="690" r="5" fill="#0369a1" />
-                  <line x1="782" y1="690" x2="858" y2="690" stroke="#94a3b8" stroke-width="1" />
-                  <line x1="820" y1="652" x2="820" y2="728" stroke="#94a3b8" stroke-width="1" />
-                </g>
-                <g class="svg-hose-reel">
-                  <circle cx="940" cy="690" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
-                  <circle cx="940" cy="690" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
-                  <circle cx="940" cy="690" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
-                  <circle cx="940" cy="690" r="5" fill="#0369a1" />
-                  <line x1="902" y1="690" x2="978" y2="690" stroke="#94a3b8" stroke-width="1" />
-                  <line x1="940" y1="652" x2="940" y2="728" stroke="#94a3b8" stroke-width="1" />
-                </g>
-              </ng-container>
-            </svg>
+                    <!-- Fila 2 de Carretes (cy = 690) -->
+                    <g class="svg-hose-reel">
+                      <circle cx="460" cy="690" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
+                      <circle cx="460" cy="690" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
+                      <circle cx="460" cy="690" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
+                      <circle cx="460" cy="690" r="5" fill="#0369a1" />
+                      <line x1="422" y1="690" x2="498" y2="690" stroke="#94a3b8" stroke-width="1" />
+                      <line x1="460" y1="652" x2="460" y2="728" stroke="#94a3b8" stroke-width="1" />
+                    </g>
+                    <g class="svg-hose-reel">
+                      <circle cx="580" cy="690" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
+                      <circle cx="580" cy="690" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
+                      <circle cx="580" cy="690" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
+                      <circle cx="580" cy="690" r="5" fill="#0369a1" />
+                      <line x1="542" y1="690" x2="618" y2="690" stroke="#94a3b8" stroke-width="1" />
+                      <line x1="580" y1="652" x2="580" y2="728" stroke="#94a3b8" stroke-width="1" />
+                    </g>
+                    <g class="svg-hose-reel">
+                      <circle cx="700" cy="690" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
+                      <circle cx="700" cy="690" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
+                      <circle cx="700" cy="690" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
+                      <circle cx="700" cy="690" r="5" fill="#0369a1" />
+                      <line x1="662" y1="690" x2="738" y2="690" stroke="#94a3b8" stroke-width="1" />
+                      <line x1="700" y1="652" x2="700" y2="728" stroke="#94a3b8" stroke-width="1" />
+                    </g>
+                    <g class="svg-hose-reel">
+                      <circle cx="820" cy="690" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
+                      <circle cx="820" cy="690" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
+                      <circle cx="820" cy="690" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
+                      <circle cx="820" cy="690" r="5" fill="#0369a1" />
+                      <line x1="782" y1="690" x2="858" y2="690" stroke="#94a3b8" stroke-width="1" />
+                      <line x1="820" y1="652" x2="820" y2="728" stroke="#94a3b8" stroke-width="1" />
+                    </g>
+                    <g class="svg-hose-reel">
+                      <circle cx="940" cy="690" r="38" fill="#ffffff" stroke="#0284c7" stroke-width="2.5" />
+                      <circle cx="940" cy="690" r="33" fill="none" stroke="#bae6fd" stroke-width="1.5" stroke-dasharray="4,3" />
+                      <circle cx="940" cy="690" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5" />
+                      <circle cx="940" cy="690" r="5" fill="#0369a1" />
+                      <line x1="902" y1="690" x2="978" y2="690" stroke="#94a3b8" stroke-width="1" />
+                      <line x1="940" y1="652" x2="940" y2="728" stroke="#94a3b8" stroke-width="1" />
+                    </g>
+                  </ng-container>
+                </svg>
 
-            <!-- Digital Shelves Overlaid on the 1440x810 Grid -->
-            <div
-              *ngFor="let s of filteredShelves()"
-              class="rack-element"
-              [ngClass]="rackColorClass(s)"
-              [class.narrow-rack]="(s.width || 54) < 35"
-              [class.slanted-east-rack]="isEastWallRack(s)"
-              [class.matched-search]="isMatched(s)"
-              [class.rack-selected-for-move]="selectedRackForMove?.shelfId === s.shelfId"
-              [class.rack-dragging]="isDragging && draggedRack?.shelfId === s.shelfId"
-              [style.left.px]="s.posX"
-              [style.top.px]="s.posY"
-              [style.width.px]="s.width"
-              [style.height.px]="s.height"
-              (click)="onRackClick($event, s)"
-              (mousedown)="onRackMouseDown($event, s)"
-              [title]="getRackTooltip(s)"
-            >
-              <!-- Standard Box (>= 35px width) -->
-              <ng-container *ngIf="(s.width || 54) >= 35">
-                <div class="rack-code-row">
-                  <span class="mono rack-code-text">{{ getDisplayCode(s) }}</span>
-                  <span class="status-indicator-dot" [ngClass]="dotColorClass(s)"></span>
+                <!-- Digital Shelves Overlaid on the 1440x810 Grid -->
+                <div
+                  *ngFor="let s of filteredShelves()"
+                  class="rack-element"
+                  [ngClass]="rackColorClass(s)"
+                  [class.narrow-rack]="(s.width || 54) < 35"
+                  [class.slanted-east-rack]="isEastWallRack(s)"
+                  [class.matched-search]="isMatched(s)"
+                  [class.dimmed-by-section]="isDimmedBySection(s)"
+                  [class.highlighted-by-section]="isHighlightedBySection(s)"
+                  [class.rack-selected-for-move]="selectedRackForMove?.shelfId === s.shelfId"
+                  [class.rack-dragging]="isDragging && draggedRack?.shelfId === s.shelfId"
+                  [style.left.px]="s.posX"
+                  [style.top.px]="s.posY"
+                  [style.width.px]="s.width"
+                  [style.height.px]="s.height"
+                  (click)="onRackClick($event, s)"
+                  (mousedown)="onRackMouseDown($event, s)"
+                  [title]="getRackTooltip(s)"
+                >
+                  <!-- Standard Box (>= 35px width) -->
+                  <ng-container *ngIf="(s.width || 54) >= 35">
+                    <div class="rack-code-row">
+                      <span class="mono rack-code-text">{{ getDisplayCode(s) }}</span>
+                      <span class="status-indicator-dot" [ngClass]="dotColorClass(s)"></span>
+                    </div>
+                    <div class="rack-zone-text">{{ getDisplayZone(s) }}</div>
+                    <div class="rack-qty-text" *ngIf="(s.totalPieces || 0) > 0">
+                      {{ s.totalPieces | number:'1.0-2' }} pz
+                    </div>
+                  </ng-container>
+
+                  <!-- Narrow Divided Box (< 35px width, e.g. 25px in aisles) -->
+                  <ng-container *ngIf="(s.width || 54) < 35">
+                    <span class="status-indicator-dot narrow-dot" [ngClass]="dotColorClass(s)"></span>
+                    <div class="narrow-code-block">
+                      <span class="narrow-sub-code">{{ getNarrowCode(s) }}</span>
+                    </div>
+                    <div class="narrow-qty-text" *ngIf="(s.totalPieces || 0) > 0">
+                      {{ s.totalPieces | number:'1.0-0' }}p
+                    </div>
+                  </ng-container>
                 </div>
-                <div class="rack-zone-text">{{ getDisplayZone(s) }}</div>
-                <div class="rack-qty-text" *ngIf="(s.totalPieces || 0) > 0">
-                  {{ s.totalPieces | number:'1.0-2' }} pz
-                </div>
-              </ng-container>
+              </div>
+            </div>
+          </div>
 
-              <!-- Narrow Divided Box (< 35px width, e.g. 25px in aisles) -->
-              <ng-container *ngIf="(s.width || 54) < 35">
-                <span class="status-indicator-dot narrow-dot" [ngClass]="dotColorClass(s)"></span>
-                <div class="narrow-code-block">
-                  <span class="narrow-sub-code">{{ getNarrowCode(s) }}</span>
-                </div>
-                <div class="narrow-qty-text" *ngIf="(s.totalPieces || 0) > 0">
-                  {{ s.totalPieces | number:'1.0-0' }}p
-                </div>
-              </ng-container>
+          <!-- Canvas Zoom & Dimension Navigation Bar -->
+          <div class="canvas-nav-footer">
+            <div class="nav-hint-text">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="5 9 2 12 5 15"></polyline>
+                <polyline points="9 5 12 2 15 5"></polyline>
+                <polyline points="15 19 12 22 9 19"></polyline>
+                <polyline points="19 9 22 12 19 15"></polyline>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <line x1="12" y1="2" x2="12" y2="22"></line>
+              </svg>
+              <span>Desplazamiento horizontal y vertical activo: Usa la barra de desplazamiento o arrastra sobre el plano.</span>
+            </div>
+            <div class="canvas-dim-chip">
+              <span>Dimensiones Renderizadas:</span>
+              <strong class="mono">{{ (1440 * (zoomLevel() / 100)) | number:'1.0-0' }} &times; {{ (810 * (zoomLevel() / 100)) | number:'1.0-0' }} px</strong>
+              <span class="dim-scale-tag">({{ zoomLevel() }}%)</span>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Canvas Zoom & Dimension Navigation Bar -->
-      <div class="canvas-nav-footer">
-        <div class="nav-hint-text">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="5 9 2 12 5 15"></polyline>
-            <polyline points="9 5 12 2 15 5"></polyline>
-            <polyline points="15 19 12 22 9 19"></polyline>
-            <polyline points="19 9 22 12 19 15"></polyline>
-            <line x1="2" y1="12" x2="22" y2="12"></line>
-            <line x1="12" y1="2" x2="12" y2="22"></line>
-          </svg>
-          <span>Desplazamiento horizontal y vertical activo: Usa la barra de desplazamiento inferior o arrastra con el ratón sobre el plano.</span>
-        </div>
-        <div class="canvas-dim-chip">
-          <span>Dimensiones Renderizadas:</span>
-          <strong class="mono">{{ (1440 * (zoomLevel() / 100)) | number:'1.0-0' }} &times; {{ (810 * (zoomLevel() / 100)) | number:'1.0-0' }} px</strong>
-          <span class="dim-scale-tag">({{ zoomLevel() }}%)</span>
-        </div>
+        <!-- Sections & Progress Sidebar (Lateral con Barras de Porcentaje por Tipo) -->
+        <aside class="sections-progress-sidebar">
+          <div class="sections-sidebar-header">
+            <div>
+              <div class="sidebar-kicker">SECCIONES DE ALMACÉN</div>
+              <h3 class="sidebar-title">Avance por Familias</h3>
+            </div>
+            <button 
+              *ngIf="selectedSectionFilter()" 
+              class="btn btn-xs btn-outline" 
+              (click)="selectedSectionFilter.set(null)"
+              title="Mostrar todas las secciones en el croquis"
+            >
+              Ver Todas
+            </button>
+          </div>
+
+          <div class="sections-summary-pill">
+            <span>{{ selectedPlant() }}:</span>
+            <strong class="mono">{{ completedCount() }} / {{ plantShelves().length }} ({{ progressPercent() }}%)</strong>
+          </div>
+
+          <div class="sections-list">
+            <div 
+              *ngFor="let sec of sectionsProgress()" 
+              class="section-card"
+              [class.active]="selectedSectionFilter() === sec.id"
+              [style.--sec-accent]="sec.color"
+              (click)="toggleSectionFilter(sec.id)"
+              [title]="'Clic para resaltar anaqueles de ' + sec.name + ' en el croquis'"
+            >
+              <div class="section-card-header">
+                <div class="sec-name-wrap">
+                  <span class="sec-color-badge" [style.background-color]="sec.color"></span>
+                  <span class="sec-name-text">{{ sec.name }}</span>
+                </div>
+                <span class="sec-pct-chip" [class.pct-complete]="sec.percentage === 100">
+                  {{ sec.percentage }}%
+                </span>
+              </div>
+
+              <!-- Animated Progress Bar -->
+              <div class="sec-progress-track">
+                <div 
+                  class="sec-progress-fill" 
+                  [style.width.%]="sec.percentage"
+                  [style.background-color]="sec.percentage === 100 ? '#059669' : sec.color"
+                ></div>
+              </div>
+
+              <div class="sec-card-footer">
+                <span class="sec-count-text">
+                  <strong>{{ sec.completedShelves }}</strong> / {{ sec.totalShelves }} anaqueles
+                </span>
+                <span class="sec-pieces-text mono" *ngIf="sec.totalPieces > 0">
+                  {{ sec.totalPieces | number:'1.0-0' }} pzas
+                </span>
+                <span class="sec-status-text" *ngIf="sec.percentage === 100">
+                  Completo
+                </span>
+              </div>
+            </div>
+          </div>
+        </aside>
       </div>
 
       <!-- Floating CAD Precision Toolbar (Modo Acomodo) -->
@@ -1048,6 +1134,181 @@ import { ToastService } from '../services/toast.service';
     .text-success { color: #059669; }
     .text-danger { color: #dc2626; }
 
+    /* Croquis Layout Grid: Canvas + Sidebar */
+    .croquis-main-layout {
+      display: grid;
+      grid-template-columns: 1fr 310px;
+      gap: 1rem;
+      align-items: flex-start;
+      width: 100%;
+    }
+    @media (max-width: 1280px) {
+      .croquis-main-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+    .croquis-canvas-col {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    /* Sections & Progress Sidebar */
+    .sections-progress-sidebar {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      max-height: 820px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 #f8fafc;
+    }
+    .sections-sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #f1f5f9;
+      padding-bottom: 0.5rem;
+    }
+    .sidebar-kicker {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #64748b;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .sidebar-title {
+      margin: 2px 0 0 0;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .sections-summary-pill {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 6px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+      color: #475569;
+    }
+    .sections-summary-pill strong {
+      color: #0a2472;
+    }
+    .sections-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+    .section-card {
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.75rem 0.85rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+    }
+    .section-card:hover {
+      border-color: var(--sec-accent, #2563eb);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+    }
+    .section-card.active {
+      border-color: var(--sec-accent, #2563eb);
+      background: #f8fafc;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+    .section-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sec-name-wrap {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .sec-color-badge {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .sec-name-text {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .sec-pct-chip {
+      font-size: 0.75rem;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      color: #475569;
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .sec-pct-chip.pct-complete {
+      background: #ecfdf5;
+      color: #059669;
+    }
+    .sec-progress-track {
+      width: 100%;
+      height: 6px;
+      background: #f1f5f9;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .sec-progress-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    .sec-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.73rem;
+      color: #64748b;
+    }
+    .sec-count-text strong {
+      color: #0f172a;
+    }
+    .sec-pieces-text {
+      color: #0a2472;
+      font-weight: 700;
+    }
+    .sec-status-text {
+      color: #059669;
+      font-weight: 700;
+    }
+
+    .dimmed-by-section {
+      opacity: 0.20 !important;
+      filter: grayscale(85%) !important;
+    }
+    .highlighted-by-section {
+      outline: 2.5px solid var(--sec-accent, #2563eb) !important;
+      box-shadow: 0 0 12px rgba(37, 99, 235, 0.6) !important;
+      transform: scale(1.06) !important;
+      z-index: 20 !important;
+    }
+    .dot-section-color {
+      background: linear-gradient(135deg, #2563eb 0%, #d97706 50%, #7c3aed 100%);
+    }
+
     /* Canvas Viewport with High-Visibility Scrollbars */
     .blueprint-canvas-wrap {
       background: #ffffff;
@@ -1249,37 +1510,122 @@ import { ToastService } from '../services/toast.service';
       box-shadow: 0 6px 16px rgba(15, 23, 42, 0.2);
     }
 
-    /* 1. VERDE: Contabilizado (Anaqueles ya contados con éxito) */
+    /* 1. VERDE: Contabilizado / Completado (TIENE PRIORIDAD MÁXIMA EN TODO EL CROQUIS) */
     .color-completed {
       background: #ecfdf5 !important;
       border-color: #059669 !important;
-      color: #064e3b;
+      color: #064e3b !important;
+      box-shadow: 0 1px 4px rgba(5, 150, 105, 0.25) !important;
     }
     .color-completed .rack-code-text {
-      color: #065f46;
-      font-weight: 800;
+      color: #065f46 !important;
+      font-weight: 800 !important;
+    }
+    .color-completed .rack-qty-text {
+      color: #047857 !important;
+      font-weight: 800 !important;
     }
 
-    /* 2. ROJO: Pendiente (En conteo o asignado en revisión) */
+    /* 2. TEMAS DE COLOR POR TIPO DE SECCIÓN (Cuando NO están completados) */
+    .rack-sec-acero {
+      background: #eff6ff !important;
+      border-color: #2563eb !important;
+    }
+    .rack-sec-acero .rack-code-text { color: #1d4ed8 !important; }
+
+    .rack-sec-kuriyama {
+      background: #fffbeb !important;
+      border-color: #d97706 !important;
+    }
+    .rack-sec-kuriyama .rack-code-text { color: #b45309 !important; }
+
+    .rack-sec-ypc {
+      background: #f0fdf4 !important;
+      border-color: #059669 !important;
+    }
+    .rack-sec-ypc .rack-code-text { color: #047857 !important; }
+
+    .rack-sec-dixon {
+      background: #f5f3ff !important;
+      border-color: #7c3aed !important;
+    }
+    .rack-sec-dixon .rack-code-text { color: #6d28d9 !important; }
+
+    .rack-sec-chid {
+      background: #ecfeff !important;
+      border-color: #0891b2 !important;
+    }
+    .rack-sec-chid .rack-code-text { color: #0e7490 !important; }
+
+    .rack-sec-cyber {
+      background: #fff1f2 !important;
+      border-color: #e11d48 !important;
+    }
+    .rack-sec-cyber .rack-code-text { color: #be123c !important; }
+
+    .rack-sec-inox {
+      background: #eef2ff !important;
+      border-color: #4f46e5 !important;
+    }
+    .rack-sec-inox .rack-code-text { color: #4338ca !important; }
+
+    .rack-sec-p1 {
+      background: #f0f9ff !important;
+      border-color: #0284c7 !important;
+    }
+    .rack-sec-p1 .rack-code-text { color: #0369a1 !important; }
+
+    .rack-sec-p2 {
+      background: #f0fdfa !important;
+      border-color: #0d9488 !important;
+    }
+    .rack-sec-p2 .rack-code-text { color: #0f766e !important; }
+
+    .rack-sec-p3 {
+      background: #fffbeb !important;
+      border-color: #d97706 !important;
+    }
+    .rack-sec-p3 .rack-code-text { color: #b45309 !important; }
+
+    .rack-sec-p4 {
+      background: #f5f3ff !important;
+      border-color: #7c3aed !important;
+    }
+    .rack-sec-p4 .rack-code-text { color: #6d28d9 !important; }
+
+    .rack-sec-p5 {
+      background: #faf5ff !important;
+      border-color: #9333ea !important;
+    }
+    .rack-sec-p5 .rack-code-text { color: #7e22ce !important; }
+
+    .rack-sec-east {
+      background: #eef2ff !important;
+      border-color: #4f46e5 !important;
+    }
+    .rack-sec-east .rack-code-text { color: #4338ca !important; }
+
+    .rack-sec-res {
+      background: #eff6ff !important;
+      border-color: #2563eb !important;
+    }
+    .rack-sec-res .rack-code-text { color: #1d4ed8 !important; }
+
+    .rack-sec-default {
+      background: #f8fafc !important;
+      border-color: #94a3b8 !important;
+    }
+    .rack-sec-default .rack-code-text { color: #475569 !important; }
+
+    /* 3. BORDE ROJO: En Conteo / Pendiente de revisión */
     .color-pending {
-      background: #fef2f2 !important;
-      border-color: #dc2626 !important;
-      color: #7f1d1d;
-    }
-    .color-pending .rack-code-text {
-      color: #991b1b;
-      font-weight: 800;
+      outline: 2px solid #dc2626 !important;
+      box-shadow: 0 0 6px rgba(220, 38, 38, 0.4) !important;
     }
 
-    /* 3. SIN COLOR: Sin iniciar (Todavía no tocados) */
+    /* 4. SIN INICIAR */
     .color-untouched {
-      background: #ffffff !important;
-      border-color: #cbd5e1 !important;
-      color: #475569;
-    }
-    .color-untouched .rack-code-text {
-      color: #1e293b;
-      font-weight: 700;
+      opacity: 0.95;
     }
 
     .matched-search {
@@ -1698,6 +2044,9 @@ export class CroquisComponent implements OnInit {
   zoomLevel = signal<number>(100);
   blueprintOpacity = signal<number>(30); // 30% overlay default for optimal visual contrast
 
+  // Section Progress & Filtering (Avance por familias en panel lateral)
+  selectedSectionFilter = signal<string | null>(null);
+
   // Viewport Drag-to-Pan (Desplazamiento fluido al hacer zoom)
   isPanning = false;
   panStartX = 0;
@@ -1767,6 +2116,104 @@ export class CroquisComponent implements OnInit {
 
   totalPlantPieces = computed(() => {
     return this.plantShelves().reduce((sum, s) => sum + (s.totalPieces || 0), 0);
+  });
+
+  getSectionType(s: ShelfAssignmentDto): string {
+    if (!s || !s.shelfCode) return 'default';
+    const code = s.shelfCode.toUpperCase();
+    const zone = (s.shelfZone || '').toUpperCase();
+
+    // Planta Baja
+    if (code.includes('ACE') || zone.includes('ACERO')) return 'acero';
+    if (code.includes('KUR') || zone.includes('KURIYAMA')) return 'kuriyama';
+    if (code.includes('YPC') || zone.includes('YPC')) return 'ypc';
+    if (code.includes('DIX') || zone.includes('DIXON')) return 'dixon';
+    if (code.includes('CHID') || code.includes('HID') || zone.includes('HIDR')) return 'chid';
+    if (code.includes('CYB') || code.includes('UNI') || zone.includes('CYBER') || zone.includes('UNIVERSAL')) return 'cyber';
+    if (code.includes('INOX') || zone.includes('INOX')) return 'inox';
+
+    // Planta Alta
+    if (code.includes('PA-P1') || zone.includes('P1') || zone.includes('HCO')) return 'p1';
+    if (code.includes('PA-P2') || zone.includes('P2') || zone.includes('NEUM')) return 'p2';
+    if (code.includes('PA-P3') || zone.includes('P3') || zone.includes('FESTO') || zone.includes('SMC')) return 'p3';
+    if (code.includes('PA-P4') || zone.includes('P4') || zone.includes('SELLOS 1')) return 'p4';
+    if (code.includes('PA-P5') || zone.includes('P5') || zone.includes('SELLOS 2')) return 'p5';
+    if (code.includes('SEL-W') || code.includes('EAST') || zone.includes('ESTE')) return 'east';
+    if (code.includes('LAT') || code.includes('RES') || code.includes('PVC') || zone.includes('LATERAL') || zone.includes('RESERVA')) return 'res';
+
+    return 'default';
+  }
+
+  toggleSectionFilter(secId: string) {
+    if (this.selectedSectionFilter() === secId) {
+      this.selectedSectionFilter.set(null);
+    } else {
+      this.selectedSectionFilter.set(secId);
+    }
+  }
+
+  isDimmedBySection(s: ShelfAssignmentDto): boolean {
+    const filter = this.selectedSectionFilter();
+    if (!filter) return false;
+    return this.getSectionType(s) !== filter;
+  }
+
+  isHighlightedBySection(s: ShelfAssignmentDto): boolean {
+    const filter = this.selectedSectionFilter();
+    if (!filter) return false;
+    return this.getSectionType(s) === filter;
+  }
+
+  sectionsProgress = computed<SectionStat[]>(() => {
+    const isPB = this.selectedPlant() === 'Planta Baja';
+    const shelves = this.plantShelves();
+
+    const defs = isPB
+      ? [
+          { id: 'acero', name: 'Acero (1-19)', codePrefix: 'PB-ACE', color: '#2563eb', lightBg: '#eff6ff', borderColor: '#3b82f6' },
+          { id: 'kuriyama', name: 'Kuriyama (A | B)', codePrefix: 'PB-KUR', color: '#d97706', lightBg: '#fffbeb', borderColor: '#f59e0b' },
+          { id: 'ypc', name: 'YPC (Pasillo & B|C)', codePrefix: 'PB-YPC', color: '#059669', lightBg: '#ecfdf5', borderColor: '#10b981' },
+          { id: 'dixon', name: 'Dixon (1-2)', codePrefix: 'PB-DIX', color: '#7c3aed', lightBg: '#f5f3ff', borderColor: '#8b5cf6' },
+          { id: 'chid', name: 'Conex. Hidráulicas', codePrefix: 'PB-CHID', color: '#0891b2', lightBg: '#ecfeff', borderColor: '#06b6d4' },
+          { id: 'cyber', name: 'Cybermatics / Univ.', codePrefix: 'PB-CYB', color: '#e11d48', lightBg: '#fff1f2', borderColor: '#f43f5e' },
+          { id: 'inox', name: 'Parker Inox', codePrefix: 'PB-INOX', color: '#4f46e5', lightBg: '#eef2ff', borderColor: '#6366f1' },
+          { id: 'default', name: 'Pendientes / Otras', codePrefix: 'PB-GEN', color: '#64748b', lightBg: '#f8fafc', borderColor: '#94a3b8' }
+        ]
+      : [
+          { id: 'p1', name: 'P1: HCO / Hidr.', codePrefix: 'PA-P1', color: '#0284c7', lightBg: '#f0f9ff', borderColor: '#38bdf8' },
+          { id: 'p2', name: 'P2: Neumática', codePrefix: 'PA-P2', color: '#0d9488', lightBg: '#f0fdfa', borderColor: '#14b8a6' },
+          { id: 'p3', name: 'P3: Festo / SMC', codePrefix: 'PA-P3', color: '#d97706', lightBg: '#fffbeb', borderColor: '#f59e0b' },
+          { id: 'p4', name: 'P4: Sellos 1', codePrefix: 'PA-P4', color: '#7c3aed', lightBg: '#f5f3ff', borderColor: '#8b5cf6' },
+          { id: 'p5', name: 'P5: Sellos 2', codePrefix: 'PA-P5', color: '#9333ea', lightBg: '#faf5ff', borderColor: '#a855f7' },
+          { id: 'east', name: 'Sellos Muro Este', codePrefix: 'PA-SEL-W', color: '#4f46e5', lightBg: '#eef2ff', borderColor: '#6366f1' },
+          { id: 'res', name: 'Lateral & Reservas', codePrefix: 'PA-RES', color: '#2563eb', lightBg: '#eff6ff', borderColor: '#3b82f6' },
+          { id: 'default', name: 'Pendientes PA', codePrefix: 'PA-GEN', color: '#64748b', lightBg: '#f8fafc', borderColor: '#94a3b8' }
+        ];
+
+    return defs.map(d => {
+      const matching = shelves.filter(s => this.getSectionType(s) === d.id);
+      const totalShelves = matching.length;
+      const completedShelves = matching.filter(s => this.isCompleted(s)).length;
+      const pendingShelves = matching.filter(s => this.isPending(s)).length;
+      const untouchedShelves = matching.filter(s => this.isUntouched(s)).length;
+      const totalPieces = matching.reduce((acc, s) => acc + (s.totalPieces || 0), 0);
+      const percentage = totalShelves > 0 ? Math.round((completedShelves / totalShelves) * 100) : 0;
+
+      return {
+        id: d.id,
+        name: d.name,
+        codePrefix: d.codePrefix,
+        color: d.color,
+        lightBg: d.lightBg,
+        borderColor: d.borderColor,
+        totalShelves,
+        completedShelves,
+        pendingShelves,
+        untouchedShelves,
+        totalPieces,
+        percentage
+      };
+    }).filter(sec => sec.totalShelves > 0);
   });
 
   constructor(
@@ -1908,8 +2355,9 @@ export class CroquisComponent implements OnInit {
 
   rackColorClass(s: ShelfAssignmentDto): string {
     if (this.isCompleted(s)) return 'color-completed';
-    if (this.isPending(s)) return 'color-pending';
-    return 'color-untouched';
+    const secType = this.getSectionType(s);
+    if (this.isPending(s)) return `rack-sec-${secType} color-pending`;
+    return `rack-sec-${secType} color-untouched`;
   }
 
   dotColorClass(s: ShelfAssignmentDto): string {
