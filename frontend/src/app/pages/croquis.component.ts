@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed, ElementRef, ViewChild, HostListene
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import * as QRCode from 'qrcode';
 import { ApiService, ShelfAssignmentDto, InventorySessionSummary } from '../services/api.service';
 import { ToastService } from '../services/toast.service';
 
@@ -42,17 +43,26 @@ import { ToastService } from '../services/toast.service';
             </button>
           </div>
 
-          <!-- Zoom Controls -->
+          <!-- Zoom Controls (Estabilizado y con Presets Directos) -->
           <div class="zoom-controls">
-            <button class="btn btn-sm btn-icon" (click)="zoomOut()" title="Alejar vista (-15%)">
+            <button class="btn btn-sm btn-icon" (click)="zoomOut()" title="Alejar vista (-5%)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             </button>
             <span class="zoom-level">{{ zoomLevel() }}%</span>
-            <button class="btn btn-sm btn-icon" (click)="zoomIn()" title="Acercar vista (+15%)">
+            <button class="btn btn-sm btn-icon" (click)="zoomIn()" title="Acercar vista (+5%)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             </button>
-            <button class="btn btn-sm btn-ghost" (click)="resetZoom()" title="Restablecer zoom al 100%">
+            <button class="btn btn-sm btn-ghost" [class.preset-active]="zoomLevel() === 60" (click)="setZoomPreset(60)" title="Vista amplia 60%">
+              60%
+            </button>
+            <button class="btn btn-sm btn-ghost" [class.preset-active]="zoomLevel() === 80" (click)="setZoomPreset(80)" title="Vista 80%">
+              80%
+            </button>
+            <button class="btn btn-sm btn-ghost" [class.preset-active]="zoomLevel() === 100" (click)="setZoomPreset(100)" title="Vista real 100%">
               100%
+            </button>
+            <button class="btn btn-sm btn-ghost" [class.preset-active]="zoomLevel() === 125" (click)="setZoomPreset(125)" title="Vista cercana 125%">
+              125%
             </button>
             <button class="btn btn-sm btn-fit-screen" (click)="fitToScreen()" title="Ajustar dimensiones exactas a la pantalla actual">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -661,6 +671,10 @@ import { ToastService } from '../services/toast.service';
               <span class="badge" [ngClass]="badgeForStatus(inspectedShelf)">
                 {{ statusLabel(inspectedShelf) }}
               </span>
+              <button class="btn btn-sm btn-outline" (click)="openEditShelf(inspectedShelf)" title="Cambiar nombre, código o zona de este anaquel">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                Editar
+              </button>
               <button class="modal-close-icon-btn" (click)="inspectedShelf = null" title="Cerrar ventana">✕</button>
             </div>
           </div>
@@ -700,7 +714,7 @@ import { ToastService } from '../services/toast.service';
               <button class="btn btn-secondary" (click)="inspectedShelf = null">Cerrar</button>
               <button
                 *ngIf="!isUntouched(inspectedShelf)"
-                class="btn btn-outline-danger"
+                class="btn btn-outline"
                 (click)="resetShelfToUntouched(inspectedShelf)"
                 title="Quitar marca de contabilizado o en revisión si se marcó por accidente"
               >
@@ -708,18 +722,22 @@ import { ToastService } from '../services/toast.service';
                   <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
                   <path d="M3 3v5h5"></path>
                 </svg>
-                Desmarcar / Sin Iniciar
+                Sin Iniciar
+              </button>
+              <button
+                *ngIf="(inspectedShelf.totalPieces || 0) > 0 || (inspectedShelf.recordCount || 0) > 0"
+                class="btn btn-outline-danger"
+                (click)="openClearShelfCountsModal(inspectedShelf)"
+                title="Eliminar conteos únicamente de este anaquel y ponerlo a 0 pzas en estado Pendiente"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                Limpiar Anaquel
               </button>
             </div>
             <div class="footer-right-group">
-              <button class="btn btn-outline-primary" (click)="goToQrLabels(inspectedShelf)" title="Ver o imprimir etiquetas QR de este anaquel">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="3" width="7" height="7"></rect>
-                  <rect x="14" y="3" width="7" height="7"></rect>
-                  <rect x="14" y="14" width="7" height="7"></rect>
-                  <rect x="3" y="14" width="7" height="7"></rect>
-                </svg>
-                Etiquetas QR
+              <button class="btn btn-outline-primary" (click)="downloadShelfQrPng(inspectedShelf)" title="Descargar código QR puro en PNG con el nombre del anaquel para pegar o rotular">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Descargar QR (.png)
               </button>
               <button class="btn btn-secondary" (click)="toggleShelfStatus(inspectedShelf)">
                 {{ isCompleted(inspectedShelf) ? 'Reabrir Anaquel' : 'Marcar Contabilizado' }}
@@ -728,6 +746,70 @@ import { ToastService } from '../services/toast.service';
                 Abrir Cédula &rarr;
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Edit Shelf Details -->
+      <div class="modal-backdrop" *ngIf="editingShelf" (click)="editingShelf = null">
+        <div class="modal-box" (click)="$event.stopPropagation()">
+          <div class="modal-header-row" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 14px;">
+            <h3 class="modal-title" style="margin: 0;">Editar Anaquel</h3>
+            <button class="modal-close-icon-btn" (click)="editingShelf = null" title="Cerrar">✕</button>
+          </div>
+          <p class="modal-desc">Modifica el código, zona o sector físico de este anaquel. El cambio se reflejará en el croquis y en todas las cédulas.</p>
+          <div class="form-stack">
+            <div class="two-cols">
+              <div>
+                <label class="label">Código de Anaquel</label>
+                <input class="input mono" [(ngModel)]="editingShelf.code" placeholder="Ej. PB-ACE-05" />
+              </div>
+              <div>
+                <label class="label">Nivel de Planta</label>
+                <select class="select" [(ngModel)]="editingShelf.plant">
+                  <option value="Planta Baja">Planta Baja</option>
+                  <option value="Planta Alta">Planta Alta</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="label">Zona / Sector</label>
+              <input class="input" [(ngModel)]="editingShelf.zone" placeholder="Ej. Acero (1-19), Kuriyama, Sellos" />
+            </div>
+            <div>
+              <label class="label">Descripción Adicional</label>
+              <input class="input" [(ngModel)]="editingShelf.description" placeholder="Ej. Pasillo principal frente a comedor" />
+            </div>
+          </div>
+          <div class="modal-footer" style="margin-top: 18px;">
+            <button class="btn btn-secondary" (click)="editingShelf = null" [disabled]="savingShelf()">Cancelar</button>
+            <button class="btn btn-primary" (click)="saveShelfEdit()" [disabled]="savingShelf()">
+              {{ savingShelf() ? 'Guardando...' : 'Guardar Cambios' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Confirm Clear Single Shelf Counts -->
+      <div class="modal-backdrop" *ngIf="shelfToClearCounts" (click)="shelfToClearCounts = null">
+        <div class="modal-box" (click)="$event.stopPropagation()">
+          <h3 class="modal-title text-danger">Limpiar Conteos del Anaquel</h3>
+          <p class="modal-desc">
+            ¿Deseas eliminar todas las partidas contabilizadas en el anaquel <strong class="mono">{{ shelfToClearCounts.shelfCode }}</strong>?
+          </p>
+          <div class="delete-warning-box">
+            <strong>Restablecimiento individual:</strong>
+            <ul style="margin: 6px 0 0 16px; padding: 0;">
+              <li>Se eliminarán las {{ shelfToClearCounts.recordCount || 0 }} partidas contadas ({{ shelfToClearCounts.totalPieces | number:'1.0-2' }} piezas) de este anaquel.</li>
+              <li>El anaquel regresará a estado <strong>PENDIENTE</strong> con 0 piezas en el croquis.</li>
+              <li>Los demás anaqueles del almacén <strong>no serán afectados</strong>.</li>
+            </ul>
+          </div>
+          <div class="modal-footer" style="margin-top: 18px;">
+            <button class="btn btn-secondary" (click)="shelfToClearCounts = null" [disabled]="clearingShelfCounts()">Cancelar</button>
+            <button class="btn btn-danger" (click)="executeClearShelfCounts()" [disabled]="clearingShelfCounts()">
+              {{ clearingShelfCounts() ? 'Limpiando...' : 'Sí, Limpiar Este Anaquel' }}
+            </button>
           </div>
         </div>
       </div>
@@ -1561,6 +1643,37 @@ import { ToastService } from '../services/toast.service';
     .edit-canvas .rack-element {
       cursor: grab;
     }
+    .preset-active {
+      background: #0a2472 !important;
+      color: #ffffff !important;
+      font-weight: 800 !important;
+    }
+    .delete-warning-box {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 12px;
+      color: #991b1b;
+      font-size: 13px;
+      margin: 12px 0;
+    }
+    .form-stack { display: flex; flex-direction: column; gap: 14px; }
+    .two-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .label { font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 4px; display: block; }
+    .input, .select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 13px;
+      background: #ffffff;
+      box-sizing: border-box;
+    }
+    .input:focus, .select:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
   `]
 })
 export class CroquisComponent implements OnInit {
@@ -1593,8 +1706,19 @@ export class CroquisComponent implements OnInit {
   dragInitialX = 0;
   dragInitialY = 0;
   draggedRack: ShelfAssignmentDto | null = null;
-
   inspectedShelf: ShelfAssignmentDto | null = null;
+
+  // Shelf Editing Modal State
+  editingShelf: { id: number; code: string; zone: string; description: string; plant: string } | null = null;
+  savingShelf = signal(false);
+
+  // Single Shelf Reset Modal State
+  shelfToClearCounts: ShelfAssignmentDto | null = null;
+  clearingShelfCounts = signal(false);
+
+  // Wheel zoom throttler
+  lastWheelTime = 0;
+  wheelAccumulator = 0;
 
   plantShelves = computed(() => {
     const p = this.selectedPlant();
@@ -1656,6 +1780,8 @@ export class CroquisComponent implements OnInit {
       const savedZoom = localStorage.getItem('interflu_croquis_zoom');
       if (savedZoom !== null) {
         this.zoomLevel.set(Number(savedZoom));
+      } else {
+        setTimeout(() => this.fitToScreen(), 150);
       }
     } catch (e) {}
 
@@ -1880,26 +2006,31 @@ export class CroquisComponent implements OnInit {
            (s.shelfDescription || '').toLowerCase().includes(q);
   }
 
-  // Zoom
+  // Zoom Controls (Estabilizado y con Control de Inercia)
   zoomIn() {
-    this.zoomLevel.update(z => {
-      const next = Math.min(z + 15, 200);
-      try { localStorage.setItem('interflu_croquis_zoom', String(next)); } catch (e) {}
-      return next;
-    });
+    this.adjustZoom(5);
   }
 
   zoomOut() {
-    this.zoomLevel.update(z => {
-      const next = Math.max(z - 15, 60);
-      try { localStorage.setItem('interflu_croquis_zoom', String(next)); } catch (e) {}
-      return next;
-    });
+    this.adjustZoom(-5);
   }
 
   resetZoom() {
-    this.zoomLevel.set(100);
-    try { localStorage.setItem('interflu_croquis_zoom', '100'); } catch (e) {}
+    this.setZoomPreset(100);
+  }
+
+  setZoomPreset(level: number) {
+    const clamped = Math.max(45, Math.min(180, level));
+    this.zoomLevel.set(clamped);
+    try { localStorage.setItem('interflu_croquis_zoom', String(clamped)); } catch (e) {}
+  }
+
+  adjustZoom(delta: number) {
+    this.zoomLevel.update(z => {
+      const next = Math.max(45, Math.min(180, Math.round((z + delta) / 5) * 5));
+      try { localStorage.setItem('interflu_croquis_zoom', String(next)); } catch (e) {}
+      return next;
+    });
   }
 
   fitToScreen() {
@@ -1945,13 +2076,133 @@ export class CroquisComponent implements OnInit {
   }
 
   onWheel(event: WheelEvent) {
-    if (event.ctrlKey) {
+    if (event.ctrlKey || event.metaKey) {
       event.preventDefault();
-      if (event.deltaY < 0) {
-        this.zoomIn();
-      } else {
-        this.zoomOut();
+      const now = performance.now();
+      this.wheelAccumulator += event.deltaY;
+      // Throttle rapid wheel pulses (e.g. trackpads and smooth mice)
+      if (now - this.lastWheelTime > 60 || Math.abs(this.wheelAccumulator) >= 30) {
+        if (this.wheelAccumulator < 0) {
+          this.adjustZoom(5);
+        } else {
+          this.adjustZoom(-5);
+        }
+        this.wheelAccumulator = 0;
+        this.lastWheelTime = now;
       }
+    }
+  }
+
+  // Shelf Editing, Single Shelf Count Clear & Shelf QR Download
+  openEditShelf(shelf: ShelfAssignmentDto) {
+    this.editingShelf = {
+      id: shelf.shelfId,
+      code: shelf.shelfCode,
+      zone: shelf.shelfZone || '',
+      description: shelf.shelfDescription || '',
+      plant: shelf.plant || this.selectedPlant()
+    };
+  }
+
+  saveShelfEdit() {
+    if (!this.editingShelf) return;
+    const target = this.editingShelf;
+    if (!target.code.trim()) {
+      this.toast.warning('El código de anaquel no puede estar vacío');
+      return;
+    }
+    this.savingShelf.set(true);
+    this.api.updateShelf(target.id, {
+      code: target.code.trim().toUpperCase(),
+      zone: target.zone.trim(),
+      description: target.description.trim(),
+      plant: target.plant
+    }).subscribe({
+      next: (updated) => {
+        this.savingShelf.set(false);
+        this.toast.success(`Anaquel ${updated.code} actualizado`);
+        this.allShelves.update(list => list.map(s => {
+          if (s.shelfId === target.id) {
+            return {
+              ...s,
+              shelfCode: updated.code,
+              shelfZone: updated.zone,
+              shelfDescription: updated.description,
+              plant: updated.plant
+            };
+          }
+          return s;
+        }));
+        if (this.inspectedShelf && this.inspectedShelf.shelfId === target.id) {
+          this.inspectedShelf.shelfCode = updated.code;
+          this.inspectedShelf.shelfZone = updated.zone;
+          this.inspectedShelf.shelfDescription = updated.description;
+          this.inspectedShelf.plant = updated.plant;
+        }
+        this.editingShelf = null;
+      },
+      error: (err) => {
+        this.savingShelf.set(false);
+        this.toast.error(err.error?.message || 'Error al actualizar anaquel');
+      }
+    });
+  }
+
+  openClearShelfCountsModal(shelf: ShelfAssignmentDto) {
+    this.shelfToClearCounts = shelf;
+  }
+
+  executeClearShelfCounts() {
+    if (!this.shelfToClearCounts) return;
+    const shelf = this.shelfToClearCounts;
+    this.clearingShelfCounts.set(true);
+    this.api.resetShelfAssignment(this.activeSessionId(), shelf.shelfId, true).subscribe({
+      next: () => {
+        this.clearingShelfCounts.set(false);
+        this.toast.success(`Conteos del anaquel ${shelf.shelfCode} eliminados y restablecido a Pendiente.`);
+        this.allShelves.update(list => list.map(s => {
+          if (s.shelfId === shelf.shelfId) {
+            return {
+              ...s,
+              totalPieces: 0,
+              recordCount: 0,
+              status: 'PENDIENTE'
+            };
+          }
+          return s;
+        }));
+        if (this.inspectedShelf && this.inspectedShelf.shelfId === shelf.shelfId) {
+          this.inspectedShelf.totalPieces = 0;
+          this.inspectedShelf.recordCount = 0;
+          this.inspectedShelf.status = 'PENDIENTE';
+        }
+        this.shelfToClearCounts = null;
+      },
+      error: (err) => {
+        this.clearingShelfCounts.set(false);
+        this.toast.error(err.error?.message || 'Error al limpiar conteos del anaquel');
+      }
+    });
+  }
+
+  async downloadShelfQrPng(shelf: ShelfAssignmentDto) {
+    try {
+      const captureUrl = `${window.location.origin}/capture?sessionId=${this.activeSessionId()}&shelfId=${shelf.shelfId}`;
+      const qrDataUrl = await QRCode.toDataURL(captureUrl, {
+        width: 800,
+        margin: 2,
+        errorCorrectionLevel: 'H',
+        color: { dark: '#0a2472', light: '#ffffff' }
+      });
+      const a = document.createElement('a');
+      a.href = qrDataUrl;
+      a.download = `${shelf.shelfCode}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      this.toast.success(`Código QR descargado: ${shelf.shelfCode}.png`);
+    } catch (err: any) {
+      this.toast.error('Error al generar código QR: ' + err.message);
     }
   }
 

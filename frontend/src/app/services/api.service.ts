@@ -273,6 +273,10 @@ export class ApiService {
     return this.http.post<ShelfDto>(`${this.baseUrl}/shelves`, shelf);
   }
 
+  updateShelf(shelfId: number, data: { code?: string; zone?: string; description?: string; plant?: string; warehouseCode?: string }): Observable<ShelfDto> {
+    return this.http.put<ShelfDto>(`${this.baseUrl}/shelves/${shelfId}`, data);
+  }
+
   updateShelfLayout(shelfId: number, layout: { posX?: number; posY?: number; width?: number; height?: number; plant?: string }): Observable<any> {
     return this.http.put(`${this.baseUrl}/shelves/${shelfId}/layout`, layout);
   }

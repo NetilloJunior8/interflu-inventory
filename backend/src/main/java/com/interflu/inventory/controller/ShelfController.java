@@ -53,6 +53,48 @@ public class ShelfController {
         return ResponseEntity.ok(saved);
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateShelf(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        User currentUser = userHelper.getCurrentUser();
+        Shelf s = shelfRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Anaquel no encontrado"));
+
+        String oldCode = s.getCode();
+        if (body.containsKey("code")) {
+            String newCode = String.valueOf(body.get("code")).trim().toUpperCase();
+            if (newCode.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "El código no puede estar vacío."));
+            }
+            if (!newCode.equalsIgnoreCase(oldCode)) {
+                if (shelfRepo.findByCodeIgnoreCase(newCode).isPresent()) {
+                    return ResponseEntity.badRequest().body(Map.of("message", "Ya existe otro anaquel con el código " + newCode));
+                }
+                s.setCode(newCode);
+            }
+        }
+        if (body.containsKey("zone") && body.get("zone") != null) {
+            s.setZone(String.valueOf(body.get("zone")).trim());
+        }
+        if (body.containsKey("description")) {
+            s.setDescription(body.get("description") != null ? String.valueOf(body.get("description")).trim() : "");
+        }
+        if (body.containsKey("plant") && body.get("plant") != null) {
+            s.setPlant(String.valueOf(body.get("plant")).trim());
+        }
+        if (body.containsKey("warehouseCode") && body.get("warehouseCode") != null) {
+            s.setWarehouseCode(String.valueOf(body.get("warehouseCode")).trim());
+        }
+
+        Shelf saved = shelfRepo.save(s);
+        auditService.log(null, null, currentUser.getUsername(), currentUser.getFullName(),
+                "EDITAR_ANAQUEL", "Shelf", saved.getId(),
+                oldCode, saved.getCode(),
+                String.format("Anaquel actualizado: %s -> %s | Zona: %s | Planta: %s",
+                        oldCode, saved.getCode(), saved.getZone(), saved.getPlant()));
+
+        return ResponseEntity.ok(saved);
+    }
+
     @PutMapping("/{id}/layout")
     public ResponseEntity<?> updateLayout(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         Shelf s = shelfRepo.findById(id).orElseThrow(() -> new IllegalArgumentException("Anaquel no encontrado"));

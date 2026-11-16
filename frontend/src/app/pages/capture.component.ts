@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subject, of } from 'rxjs';
 import { debounceTime, switchMap, distinctUntilChanged } from 'rxjs/operators';
+import * as QRCode from 'qrcode';
 import {
   ApiService,
   InventorySessionSummary,
@@ -188,6 +189,14 @@ export interface SheetRow {
                   [{{ sh.plant || 'Planta 1' }}] {{ sh.shelfCode }} &bull; {{ sh.shelfZone }} ({{ sh.totalPieces }} pzas)
                 </option>
               </select>
+              <button *ngIf="selectedShelfId() > 0" class="btn btn-sm btn-ghost" (click)="openEditCurrentShelfModal()" title="Editar nombre o código de este anaquel">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                Editar
+              </button>
+              <button *ngIf="selectedShelfId() > 0" class="btn btn-sm btn-ghost" (click)="downloadCurrentShelfQrPng()" title="Descargar código QR en imagen PNG para rotular">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                QR (.png)
+              </button>
             </div>
           </div>
 
@@ -257,7 +266,7 @@ export interface SheetRow {
           <div class="chips-header-row">
             <span class="chips-title">Atajos y Medidas Dinámicas:</span>
             <span class="chips-smart-tag" *ngIf="learnedCount() > 0">
-              ⚡ Autodidacta: {{ learnedCount() }} atajos aprendidos en vivo
+              Autodidacta: {{ learnedCount() }} atajos aprendidos en vivo
             </span>
           </div>
           <div class="chips-list">
@@ -301,6 +310,15 @@ export interface SheetRow {
               title="Limpiar filas vacías sin código"
             >
               Limpiar Filas Vacías
+            </button>
+            <button
+              class="btn btn-sm btn-ghost text-danger"
+              [disabled]="!isEditable() || (validRowCount() === 0 && totalPieces() === 0)"
+              (click)="openClearCurrentShelfModal()"
+              title="Eliminar conteos únicamente de este anaquel y ponerlo en 0 piezas"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              Limpiar Anaquel
             </button>
           </div>
 
@@ -638,6 +656,70 @@ export interface SheetRow {
               (click)="submitImportExcel()"
             >
               {{ importingExcel() ? 'Importando y Marcando...' : 'Importar y Marcar Contabilizados' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Edit Shelf Details -->
+      <div class="modal-backdrop" *ngIf="editingShelf" (click)="editingShelf = null">
+        <div class="modal-box" (click)="$event.stopPropagation()">
+          <div class="modal-header-row" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 14px;">
+            <h3 class="modal-title" style="margin: 0;">Editar Anaquel</h3>
+            <button class="btn-close" (click)="editingShelf = null">✕</button>
+          </div>
+          <p class="modal-desc">Modifica el código, zona o sector físico de este anaquel. El cambio se reflejará en el croquis y en todas las cédulas.</p>
+          <div class="form-stack">
+            <div class="two-cols">
+              <div>
+                <label class="label">Código de Anaquel</label>
+                <input class="input mono" [(ngModel)]="editingShelf.code" placeholder="Ej. PB-ACE-05" />
+              </div>
+              <div>
+                <label class="label">Nivel de Planta</label>
+                <select class="select" [(ngModel)]="editingShelf.plant">
+                  <option value="Planta Baja">Planta Baja</option>
+                  <option value="Planta Alta">Planta Alta</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="label">Zona / Sector</label>
+              <input class="input" [(ngModel)]="editingShelf.zone" placeholder="Ej. Acero (1-19), Kuriyama, Sellos" />
+            </div>
+            <div>
+              <label class="label">Descripción Adicional</label>
+              <input class="input" [(ngModel)]="editingShelf.description" placeholder="Ej. Pasillo principal frente a comedor" />
+            </div>
+          </div>
+          <div class="modal-footer" style="margin-top: 18px;">
+            <button class="btn btn-outline" (click)="editingShelf = null" [disabled]="savingShelf()">Cancelar</button>
+            <button class="btn btn-primary" (click)="saveCurrentShelfEdit()" [disabled]="savingShelf()">
+              {{ savingShelf() ? 'Guardando...' : 'Guardar Cambios' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Confirm Clear Single Shelf Counts -->
+      <div class="modal-backdrop" *ngIf="showClearShelfModal && currentShelf() as sh" (click)="showClearShelfModal = false">
+        <div class="modal-box" (click)="$event.stopPropagation()">
+          <h3 class="modal-title text-danger">Limpiar Conteos del Anaquel</h3>
+          <p class="modal-desc">
+            ¿Deseas eliminar todas las partidas contabilizadas en el anaquel <strong class="mono">{{ sh.shelfCode }}</strong>?
+          </p>
+          <div class="delete-warning-box">
+            <strong>Restablecimiento individual:</strong>
+            <ul style="margin: 6px 0 0 16px; padding: 0;">
+              <li>Se eliminarán las {{ validRowCount() }} partidas contadas ({{ totalPieces() | number:'1.0-2' }} piezas) de este anaquel.</li>
+              <li>El anaquel regresará a estado <strong>PENDIENTE</strong> con 0 piezas en el croquis y en el inventario.</li>
+              <li>Los demás anaqueles del almacén <strong>no serán afectados</strong>.</li>
+            </ul>
+          </div>
+          <div class="modal-footer" style="margin-top: 18px;">
+            <button class="btn btn-outline" (click)="showClearShelfModal = false" [disabled]="clearingShelf()">Cancelar</button>
+            <button class="btn btn-danger" (click)="executeClearCurrentShelf()" [disabled]="clearingShelf()">
+              {{ clearingShelf() ? 'Limpiando...' : 'Sí, Limpiar Este Anaquel' }}
             </button>
           </div>
         </div>
@@ -1345,6 +1427,57 @@ export interface SheetRow {
     .file-drop-area:hover { background: #dbeafe; border-color: #2563eb; transform: translateY(-1px); }
     .selected-file-info { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; }
     .import-summary-card { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 0.85rem; }
+
+    /* Modal Backdrop & Shared Form Styles */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(2px);
+    }
+    .modal-box {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 520px;
+      width: 90%;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+    }
+    .modal-title { font-size: 18px; font-weight: 800; color: #0f172a; }
+    .modal-desc { font-size: 13px; color: #64748b; margin: 4px 0 14px 0; }
+    .delete-warning-box {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 12px;
+      color: #991b1b;
+      font-size: 13px;
+      margin: 12px 0;
+    }
+    .form-stack { display: flex; flex-direction: column; gap: 14px; }
+    .two-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .label { font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 4px; display: block; }
+    .input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 13px;
+      background: #ffffff;
+      box-sizing: border-box;
+    }
+    .input:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
   `]
 })
 export class CaptureComponent implements OnInit {
@@ -1357,6 +1490,14 @@ export class CaptureComponent implements OnInit {
   rows = signal<SheetRow[]>([]);
   saving = signal<boolean>(false);
   hasUnsavedChanges = signal<boolean>(false);
+
+  // Shelf editing state
+  editingShelf: { id: number; code: string; zone: string; description: string; plant: string } | null = null;
+  savingShelf = signal(false);
+
+  // Shelf clear state
+  showClearShelfModal = false;
+  clearingShelf = signal(false);
 
   // Active focus in cell
   activeRowIndex: number = -1;
@@ -1517,6 +1658,104 @@ export class CaptureComponent implements OnInit {
     } else {
       this.rows.set([]);
     }
+  }
+
+  openEditCurrentShelfModal() {
+    const sh = this.currentShelf();
+    if (!sh) return;
+    this.editingShelf = {
+      id: sh.shelfId,
+      code: sh.shelfCode,
+      zone: sh.shelfZone || '',
+      description: sh.shelfDescription || '',
+      plant: sh.plant || 'Planta Baja'
+    };
+  }
+
+  saveCurrentShelfEdit() {
+    if (!this.editingShelf) return;
+    const target = this.editingShelf;
+    if (!target.code.trim()) {
+      this.toast.warning('El código de anaquel no puede estar vacío');
+      return;
+    }
+    this.savingShelf.set(true);
+    this.api.updateShelf(target.id, {
+      code: target.code.trim().toUpperCase(),
+      zone: target.zone.trim(),
+      description: target.description.trim(),
+      plant: target.plant
+    }).subscribe({
+      next: (updated) => {
+        this.savingShelf.set(false);
+        this.toast.success(`Anaquel ${updated.code} actualizado`);
+        this.shelves.update(list => list.map(s => {
+          if (s.shelfId === target.id) {
+            return {
+              ...s,
+              shelfCode: updated.code,
+              shelfZone: updated.zone,
+              shelfDescription: updated.description,
+              plant: updated.plant
+            };
+          }
+          return s;
+        }));
+        this.editingShelf = null;
+      },
+      error: (err) => {
+        this.savingShelf.set(false);
+        this.toast.error(err.error?.message || 'Error al actualizar anaquel');
+      }
+    });
+  }
+
+  async downloadCurrentShelfQrPng() {
+    const sh = this.currentShelf();
+    if (!sh) return;
+    try {
+      const captureUrl = `${window.location.origin}/capture?sessionId=${this.selectedSessionId()}&shelfId=${sh.shelfId}`;
+      const qrDataUrl = await QRCode.toDataURL(captureUrl, {
+        width: 800,
+        margin: 2,
+        errorCorrectionLevel: 'H',
+        color: { dark: '#0a2472', light: '#ffffff' }
+      });
+      const a = document.createElement('a');
+      a.href = qrDataUrl;
+      a.download = `${sh.shelfCode}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      this.toast.success(`Código QR de ${sh.shelfCode} descargado como ${sh.shelfCode}.png`);
+    } catch (e: any) {
+      this.toast.error('Error al generar código QR: ' + e.message);
+    }
+  }
+
+  openClearCurrentShelfModal() {
+    if (!this.currentShelf()) return;
+    this.showClearShelfModal = true;
+  }
+
+  executeClearCurrentShelf() {
+    const sh = this.currentShelf();
+    if (!sh) return;
+    this.clearingShelf.set(true);
+    this.api.resetShelfAssignment(this.selectedSessionId(), sh.shelfId, true).subscribe({
+      next: () => {
+        this.clearingShelf.set(false);
+        this.showClearShelfModal = false;
+        this.toast.success(`Conteos del anaquel ${sh.shelfCode} eliminados y restablecido a Pendiente.`);
+        this.rows.set([]);
+        this.hasUnsavedChanges.set(false);
+        this.loadShelvesForSession(this.selectedSessionId(), sh.shelfId);
+      },
+      error: (err) => {
+        this.clearingShelf.set(false);
+        this.toast.error(err.error?.message || 'Error al limpiar conteos del anaquel');
+      }
+    });
   }
 
   loadShelfCounts(sessionId: number, shelfId: number) {

@@ -2,6 +2,7 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import * as QRCode from 'qrcode';
 import { ApiService, ShelfAssignmentDto, InventorySessionSummary, UserSummary } from '../services/api.service';
 import { ToastService } from '../services/toast.service';
 
@@ -84,8 +85,86 @@ import { ToastService } from '../services/toast.service';
           <a routerLink="/capture" [queryParams]="{sessionId: selectedSessionId(), shelfId: s.shelfId}" class="btn btn-accent btn-sm flex-1">
             Capturar
           </a>
-          <button class="btn btn-secondary btn-sm" (click)="toggleShelfStatus(s)">
+          <button class="btn btn-outline btn-sm" (click)="downloadShelfQr(s)" title="Descargar código QR puro en PNG">
+            QR (.png)
+          </button>
+          <button class="btn btn-secondary btn-sm" (click)="openEditShelf(s)" title="Editar código, zona o sector">
+            Editar
+          </button>
+          <button
+            *ngIf="(s.totalPieces || 0) > 0 || (s.recordCount || 0) > 0"
+            class="btn btn-outline-danger btn-sm"
+            (click)="openClearShelfCountsModal(s)"
+            title="Eliminar conteos únicamente de este anaquel"
+          >
+            Limpiar
+          </button>
+          <button class="btn btn-ghost btn-sm" (click)="toggleShelfStatus(s)">
             {{ s.status === 'COMPLETADO' ? 'Reabrir' : 'Completar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Edit Shelf Details -->
+    <div class="modal-backdrop" *ngIf="editingShelf" (click)="editingShelf = null">
+      <div class="modal-box" (click)="$event.stopPropagation()">
+        <div class="modal-header-row" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 14px;">
+          <h3 class="modal-title" style="margin: 0;">Editar Anaquel</h3>
+          <button class="modal-close-icon-btn" (click)="editingShelf = null" title="Cerrar">✕</button>
+        </div>
+        <p class="modal-desc" style="font-size: 13px; color: var(--text-muted); margin: 0 0 14px 0;">Modifica el código, zona o sector físico de este anaquel.</p>
+        <div class="form-stack">
+          <div class="two-cols">
+            <div>
+              <label class="label">Código de Anaquel</label>
+              <input class="input mono" [(ngModel)]="editingShelf.code" placeholder="Ej. PB-ACE-05" />
+            </div>
+            <div>
+              <label class="label">Nivel de Planta</label>
+              <select class="select" [(ngModel)]="editingShelf.plant">
+                <option value="Planta Baja">Planta Baja</option>
+                <option value="Planta Alta">Planta Alta</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="label">Zona / Sector</label>
+            <input class="input" [(ngModel)]="editingShelf.zone" placeholder="Ej. Acero (1-19), Kuriyama, Sellos" />
+          </div>
+          <div>
+            <label class="label">Descripción Adicional</label>
+            <input class="input" [(ngModel)]="editingShelf.description" placeholder="Ej. Pasillo principal frente a comedor" />
+          </div>
+        </div>
+        <div class="modal-footer" style="margin-top: 18px;">
+          <button class="btn btn-secondary" (click)="editingShelf = null" [disabled]="savingShelf()">Cancelar</button>
+          <button class="btn btn-primary" (click)="saveShelfEdit()" [disabled]="savingShelf()">
+            {{ savingShelf() ? 'Guardando...' : 'Guardar Cambios' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Confirm Clear Single Shelf Counts -->
+    <div class="modal-backdrop" *ngIf="shelfToClearCounts" (click)="shelfToClearCounts = null">
+      <div class="modal-box" (click)="$event.stopPropagation()">
+        <h3 class="modal-title text-danger" style="margin-top: 0;">Limpiar Conteos del Anaquel</h3>
+        <p class="modal-desc" style="font-size: 13px; color: var(--text-muted); margin: 0 0 14px 0;">
+          ¿Deseas eliminar todas las partidas contabilizadas en el anaquel <strong class="mono">{{ shelfToClearCounts.shelfCode }}</strong>?
+        </p>
+        <div class="delete-warning-box">
+          <strong>Restablecimiento individual:</strong>
+          <ul style="margin: 6px 0 0 16px; padding: 0;">
+            <li>Se eliminarán las {{ shelfToClearCounts.recordCount || 0 }} partidas contadas ({{ shelfToClearCounts.totalPieces | number:'1.0-2' }} piezas) de este anaquel.</li>
+            <li>El anaquel regresará a estado <strong>PENDIENTE</strong> con 0 piezas en el croquis y en el inventario.</li>
+            <li>Los demás anaqueles del almacén <strong>no serán afectados</strong>.</li>
+          </ul>
+        </div>
+        <div class="modal-footer" style="margin-top: 18px;">
+          <button class="btn btn-secondary" (click)="shelfToClearCounts = null" [disabled]="clearingShelfCounts()">Cancelar</button>
+          <button class="btn btn-danger" (click)="executeClearShelfCounts()" [disabled]="clearingShelfCounts()">
+            {{ clearingShelfCounts() ? 'Limpiando...' : 'Sí, Limpiar Este Anaquel' }}
           </button>
         </div>
       </div>
@@ -211,6 +290,15 @@ import { ToastService } from '../services/toast.service';
     .form-stack { display: flex; flex-direction: column; gap: 14px; }
     .two-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .delete-warning-box {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 12px;
+      color: #991b1b;
+      font-size: 13px;
+      margin: 12px 0;
+    }
   `]
 })
 export class ShelvesComponent implements OnInit {
@@ -220,6 +308,14 @@ export class ShelvesComponent implements OnInit {
   shelves = signal<ShelfAssignmentDto[]>([]);
   workers = signal<UserSummary[]>([]);
   filterPlant = signal<'ALL' | 'Planta Baja' | 'Planta Alta'>('ALL');
+
+  // Shelf editing state
+  editingShelf: { id: number; code: string; zone: string; description: string; plant: string } | null = null;
+  savingShelf = signal(false);
+
+  // Clear single shelf state
+  shelfToClearCounts: ShelfAssignmentDto | null = null;
+  clearingShelfCounts = signal(false);
 
   countPlant(p: 'Planta Baja' | 'Planta Alta'): number {
     return this.shelves().filter(s => {
@@ -339,5 +435,106 @@ export class ShelvesComponent implements OnInit {
       case 'EN_CONTEO': return 'badge-info';
       default: return 'badge-neutral';
     }
+  }
+
+  openEditShelf(shelf: ShelfAssignmentDto) {
+    this.editingShelf = {
+      id: shelf.shelfId,
+      code: shelf.shelfCode,
+      zone: shelf.shelfZone || '',
+      description: shelf.shelfDescription || '',
+      plant: shelf.plant || 'Planta Baja'
+    };
+  }
+
+  saveShelfEdit() {
+    if (!this.editingShelf) return;
+    const target = this.editingShelf;
+    if (!target.code.trim()) {
+      this.toast.warning('El código de anaquel no puede estar vacío');
+      return;
+    }
+    this.savingShelf.set(true);
+    this.api.updateShelf(target.id, {
+      code: target.code.trim().toUpperCase(),
+      zone: target.zone.trim(),
+      description: target.description.trim(),
+      plant: target.plant
+    }).subscribe({
+      next: (updated) => {
+        this.savingShelf.set(false);
+        this.toast.success(`Anaquel ${updated.code} actualizado`);
+        this.shelves.update(list => list.map(s => {
+          if (s.shelfId === target.id) {
+            return {
+              ...s,
+              shelfCode: updated.code,
+              shelfZone: updated.zone,
+              shelfDescription: updated.description,
+              plant: updated.plant
+            };
+          }
+          return s;
+        }));
+        this.editingShelf = null;
+      },
+      error: (err) => {
+        this.savingShelf.set(false);
+        this.toast.error(err.error?.message || 'Error al actualizar anaquel');
+      }
+    });
+  }
+
+  async downloadShelfQr(shelf: ShelfAssignmentDto) {
+    try {
+      const captureUrl = `${window.location.origin}/capture?sessionId=${this.selectedSessionId()}&shelfId=${shelf.shelfId}`;
+      const qrDataUrl = await QRCode.toDataURL(captureUrl, {
+        width: 800,
+        margin: 2,
+        errorCorrectionLevel: 'H',
+        color: { dark: '#0a2472', light: '#ffffff' }
+      });
+      const a = document.createElement('a');
+      a.href = qrDataUrl;
+      a.download = `${shelf.shelfCode}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      this.toast.success(`Código QR de ${shelf.shelfCode} descargado como ${shelf.shelfCode}.png`);
+    } catch (e: any) {
+      this.toast.error('Error al generar código QR: ' + e.message);
+    }
+  }
+
+  openClearShelfCountsModal(shelf: ShelfAssignmentDto) {
+    this.shelfToClearCounts = shelf;
+  }
+
+  executeClearShelfCounts() {
+    if (!this.shelfToClearCounts) return;
+    const shelf = this.shelfToClearCounts;
+    this.clearingShelfCounts.set(true);
+    this.api.resetShelfAssignment(this.selectedSessionId(), shelf.shelfId, true).subscribe({
+      next: () => {
+        this.clearingShelfCounts.set(false);
+        this.toast.success(`Conteos del anaquel ${shelf.shelfCode} eliminados.`);
+        this.shelves.update(list => list.map(s => {
+          if (s.shelfId === shelf.shelfId) {
+            return {
+              ...s,
+              totalPieces: 0,
+              recordCount: 0,
+              status: 'PENDIENTE'
+            };
+          }
+          return s;
+        }));
+        this.shelfToClearCounts = null;
+      },
+      error: (err) => {
+        this.clearingShelfCounts.set(false);
+        this.toast.error(err.error?.message || 'Error al limpiar conteos del anaquel');
+      }
+    });
   }
 }

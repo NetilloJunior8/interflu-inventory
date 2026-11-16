@@ -34,12 +34,6 @@ import { ToastService } from '../services/toast.service';
           <input type="file" accept=".xlsx,.xls,.csv" (change)="onImportExcelCounts($event)" hidden />
         </label>
 
-        <!-- Clear Session Counts Button -->
-        <button class="btn btn-outline-danger" (click)="openClearCountsModal()" [disabled]="!selectedSession() || clearingCounts() || (selectedSession()?.totalRecords === 0)" title="Eliminar conteos de la sesión y restablecer anaqueles a Pendiente">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-          <span>{{ clearingCounts() ? 'Limpiando...' : 'Eliminar Conteos' }}</span>
-        </button>
-
         <button class="btn btn-primary" (click)="showNewModal = true">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           Nuevo Inventario
@@ -395,9 +389,13 @@ import { ToastService } from '../services/toast.service';
             <li>Podrás importar nuevamente tu archivo Excel completo con todas sus hojas.</li>
           </ul>
         </div>
+        <div style="margin-top: 14px;">
+          <label class="label" style="color: #991b1b; font-weight: 700;">Para confirmar, escribe la palabra BORRAR:</label>
+          <input class="input" [(ngModel)]="clearConfirmationWord" placeholder="Escribe BORRAR aquí" style="border-color: #fca5a5;" />
+        </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" (click)="showClearCountsModal = false" [disabled]="clearingCounts()">Cancelar</button>
-          <button class="btn btn-danger" (click)="executeClearCounts()" [disabled]="clearingCounts()">
+          <button class="btn btn-danger" (click)="executeClearCounts()" [disabled]="clearingCounts() || clearConfirmationWord.trim().toUpperCase() !== 'BORRAR'">
             {{ clearingCounts() ? 'Eliminando...' : 'Sí, Eliminar Conteos' }}
           </button>
         </div>
@@ -863,6 +861,7 @@ export class DashboardComponent implements OnInit {
 
   sessionToDelete: InventorySessionSummary | null = null;
   showClearCountsModal = false;
+  clearConfirmationWord = '';
   clearingCounts = signal(false);
 
   constructor(
@@ -933,6 +932,7 @@ export class DashboardComponent implements OnInit {
       this.toast.warning('Selecciona primero un inventario');
       return;
     }
+    this.clearConfirmationWord = '';
     this.showClearCountsModal = true;
   }
 
