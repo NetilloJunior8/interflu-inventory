@@ -164,25 +164,30 @@ public class InventorySessionService {
 
     @Transactional
     public InventorySession reopenSession(Long sessionId, SessionDto.ReopenSessionRequest req, User user) {
-        if (req.getReason() == null || req.getReason().trim().length() < 5) {
-            throw new IllegalArgumentException("Debe ingresar un motivo justificado para reabrir el inventario.");
+        String reason = (req != null && req.getReason() != null) ? req.getReason().trim() : "";
+        if (reason.isEmpty()) {
+            reason = "Reversión de cierre accidental / Reapertura autorizada para conteo";
         }
 
         InventorySession session = sessionRepo.findById(sessionId)
                 .orElseThrow(() -> new IllegalArgumentException("Sesión no encontrada."));
 
         InventorySession.Status oldStatus = session.getStatus();
-        session.setStatus(InventorySession.Status.REABIERTO);
+        // Restore active status to EN_CONTEO so the inventory is fully editable and operable
+        session.setStatus(InventorySession.Status.EN_CONTEO);
         session.setReopenedBy(user);
         session.setReopenedAt(LocalDateTime.now());
-        session.setReopenReason(req.getReason().trim());
+        session.setReopenReason(reason);
+        session.setClosedAt(null);
+        session.setClosedBy(null);
+        session.setCloseNotes(null);
 
         session = sessionRepo.save(session);
 
         auditService.log(session.getId(), session.getFolio(), user.getUsername(), user.getFullName(),
                 "REABRIR_INVENTARIO", "InventorySession", session.getId(),
                 oldStatus.name(), session.getStatus().name(),
-                "Reapertura autorizada. Motivo: " + req.getReason().trim());
+                "Reapertura y reversión de cierre autorizada. Motivo: " + reason);
 
         return session;
     }

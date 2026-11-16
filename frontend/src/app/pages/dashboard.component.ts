@@ -80,10 +80,10 @@ import { ToastService } from '../services/toast.service';
 
       <div class="kpi-card card-kpi-pa" *ngIf="selectedSession() as s">
         <div class="kpi-top">
-          <span class="kpi-label">Planta Alta (84 Anaqueles)</span>
+          <span class="kpi-label">Planta Alta (83 Anaqueles)</span>
           <span class="kpi-pill-percent pill-pa">{{ s.paPercent || 0 }}%</span>
         </div>
-        <span class="kpi-value text-purple">{{ s.paCompleted || 0 }} <span class="kpi-unit">/ {{ s.paTotal || 84 }}</span></span>
+        <span class="kpi-value text-purple">{{ s.paCompleted || 0 }} <span class="kpi-unit">/ {{ s.paTotal || 83 }}</span></span>
         <div class="progress-track">
           <div class="progress-fill fill-pa" [style.width.%]="s.paPercent || 0"></div>
         </div>
@@ -341,18 +341,31 @@ import { ToastService } from '../services/toast.service';
       </div>
     </div>
 
-    <!-- Modal: Reopen Inventory -->
+    <!-- Modal: Reopen Inventory / Revert Accidental Closure -->
     <div class="modal-backdrop" *ngIf="reopeningSession" (click)="reopeningSession = null">
       <div class="modal-box" (click)="$event.stopPropagation()">
-        <h3 class="modal-title">Reabrir Inventario {{ reopeningSession.folio }}</h3>
-        <p class="modal-desc">Ingresa el motivo justificado de la reapertura para que quede asentado en la bitácora de auditoría.</p>
-        <div class="form-stack">
-          <label class="label">Motivo de Reapertura</label>
-          <textarea class="textarea" rows="3" [(ngModel)]="reopenReason" placeholder="Ej. Ajuste de conteo en anaquel P1-VAL-01 por material no desempaquetado..."></textarea>
+        <h3 class="modal-title">Reabrir Inventario / Revertir Cierre &bull; {{ reopeningSession.folio }}</h3>
+        <p class="modal-desc">
+          Si el inventario fue cerrado por error o se requiere continuar con el conteo físico, esta acción devolverá el folio al estado <strong>EN CONTEO ACTIVO</strong> de forma 100% reversible.
+        </p>
+        
+        <div class="reopen-quick-action" style="margin-bottom: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+          <div>
+            <strong style="font-size: 13px; color: #0a2472; display: block;">¿Fue un cierre accidental?</strong>
+            <span style="font-size: 11.5px; color: #64748b;">Deshaz el cierre inmediatamente con un solo clic.</span>
+          </div>
+          <button type="button" class="btn btn-warning btn-sm" (click)="quickUndoClose()">
+            Deshacer Cierre Ahora
+          </button>
         </div>
-        <div class="modal-footer">
+
+        <div class="form-stack">
+          <label class="label">O ingresa un motivo justificado para bitácora:</label>
+          <textarea class="textarea" rows="2" [(ngModel)]="reopenReason" placeholder="Ej. Reanudación de conteos en pasillos faltantes..."></textarea>
+        </div>
+        <div class="modal-footer" style="margin-top: 16px;">
           <button class="btn btn-secondary" (click)="reopeningSession = null">Cancelar</button>
-          <button class="btn btn-warning" (click)="confirmReopen()">Confirmar Reapertura</button>
+          <button class="btn btn-primary" (click)="confirmReopen()">Confirmar Reapertura</button>
         </div>
       </div>
     </div>
@@ -977,15 +990,26 @@ export class DashboardComponent implements OnInit {
     this.reopenReason = '';
   }
 
+  quickUndoClose() {
+    if (!this.reopeningSession) return;
+    const target = this.reopeningSession;
+    const defaultReason = 'Reversión de cierre accidental autorizada por administrador';
+    this.api.reopenSession(target.id, defaultReason).subscribe({
+      next: () => {
+        this.toast.success(`Cierre revertido: ${target.folio} regresó a estado EN CONTEO ACTIVO.`);
+        this.reopeningSession = null;
+        this.loadData();
+      },
+      error: (err) => this.toast.error(err.error?.message || 'Error al revertir cierre')
+    });
+  }
+
   confirmReopen() {
     if (!this.reopeningSession) return;
-    if (this.reopenReason.trim().length < 5) {
-      this.toast.warning('Ingresa un motivo de al menos 5 caracteres para la bitácora');
-      return;
-    }
-    this.api.reopenSession(this.reopeningSession.id, this.reopenReason).subscribe({
+    const reason = this.reopenReason.trim() || 'Reapertura autorizada por administrador';
+    this.api.reopenSession(this.reopeningSession.id, reason).subscribe({
       next: () => {
-        this.toast.success('Inventario reabierto');
+        this.toast.success('Inventario reabierto y reactivado');
         this.reopeningSession = null;
         this.loadData();
       },

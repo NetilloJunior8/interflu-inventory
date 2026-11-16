@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, signal, computed, ElementRef, ViewChild, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -288,6 +288,22 @@ export interface SheetRow {
         <!-- Sheet Toolbar -->
         <div class="sheet-toolbar">
           <div class="toolbar-left">
+            <!-- Undo / Reversión de última acción (Ctrl+Z) -->
+            <button
+              type="button"
+              class="btn btn-sm btn-outline btn-undo"
+              [disabled]="!canUndo() || !isEditable()"
+              (click)="undoLastAction()"
+              title="Deshacer última acción o modificación en la cédula (Ctrl+Z)"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <polyline points="1 4 1 10 7 10"></polyline>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+              </svg>
+              <span>Deshacer</span>
+              <span class="undo-counter-tag" *ngIf="undoCount() > 0">({{ undoCount() }})</span>
+            </button>
+
             <button
               class="btn btn-sm btn-outline"
               [disabled]="!isEditable()"
@@ -371,6 +387,7 @@ export interface SheetRow {
                       [class.input-duplicate]="row.isDuplicate"
                       [(ngModel)]="row.code"
                       (focus)="onCellFocus(i, 'code')"
+                      (blur)="onCellBlur(i)"
                       (input)="onCodeInput(i, $any($event.target).value)"
                       (keydown)="onCodeKeyDown($event, i)"
                       [disabled]="!isEditable()"
@@ -409,6 +426,7 @@ export interface SheetRow {
                     class="cell-input mono text-right qty-input"
                     [(ngModel)]="row.quantity"
                     (focus)="onCellFocus(i, 'qty')"
+                    (blur)="onCellBlur(i)"
                     (input)="onQuantityChange(i)"
                     (keydown)="onQtyKeyDown($event, i)"
                     [disabled]="!isEditable()"
@@ -1439,6 +1457,28 @@ export interface SheetRow {
     .btn-success-light { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; border-radius: 6px; padding: 0.45rem 0.85rem; font-weight: 600; cursor: pointer; }
     .btn-warning-light { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; border-radius: 6px; padding: 0.45rem 0.85rem; font-weight: 600; cursor: pointer; }
     .btn-accent { background: #0284c7; color: #ffffff; border: none; border-radius: 6px; padding: 0.45rem 0.85rem; font-weight: 600; cursor: pointer; }
+    .btn-undo {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-weight: 600;
+      border-color: #cbd5e1;
+      color: #334155;
+    }
+    .btn-undo:hover:not(:disabled) {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+    .undo-counter-tag {
+      background: #fef3c7;
+      color: #b45309;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 1px 5px;
+      border-radius: 999px;
+      border: 1px solid #fde68a;
+    }
     .excel-format-hints { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem; }
     .hint-title { font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 4px; }
     .hint-cols { font-size: 0.82rem; font-weight: 700; color: #0a2472; }
@@ -1544,6 +1584,16 @@ export class CaptureComponent implements OnInit {
   quickChips: string[] = [];
   learnedCount = computed(() => this.patternSuggester.getLearnedChipsCount());
 
+  // Undo / Reversible Transactions State
+  undoStack: Array<{
+    rows: SheetRow[];
+    description: string;
+    timestamp: Date;
+  }> = [];
+  undoCount = signal<number>(0);
+  canUndo = computed(() => this.undoCount() > 0);
+  private focusSnapshot: SheetRow[] | null = null;
+
   // Computed properties
   currentSession = computed(() => this.sessions().find(s => s.id === this.selectedSessionId()));
   currentShelf = computed(() => this.shelves().find(sh => sh.shelfId === this.selectedShelfId()));
@@ -1573,8 +1623,44 @@ export class CaptureComponent implements OnInit {
     return undefined;
   });
 
+  saveUndoSnapshot(description: string) {
+    const snapshot = this.rows().map(r => ({ ...r }));
+    this.undoStack.push({
+      rows: snapshot,
+      description,
+      timestamp: new Date()
+    });
+    if (this.undoStack.length > 35) {
+      this.undoStack.shift();
+    }
+    this.undoCount.set(this.undoStack.length);
+  }
+
+  undoLastAction() {
+    if (this.undoStack.length === 0) return;
+    const previous = this.undoStack.pop();
+    this.undoCount.set(this.undoStack.length);
+    if (previous) {
+      this.rows.set(previous.rows.map(r => ({ ...r })));
+      this.hasUnsavedChanges.set(true);
+      this.recalculateDuplicates();
+      this.toast.info(`Deshecho: Restaurado estado previo a "${previous.description}".`);
+    }
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  handleGlobalShortcuts(event: KeyboardEvent) {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !event.shiftKey) {
+      if (this.canUndo() && this.isEditable()) {
+        event.preventDefault();
+        this.undoLastAction();
+      }
+    }
+  }
+
   applySimilarCode(code: string) {
     if (this.activeRowIndex >= 0 && this.activeRowIndex < this.rows().length) {
+      this.saveUndoSnapshot(`Corregir a código sugerido ${code}`);
       const row = this.rows()[this.activeRowIndex];
       row.code = code;
       row.similarAlert = undefined;
@@ -1898,11 +1984,11 @@ export class CaptureComponent implements OnInit {
         this.patternSuggester.learnFromMaterials(loadedRows.map(r => r.code));
         this.quickChips = this.patternSuggester.getQuickChips();
 
+        this.undoStack = [];
+        this.undoCount.set(0);
+        this.focusSnapshot = null;
+
         if (loadedRows.length === 0) {
-          for (let i = 0; i < 6; i++) {
-            loadedRows.push(this.createEmptyRow());
-          }
-        } else {
           loadedRows.push(this.createEmptyRow());
         }
 
@@ -1928,6 +2014,7 @@ export class CaptureComponent implements OnInit {
   onCellFocus(rowIndex: number, cellType: 'code' | 'qty') {
     this.activeRowIndex = rowIndex;
     this.activeCellType = cellType;
+    this.focusSnapshot = this.rows().map(r => ({ ...r }));
     if (cellType === 'code') {
       const term = this.rows()[rowIndex]?.code || '';
       if (term.length > 0) {
@@ -1937,6 +2024,23 @@ export class CaptureComponent implements OnInit {
       }
     } else {
       this.currentSuggestions.set([]);
+    }
+  }
+
+  onCellBlur(rowIndex: number) {
+    if (this.focusSnapshot) {
+      const oldRow = this.focusSnapshot[rowIndex];
+      const curRow = this.rows()[rowIndex];
+      if (oldRow && curRow && (oldRow.code !== curRow.code || oldRow.quantity !== curRow.quantity)) {
+        this.undoStack.push({
+          rows: this.focusSnapshot,
+          description: `Modificar renglón ${rowIndex + 1} (${curRow.code || 'vacía'})`,
+          timestamp: new Date()
+        });
+        if (this.undoStack.length > 35) this.undoStack.shift();
+        this.undoCount.set(this.undoStack.length);
+      }
+      this.focusSnapshot = null;
     }
   }
 
@@ -1955,6 +2059,7 @@ export class CaptureComponent implements OnInit {
   }
 
   selectSuggestion(index: number, sugg: SuggestionItem) {
+    this.saveUndoSnapshot('Sugerencia ' + sugg.code);
     const row = this.rows()[index];
     row.code = sugg.code;
     row.inCatalog = sugg.source === 'CATALOGO';
@@ -1977,6 +2082,7 @@ export class CaptureComponent implements OnInit {
       if (this.rows().length > 0) this.activeRowIndex = 0;
       else return;
     }
+    this.saveUndoSnapshot('Insertar comodín ' + chip);
     const row = this.rows()[this.activeRowIndex];
     if (!row.code) {
       row.code = chip;
@@ -2044,6 +2150,7 @@ export class CaptureComponent implements OnInit {
    * Inserts an intermediate row ("en media celda") exactly below the specified index
    */
   insertRowBelow(index: number) {
+    this.saveUndoSnapshot(`Insertar fila intermedia abajo de ${index + 1}`);
     const list = [...this.rows()];
     const newRow = this.createEmptyRow();
     list.splice(index + 1, 0, newRow);
@@ -2060,12 +2167,15 @@ export class CaptureComponent implements OnInit {
   }
 
   addRowAtEnd() {
+    this.saveUndoSnapshot('Agregar fila al final');
     const list = [...this.rows(), this.createEmptyRow()];
     this.rows.set(list);
     this.hasUnsavedChanges.set(true);
   }
 
   deleteRow(index: number) {
+    const targetCode = this.rows()[index]?.code || 'vacía';
+    this.saveUndoSnapshot(`Eliminar fila ${index + 1} (${targetCode})`);
     const list = [...this.rows()];
     list.splice(index, 1);
     if (list.length === 0) list.push(this.createEmptyRow());
@@ -2075,6 +2185,7 @@ export class CaptureComponent implements OnInit {
   }
 
   clearRowCode(index: number) {
+    this.saveUndoSnapshot(`Borrar código en fila ${index + 1}`);
     const row = this.rows()[index];
     row.code = '';
     row.quantity = null;
@@ -2083,8 +2194,9 @@ export class CaptureComponent implements OnInit {
   }
 
   removeEmptyRows() {
+    this.saveUndoSnapshot('Limpiar filas vacías');
     const list = this.rows().filter(r => r.code && r.code.trim().length > 0);
-    list.push(this.createEmptyRow());
+    if (list.length === 0) list.push(this.createEmptyRow());
     this.rows.set(list);
     this.hasUnsavedChanges.set(true);
     this.recalculateDuplicates();
@@ -2128,6 +2240,7 @@ export class CaptureComponent implements OnInit {
   }
 
   consolidateDuplicates() {
+    this.saveUndoSnapshot('Consolidar duplicados');
     const list = this.rows();
     const map = new Map<string, SheetRow>();
 
@@ -2144,7 +2257,7 @@ export class CaptureComponent implements OnInit {
     }
 
     const consolidated = Array.from(map.values());
-    consolidated.push(this.createEmptyRow());
+    if (consolidated.length === 0) consolidated.push(this.createEmptyRow());
     this.rows.set(consolidated);
     this.recalculateDuplicates();
     this.hasUnsavedChanges.set(true);
@@ -2218,6 +2331,7 @@ export class CaptureComponent implements OnInit {
   }
 
   parseAndInsertPastedRows(rawText: string) {
+    this.saveUndoSnapshot('Pegar renglones');
     const lines = rawText.split(/\r?\n/).filter(l => l.trim().length > 0);
     const newItems: SheetRow[] = [];
 

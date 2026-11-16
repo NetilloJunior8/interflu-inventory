@@ -98,7 +98,7 @@ public class DataInitializer implements CommandLineRunner {
             sessionRepo.deleteAll();
         }
 
-        // 3. Seed Shelves based on the real blueprints of Planta Baja (90) and Planta Alta (84)
+        // 3. Seed Shelves based on the real blueprints of Planta Baja (87) and Planta Alta (83) -> Total 170 Oficiales
         if (shelfRepo.count() == 0) {
             shelfRepo.saveAll(buildRealBlueprintShelves());
         }

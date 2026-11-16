@@ -67,17 +67,17 @@ export interface SectionStat {
             <button class="btn btn-sm btn-icon" (click)="zoomIn()" title="Acercar vista (+5%)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             </button>
-            <button class="btn btn-sm btn-ghost" [class.preset-active]="zoomLevel() === 60" (click)="setZoomPreset(60)" title="Vista amplia 60%">
-              60%
+            <button class="btn btn-sm btn-ghost" [class.preset-active]="zoomLevel() === 55" (click)="setZoomPreset(55)" title="Visión lejana 55%">
+              55%
             </button>
-            <button class="btn btn-sm btn-ghost" [class.preset-active]="zoomLevel() === 80" (click)="setZoomPreset(80)" title="Vista 80%">
-              80%
+            <button class="btn btn-sm btn-ghost" [class.preset-active]="zoomLevel() === 68" (click)="setZoomPreset(68)" title="Visión global óptima 68%">
+              68%
+            </button>
+            <button class="btn btn-sm btn-ghost" [class.preset-active]="zoomLevel() === 85" (click)="setZoomPreset(85)" title="Visión media 85%">
+              85%
             </button>
             <button class="btn btn-sm btn-ghost" [class.preset-active]="zoomLevel() === 100" (click)="setZoomPreset(100)" title="Vista real 100%">
               100%
-            </button>
-            <button class="btn btn-sm btn-ghost" [class.preset-active]="zoomLevel() === 125" (click)="setZoomPreset(125)" title="Vista cercana 125%">
-              125%
             </button>
             <button class="btn btn-sm btn-fit-screen" (click)="fitToScreen()" title="Ajustar dimensiones exactas a la pantalla actual">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -433,12 +433,6 @@ export interface SectionStat {
                       <text x="287" y="180" text-anchor="middle" class="svg-badge-text">LATERAL OESTE</text>
                     </g>
 
-                    <!-- Área Estática Documentos (No es anaquel, solo zona arquitectónica de referencia) -->
-                    <g transform="translate(260, 432)">
-                      <rect x="0" y="0" width="54" height="54" rx="4" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,3" />
-                      <text x="27" y="24" text-anchor="middle" font-size="8" font-weight="700" fill="#64748b" letter-spacing="0.5">ÁREA</text>
-                      <text x="27" y="36" text-anchor="middle" font-size="8" font-weight="700" fill="#64748b" letter-spacing="0.5">DOCS</text>
-                    </g>
 
                     <!-- Res. Acero NW -->
                     <g>
@@ -1174,19 +1168,20 @@ export interface SectionStat {
     .text-success { color: #059669; }
     .text-danger { color: #dc2626; }
 
-    /* Croquis Layout Grid: Canvas + Sidebar (Compact Right-aligned) */
+    /* Croquis Layout Grid: Canvas + Sidebar (Stays side-by-side on desktop, stacks only on phones <= 768px) */
     .croquis-main-layout {
       display: grid;
-      grid-template-columns: 1fr 248px;
-      gap: 0.85rem;
+      grid-template-columns: minmax(0, 1fr) 215px;
+      gap: 0.65rem;
       align-items: flex-start;
       width: 100%;
+      min-width: 0;
       transition: all 0.2s ease;
     }
     .croquis-main-layout.sidebar-collapsed {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
-    @media (max-width: 1100px) {
+    @media (max-width: 768px) {
       .croquis-main-layout {
         grid-template-columns: 1fr;
       }
@@ -1196,32 +1191,40 @@ export interface SectionStat {
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
+      overflow: hidden;
     }
 
-    /* Sections & Progress Sidebar (Compact Right-aligned) */
+    /* Sections & Progress Sidebar (Micro-compact Right-aligned) */
     .sections-progress-sidebar {
       background: #ffffff;
       border: 1px solid #cbd5e1;
       border-radius: 10px;
-      padding: 0.75rem 0.65rem;
+      padding: 0.55rem 0.5rem;
       box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
       display: flex;
       flex-direction: column;
-      gap: 0.65rem;
+      gap: 0.5rem;
       max-height: 800px;
       overflow-y: auto;
       scrollbar-width: thin;
       scrollbar-color: #cbd5e1 #f8fafc;
+      box-sizing: border-box;
+      width: 215px;
+    }
+    @media (max-width: 768px) {
+      .sections-progress-sidebar {
+        width: 100%;
+      }
     }
     .sections-sidebar-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid #f1f5f9;
-      padding-bottom: 0.45rem;
+      padding-bottom: 0.35rem;
     }
     .sidebar-kicker {
-      font-size: 0.62rem;
+      font-size: 0.58rem;
       font-weight: 700;
       color: #64748b;
       letter-spacing: 0.08em;
@@ -1229,7 +1232,7 @@ export interface SectionStat {
     }
     .sidebar-title {
       margin: 1px 0 0 0;
-      font-size: 0.95rem;
+      font-size: 0.88rem;
       font-weight: 800;
       color: #0f172a;
     }
@@ -1237,11 +1240,11 @@ export interface SectionStat {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
       border-radius: 6px;
-      padding: 5px 8px;
+      padding: 4px 7px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       color: #475569;
     }
     .sections-summary-pill strong {
@@ -1250,18 +1253,18 @@ export interface SectionStat {
     .sections-list {
       display: flex;
       flex-direction: column;
-      gap: 0.45rem;
+      gap: 0.3rem;
     }
     .section-card {
       background: #ffffff;
       border: 1px solid #e2e8f0;
       border-radius: 6px;
-      padding: 0.55rem 0.65rem;
+      padding: 0.4rem 0.5rem;
       cursor: pointer;
       transition: all 0.12s ease;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
       position: relative;
     }
     .section-card:hover {
@@ -1282,31 +1285,33 @@ export interface SectionStat {
     .sec-name-wrap {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
+      min-width: 0;
     }
     .sec-color-badge {
-      width: 8px;
-      height: 8px;
+      width: 7px;
+      height: 7px;
       border-radius: 2px;
       flex-shrink: 0;
     }
     .sec-name-text {
-      font-size: 0.78rem;
+      font-size: 0.72rem;
       font-weight: 700;
       color: #1e293b;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 135px;
+      max-width: 118px;
     }
     .sec-pct-chip {
-      font-size: 0.68rem;
+      font-size: 0.64rem;
       font-weight: 800;
       font-family: 'JetBrains Mono', monospace;
       color: #475569;
       background: #f1f5f9;
-      padding: 1px 5px;
+      padding: 1px 4px;
       border-radius: 4px;
+      flex-shrink: 0;
     }
     .sec-pct-chip.pct-complete {
       background: #dcfce7;
@@ -1314,21 +1319,21 @@ export interface SectionStat {
     }
     .sec-progress-track {
       width: 100%;
-      height: 5px;
+      height: 4px;
       background: #e2e8f0;
-      border-radius: 3px;
+      border-radius: 2px;
       overflow: hidden;
     }
     .sec-progress-fill {
       height: 100%;
-      border-radius: 3px;
+      border-radius: 2px;
       transition: width 0.3s ease;
     }
     .sec-card-footer {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.68rem;
+      font-size: 0.64rem;
       color: #64748b;
     }
     .sec-count-text strong {
@@ -1627,37 +1632,37 @@ export interface SectionStat {
     /* Planta Baja */
     .rack-sec-acero {
       background: #eff6ff !important;
-      border-color: #3b82f6 !important;
+      border-color: #2563eb !important;
     }
     .rack-sec-acero .rack-code-text { color: #1d4ed8 !important; }
 
     .rack-sec-kuriyama {
-      background: #fffbeb !important;
-      border-color: #f59e0b !important;
+      background: #fff7ed !important;
+      border-color: #ea580c !important;
     }
-    .rack-sec-kuriyama .rack-code-text { color: #b45309 !important; }
+    .rack-sec-kuriyama .rack-code-text { color: #c2410c !important; }
 
     .rack-sec-ypc {
-      background: #eef2ff !important;
-      border-color: #6366f1 !important;
+      background: #f5f3ff !important;
+      border-color: #7c3aed !important;
     }
-    .rack-sec-ypc .rack-code-text { color: #4338ca !important; }
+    .rack-sec-ypc .rack-code-text { color: #6d28d9 !important; }
 
     .rack-sec-dixon {
-      background: #f5f3ff !important;
-      border-color: #8b5cf6 !important;
+      background: #fdf2f8 !important;
+      border-color: #db2777 !important;
     }
-    .rack-sec-dixon .rack-code-text { color: #6d28d9 !important; }
+    .rack-sec-dixon .rack-code-text { color: #be185d !important; }
 
     .rack-sec-chid {
-      background: #f0f9ff !important;
-      border-color: #0284c7 !important;
+      background: #ecfeff !important;
+      border-color: #0891b2 !important;
     }
-    .rack-sec-chid .rack-code-text { color: #0369a1 !important; }
+    .rack-sec-chid .rack-code-text { color: #0e7490 !important; }
 
     .rack-sec-cyber {
       background: #fff1f2 !important;
-      border-color: #f43f5e !important;
+      border-color: #e11d48 !important;
     }
     .rack-sec-cyber .rack-code-text { color: #be123c !important; }
 
@@ -2162,7 +2167,7 @@ export class CroquisComponent implements OnInit {
 
   selectedPlant = signal<'Planta Baja' | 'Planta Alta'>('Planta Baja');
   searchQuery = '';
-  zoomLevel = signal<number>(100);
+  zoomLevel = signal<number>(68);
   blueprintOpacity = signal<number>(30); // 30% overlay default for optimal visual contrast
 
   // Section Progress & Filtering (Avance por familias en panel lateral)
@@ -2204,6 +2209,7 @@ export class CroquisComponent implements OnInit {
   plantShelves = computed(() => {
     const p = this.selectedPlant();
     return this.allShelves().filter(s => {
+      if (s.shelfCode === 'PA-DOC-01' || s.shelfCode?.startsWith('PA-DOC')) return false;
       const plant = (s.plant || '').trim();
       if (p === 'Planta Baja') return plant === 'Planta Baja';
       return plant === 'Planta Alta';
@@ -2310,26 +2316,26 @@ export class CroquisComponent implements OnInit {
 
     const defs = isPB
       ? [
-          { id: 'acero', name: 'Acero (1-19)', codePrefix: 'PB-ACE', color: '#2563eb', lightBg: '#eff6ff', borderColor: '#3b82f6' },
-          { id: 'kuriyama', name: 'Kuriyama (A | B)', codePrefix: 'PB-KUR', color: '#ea580c', lightBg: '#fffbeb', borderColor: '#f59e0b' },
-          { id: 'ypc', name: 'YPC (Pasillo & B|C)', codePrefix: 'PB-YPC', color: '#6366f1', lightBg: '#eef2ff', borderColor: '#818cf8' },
-          { id: 'dixon', name: 'Dixon (1-2)', codePrefix: 'PB-DIX', color: '#8b5cf6', lightBg: '#f5f3ff', borderColor: '#a78bfa' },
-          { id: 'chid', name: 'Conex. Hidráulicas', codePrefix: 'PB-CHID', color: '#0284c7', lightBg: '#f0f9ff', borderColor: '#38bdf8' },
-          { id: 'cyber', name: 'Cybermatics / Univ.', codePrefix: 'PB-CYB', color: '#f43f5e', lightBg: '#fff1f2', borderColor: '#fb7185' },
+          { id: 'acero', name: 'Acero (1-19)', codePrefix: 'PB-ACE', color: '#1d4ed8', lightBg: '#eff6ff', borderColor: '#2563eb' },
+          { id: 'kuriyama', name: 'Kuriyama (A | B)', codePrefix: 'PB-KUR', color: '#ea580c', lightBg: '#fff7ed', borderColor: '#f97316' },
+          { id: 'ypc', name: 'YPC (Pasillo & B|C)', codePrefix: 'PB-YPC', color: '#7c3aed', lightBg: '#f5f3ff', borderColor: '#8b5cf6' },
+          { id: 'dixon', name: 'Dixon (1-2)', codePrefix: 'PB-DIX', color: '#db2777', lightBg: '#fdf2f8', borderColor: '#ec4899' },
+          { id: 'chid', name: 'Conex. Hidráulicas', codePrefix: 'PB-CHID', color: '#0891b2', lightBg: '#ecfeff', borderColor: '#06b6d4' },
+          { id: 'cyber', name: 'Cybermatics / Univ.', codePrefix: 'PB-CYB', color: '#e11d48', lightBg: '#fff1f2', borderColor: '#f43f5e' },
           { id: 'inox', name: 'Parker Inox', codePrefix: 'PB-INOX', color: '#475569', lightBg: '#f1f5f9', borderColor: '#64748b' },
           { id: 'default', name: 'Pendientes / Sin Asignar', codePrefix: 'PB-GEN', color: '#94a3b8', lightBg: '#ffffff', borderColor: '#cbd5e1' }
         ]
       : [
           { id: 'sellos', name: 'Sellos (P4, P5, Muro)', codePrefix: 'PA-SEL', color: '#9333ea', lightBg: '#faf5ff', borderColor: '#c084fc' },
-          { id: 'p1', name: 'P1: HCO / Hidr.', codePrefix: 'PA-P1', color: '#2563eb', lightBg: '#eff6ff', borderColor: '#3b82f6' },
+          { id: 'p1', name: 'P1: HCO / Hidr.', codePrefix: 'PA-P1', color: '#1d4ed8', lightBg: '#eff6ff', borderColor: '#2563eb' },
           { id: 'p2', name: 'P2: Neumática', codePrefix: 'PA-P2', color: '#ea580c', lightBg: '#fff7ed', borderColor: '#f97316' },
-          { id: 'p3', name: 'P3: Festo / SMC', codePrefix: 'PA-P3', color: '#d97706', lightBg: '#fefce8', borderColor: '#eab308' },
-          { id: 'fnh', name: 'FNH', codePrefix: 'PA-FNH', color: '#0284c7', lightBg: '#f0f9ff', borderColor: '#38bdf8' },
-          { id: 'htm', name: 'HTM', codePrefix: 'PA-HTM', color: '#db2777', lightBg: '#fdf2f8', borderColor: '#f472b6' },
-          { id: 'abr', name: 'Abrazaderas', codePrefix: 'PA-ABR', color: '#d97706', lightBg: '#fef3c7', borderColor: '#f59e0b' },
-          { id: 'enp', name: 'ENPA (Empaques)', codePrefix: 'PA-ENP', color: '#7c3aed', lightBg: '#f5f3ff', borderColor: '#a78bfa' },
-          { id: 'res', name: 'Reserva Acero', codePrefix: 'PA-RES', color: '#1e40af', lightBg: '#eff6ff', borderColor: '#3b82f6' },
-          { id: 'pvc', name: 'PVC', codePrefix: 'PA-PVC', color: '#0891b2', lightBg: '#f0f9ff', borderColor: '#06b6d4' },
+          { id: 'p3', name: 'P3: Festo / SMC', codePrefix: 'PA-P3', color: '#d97706', lightBg: '#fffbeb', borderColor: '#f59e0b' },
+          { id: 'fnh', name: 'FNH', codePrefix: 'PA-FNH', color: '#0891b2', lightBg: '#ecfeff', borderColor: '#06b6d4' },
+          { id: 'htm', name: 'HTM', codePrefix: 'PA-HTM', color: '#db2777', lightBg: '#fdf2f8', borderColor: '#ec4899' },
+          { id: 'abr', name: 'Abrazaderas', codePrefix: 'PA-ABR', color: '#b45309', lightBg: '#fef3c7', borderColor: '#d97706' },
+          { id: 'enp', name: 'ENPA (Empaques)', codePrefix: 'PA-ENP', color: '#6366f1', lightBg: '#eef2ff', borderColor: '#818cf8' },
+          { id: 'res', name: 'Reserva Acero', codePrefix: 'PA-RES', color: '#1e3a8a', lightBg: '#eff6ff', borderColor: '#2563eb' },
+          { id: 'pvc', name: 'PVC', codePrefix: 'PA-PVC', color: '#0e7490', lightBg: '#ecfeff', borderColor: '#0891b2' },
           { id: 'default', name: 'Pendientes PA', codePrefix: 'PA-GEN', color: '#94a3b8', lightBg: '#ffffff', borderColor: '#cbd5e1' }
         ];
 
@@ -2378,9 +2384,10 @@ export class CroquisComponent implements OnInit {
       }
       const savedZoom = localStorage.getItem('interflu_croquis_zoom');
       if (savedZoom !== null) {
-        this.zoomLevel.set(Number(savedZoom));
+        const parsed = Number(savedZoom);
+        this.zoomLevel.set(parsed > 90 ? 68 : Math.max(50, parsed));
       } else {
-        setTimeout(() => this.fitToScreen(), 150);
+        this.zoomLevel.set(68);
       }
     } catch (e) {}
 
@@ -2409,7 +2416,8 @@ export class CroquisComponent implements OnInit {
   loadRawShelvesPreview() {
     this.api.getShelves().subscribe({
       next: (shelves) => {
-        const mapped: ShelfAssignmentDto[] = shelves.map(s => ({
+        const valid = shelves.filter(s => s.code !== 'PA-DOC-01' && !s.code?.startsWith('PA-DOC'));
+        const mapped: ShelfAssignmentDto[] = valid.map(s => ({
           assignmentId: 0,
           shelfId: s.id,
           shelfCode: s.code,
@@ -2473,7 +2481,7 @@ export class CroquisComponent implements OnInit {
 
   loadShelves(sessionId: number) {
     this.api.getSessionShelves(sessionId).subscribe({
-      next: (data) => this.allShelves.set(data),
+      next: (data) => this.allShelves.set(data.filter(s => s.shelfCode !== 'PA-DOC-01' && !s.shelfCode?.startsWith('PA-DOC'))),
       error: (err: any) => this.toast.error('Error al cargar anaqueles: ' + (err.error?.message || err.message))
     });
   }

@@ -1709,7 +1709,8 @@ export class QrLabelsComponent implements OnInit {
     this.loadingShelves.set(true);
     this.api.getSessionShelves(sessionId).subscribe({
       next: (shelves) => {
-        const items: ShelfQrItem[] = shelves.map(sh => ({
+        const validShelves = shelves.filter(sh => sh.shelfCode !== 'PA-DOC-01' && !sh.shelfCode?.startsWith('PA-DOC'));
+        const items: ShelfQrItem[] = validShelves.map(sh => ({
           shelfId: sh.shelfId,
           code: sh.shelfCode,
           zone: sh.shelfZone || 'General',
@@ -1735,7 +1736,8 @@ export class QrLabelsComponent implements OnInit {
     this.loadingShelves.set(true);
     this.api.getShelves().subscribe({
       next: (shelves) => {
-        const items: ShelfQrItem[] = shelves.map(sh => ({
+        const validShelves = shelves.filter(sh => sh.code !== 'PA-DOC-01' && !sh.code?.startsWith('PA-DOC'));
+        const items: ShelfQrItem[] = validShelves.map(sh => ({
           shelfId: sh.id,
           code: sh.code,
           zone: sh.zone || 'General',

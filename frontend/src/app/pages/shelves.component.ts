@@ -81,35 +81,72 @@ import { ToastService } from '../services/toast.service';
           </div>
         </div>
 
-        <div class="shelf-actions">
-          <a routerLink="/capture" [queryParams]="{sessionId: selectedSessionId(), shelfId: s.shelfId}" class="btn btn-accent btn-sm flex-1">
-            Capturar
+        <div class="shelf-card-actions">
+          <!-- Primary CTA: Capturar Cédula -->
+          <a routerLink="/capture" [queryParams]="{sessionId: selectedSessionId(), shelfId: s.shelfId}" class="btn btn-primary btn-sm shelf-cta-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+            <span>Capturar Cédula</span>
           </a>
-          <button class="btn btn-outline btn-sm" (click)="downloadShelfQr(s)" title="Descargar código QR puro en PNG">
-            QR (.png)
-          </button>
-          <button
-            *ngIf="(s.totalPieces || 0) > 0 || (s.recordCount || 0) > 0"
-            class="btn btn-outline btn-sm"
-            (click)="downloadShelfMaterialsZip(s)"
-            title="Descargar todos los códigos QR de materiales de este anaquel en archivo ZIP con nombres individuales como CODIGO.png"
-          >
-            QRs (.zip)
-          </button>
-          <button class="btn btn-secondary btn-sm" (click)="openEditShelf(s)" title="Editar código, zona o sector">
-            Editar
-          </button>
-          <button
-            *ngIf="(s.totalPieces || 0) > 0 || (s.recordCount || 0) > 0"
-            class="btn btn-outline-danger btn-sm"
-            (click)="openClearShelfCountsModal(s)"
-            title="Eliminar conteos únicamente de este anaquel"
-          >
-            Limpiar
-          </button>
-          <button class="btn btn-ghost btn-sm" (click)="toggleShelfStatus(s)">
-            {{ s.status === 'COMPLETADO' ? 'Reabrir' : 'Completar' }}
-          </button>
+
+          <!-- Row 2: Secondary Tool Actions -->
+          <div class="shelf-btn-grid">
+            <button class="btn btn-outline btn-xs" (click)="downloadShelfQr(s)" title="Descargar código QR puro en PNG con nombre de anaquel">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              QR Anaquel
+            </button>
+            <button
+              *ngIf="(s.totalPieces || 0) > 0 || (s.recordCount || 0) > 0"
+              class="btn btn-outline btn-xs"
+              (click)="downloadShelfMaterialsZip(s)"
+              title="Descargar todos los códigos QR de materiales en archivo ZIP"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              QRs (.zip)
+            </button>
+            <button class="btn btn-secondary btn-xs" (click)="openEditShelf(s)" title="Editar código, zona o sector">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+              Editar
+            </button>
+          </div>
+
+          <!-- Row 3: Shelf State Management -->
+          <div class="shelf-btn-management">
+            <button
+              *ngIf="(s.totalPieces || 0) > 0 || (s.recordCount || 0) > 0"
+              class="btn btn-outline-danger btn-xs"
+              (click)="openClearShelfCountsModal(s)"
+              title="Eliminar conteos únicamente de este anaquel"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              Limpiar
+            </button>
+            <button 
+              class="btn btn-xs flex-1"
+              [class.btn-ghost]="s.status === 'COMPLETADO'"
+              [class.btn-success-subtle]="s.status !== 'COMPLETADO'"
+              (click)="toggleShelfStatus(s)"
+            >
+              {{ s.status === 'COMPLETADO' ? 'Reabrir Anaquel' : 'Marcar Completado' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -291,8 +328,60 @@ import { ToastService } from '../services/toast.service';
     .shelf-assignment { display: flex; flex-direction: column; gap: 4px; }
     .label-xs { font-size: 10.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
 
-    .shelf-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border-color); }
-    .flex-1 { flex: 1; }
+    .shelf-card-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: auto;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-color);
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .shelf-cta-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .shelf-btn-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+      gap: 4px;
+      width: 100%;
+    }
+    .shelf-btn-management {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      width: 100%;
+    }
+    .shelf-btn-grid .btn, .shelf-btn-management .btn {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .btn-xs {
+      padding: 3px 8px;
+      font-size: 11px;
+      border-radius: 4px;
+    }
+    .btn-success-subtle {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+    }
+    .btn-success-subtle:hover {
+      background: #d1fae5;
+      border-color: #6ee7b7;
+    }
 
     .modal-title { margin: 0 0 16px 0; font-size: 18px; font-weight: 700; color: var(--brand-navy); }
     .form-stack { display: flex; flex-direction: column; gap: 14px; }
@@ -395,7 +484,7 @@ export class ShelvesComponent implements OnInit {
   loadShelves(sessionId: number) {
     if (!sessionId) return;
     this.api.getSessionShelves(sessionId).subscribe({
-      next: (list) => this.shelves.set(list),
+      next: (list) => this.shelves.set(list.filter(s => s.shelfCode !== 'PA-DOC-01' && !s.shelfCode?.startsWith('PA-DOC'))),
       error: () => this.toast.error('Error al cargar anaqueles')
     });
   }
