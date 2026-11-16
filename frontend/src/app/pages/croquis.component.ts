@@ -433,6 +433,9 @@ export interface SectionStat {
                       <text x="287" y="180" text-anchor="middle" class="svg-badge-text">LATERAL OESTE</text>
                     </g>
 
+                    <!-- Obsolete Area Docs Mask (Hides background image text) -->
+                    <rect x="246" y="420" width="48" height="125" rx="4" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3,3" />
+
 
                     <!-- Res. Acero NW -->
                     <g>
@@ -1165,67 +1168,57 @@ export interface SectionStat {
     .text-success { color: #059669; }
     .text-slate { color: #475569; }
 
-    /* Croquis Layout Grid: Canvas + Sidebar strictly Side-by-Side on desktop & laptops */
+    /* Croquis Layout Grid: Canvas + Sidebar strictly Side-by-Side on ALL screens */
     .croquis-main-layout {
-      display: flex;
-      flex-direction: row;
-      align-items: flex-start;
-      gap: 0.75rem;
-      width: 100%;
-      min-width: 0;
+      display: flex !important;
+      flex-direction: row !important;
+      flex-wrap: nowrap !important;
+      align-items: flex-start !important;
+      gap: 12px !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
       transition: all 0.2s ease;
     }
     .croquis-main-layout.sidebar-collapsed .croquis-canvas-col {
-      max-width: 100%;
-      flex: 1 1 100%;
+      width: 100% !important;
+      max-width: 100% !important;
+      flex: 1 1 100% !important;
     }
     .croquis-canvas-col {
-      flex: 1 1 0%;
-      min-width: 0;
-      max-width: calc(100% - 240px);
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      overflow: hidden;
-    }
-    @media (max-width: 640px) {
-      .croquis-main-layout {
-        flex-direction: column;
-      }
-      .croquis-canvas-col {
-        max-width: 100%;
-      }
+      flex: 1 1 0% !important;
+      min-width: 0 !important;
+      width: 0 !important;
+      max-width: calc(100% - 242px) !important;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 8px !important;
+      overflow: hidden !important;
+      box-sizing: border-box !important;
     }
 
-    /* Sections & Progress Sidebar (Lateral con Barras de Porcentaje a la Derecha) */
+    /* Sections & Progress Sidebar (Lateral con Barras de Porcentaje a la Derecha Permanente) */
     .sections-progress-sidebar {
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      border-radius: 10px;
-      padding: 0.65rem 0.6rem;
-      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      max-height: 820px;
-      overflow-y: auto;
+      flex: 0 0 230px !important;
+      width: 230px !important;
+      min-width: 230px !important;
+      max-width: 230px !important;
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      border-radius: 10px !important;
+      padding: 0.65rem 0.6rem !important;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05) !important;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 0.5rem !important;
+      max-height: calc(100vh - 140px) !important;
+      overflow-y: auto !important;
       scrollbar-width: thin;
       scrollbar-color: #cbd5e1 #f8fafc;
-      box-sizing: border-box;
-      width: 228px;
-      min-width: 228px;
-      max-width: 228px;
-      flex-shrink: 0;
-      position: sticky;
-      top: 10px;
-    }
-    @media (max-width: 640px) {
-      .sections-progress-sidebar {
-        width: 100%;
-        min-width: 100%;
-        max-width: 100%;
-        position: static;
-      }
+      box-sizing: border-box !important;
+      position: sticky !important;
+      top: 10px !important;
+      align-self: flex-start !important;
     }
     .sections-sidebar-header {
       display: flex;
