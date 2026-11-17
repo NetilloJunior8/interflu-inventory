@@ -40,6 +40,44 @@
   --shadow-md: 0 4px 14px -2px rgba(15, 23, 42, 0.08);
 }
 
+:root[data-theme="dark"], body.dark {
+  --bg-app: #0b1329;
+  --bg-surface: #111c38;
+  --bg-subtle: #17254b;
+  --border-color: #1e293b;
+  --border-strong: #334155;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+
+  --brand-navy: #1d4ed8;
+  --brand-blue: #3b82f6;
+  --brand-cyan: #38bdf8;
+  --brand-cyan-soft: #082f49;
+
+  --status-pending: #64748b;
+  --status-pending-bg: #1e293b;
+
+  --status-progress: #38bdf8;
+  --status-progress-bg: #082f49;
+
+  --status-success: #34d399;
+  --status-success-bg: #064e3b;
+  --status-success-border: #059669;
+
+  --status-warning: #fbbf24;
+  --status-warning-bg: #451a03;
+  --status-warning-border: #d97706;
+
+  --status-danger: #f87171;
+  --status-danger-bg: #450a0a;
+  --status-danger-border: #dc2626;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 14px -2px rgba(0, 0, 0, 0.5);
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -561,5 +599,61 @@ tr:hover td {
   animation: shimmerPulse 1.6s ease-in-out infinite;
   background: #e2e8f0;
   border-radius: 4px;
+}
+
+/* Dark Mode Overrides for Components */
+body.dark th {
+  background: #0f172a;
+  color: #94a3b8;
+  border-bottom-color: #1e293b;
+}
+
+body.dark td {
+  border-bottom-color: #1e293b;
+  color: #f1f5f9;
+}
+
+body.dark tr:hover td {
+  background: #17254b;
+}
+
+body.dark .modal-box, body.dark .modal-card {
+  background: #111c38 !important;
+  border-color: #1e293b !important;
+  color: #f8fafc;
+}
+
+body.dark .modal-title {
+  color: #f8fafc !important;
+}
+
+body.dark .modal-desc {
+  color: #94a3b8 !important;
+}
+
+body.dark .input, body.dark .select, body.dark .textarea {
+  background: #0b1329;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+body.dark .input:focus, body.dark .select:focus, body.dark .textarea:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
+}
+
+body.dark .btn-secondary {
+  background: #17254b;
+  border-color: #334155;
+  color: #f8fafc;
+}
+body.dark .btn-secondary:hover:not(:disabled) {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+body.dark .card, body.dark .card-compact {
+  background: var(--bg-surface);
+  border-color: var(--border-color);
 }
 

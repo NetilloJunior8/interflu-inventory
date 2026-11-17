@@ -34,6 +34,16 @@ export class AuthService {
     );
   }
 
+  loginWithSso(token: string) {
+    return this.http.post<AuthUser>('/api/auth/sso', { token }).pipe(
+      tap(res => {
+        localStorage.setItem(this.TOKEN_KEY, res.token);
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(res));
+        this._user.set(res);
+      })
+    );
+  }
+
   createUser(payload: { username: string; password: string; fullName: string }): Observable<any> {
     return this.http.post('/api/auth/users', payload);
   }

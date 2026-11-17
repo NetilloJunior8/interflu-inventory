@@ -1,7 +1,7 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { ToastService } from '../services/toast.service';
 
@@ -241,7 +241,7 @@ import { ToastService } from '../services/toast.service';
     .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
   `]
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   username = '';
   password = '';
   showPassword = false;
@@ -254,8 +254,28 @@ export class LoginComponent {
   constructor(
     private auth: AuthService,
     private toast: ToastService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) {}
+
+  ngOnInit() {
+    const ssoToken = this.route.snapshot.queryParams['sso_token'];
+    const redirect = this.route.snapshot.queryParams['redirect'] || 'dashboard';
+    if (ssoToken) {
+      this.loading.set(true);
+      this.auth.loginWithSso(ssoToken).subscribe({
+        next: (user) => {
+          this.loading.set(false);
+          this.toast.success(`Acceso SSO concedido. Bienvenido, ${user.fullName}`);
+          this.router.navigate([`/${redirect}`]);
+        },
+        error: (err) => {
+          this.loading.set(false);
+          this.toast.error(err.error?.message || 'Error al validar sesión compartida');
+        }
+      });
+    }
+  }
 
 
   submitLogin() {

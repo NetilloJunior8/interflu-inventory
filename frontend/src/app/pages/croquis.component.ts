@@ -2155,6 +2155,240 @@ export interface SectionStat {
       border-color: #2563eb;
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
     }
+
+    /* =========================================================================
+       DARK MODE CROQUIS ADAPTATION (High Contrast, Tactical Glow, Legible Typography)
+       ========================================================================= */
+    :host-context(body.dark) .croquis-kicker,
+    body.dark .croquis-kicker {
+      color: #38bdf8 !important;
+    }
+    :host-context(body.dark) .page-title,
+    body.dark .page-title {
+      color: #ffffff !important;
+    }
+    :host-context(body.dark) .page-subtitle,
+    body.dark .page-subtitle {
+      color: #94a3b8 !important;
+    }
+
+    :host-context(body.dark) .plant-toggle,
+    body.dark .plant-toggle {
+      background: #111c38 !important;
+      border-color: #1e293b !important;
+    }
+    :host-context(body.dark) .plant-toggle .toggle-btn,
+    body.dark .plant-toggle .toggle-btn {
+      color: #94a3b8 !important;
+    }
+    :host-context(body.dark) .plant-toggle .toggle-btn.active,
+    body.dark .plant-toggle .toggle-btn.active {
+      background: #0284c7 !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4) !important;
+    }
+
+    :host-context(body.dark) .zoom-controls,
+    body.dark .zoom-controls {
+      background: #111c38 !important;
+      border-color: #1e293b !important;
+    }
+    :host-context(body.dark) .zoom-level,
+    body.dark .zoom-level {
+      color: #f8fafc !important;
+    }
+    :host-context(body.dark) .preset-active,
+    body.dark .preset-active {
+      background: #0284c7 !important;
+      color: #ffffff !important;
+    }
+
+    :host-context(body.dark) .blueprint-canvas-1440,
+    body.dark .blueprint-canvas-1440 {
+      background-color: #0b1329 !important;
+      border-color: #1e293b !important;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    /* Architectural Labels & Hallways in Dark Mode */
+    :host-context(body.dark) .svg-room-label,
+    body.dark .svg-room-label {
+      fill: #f1f5f9 !important;
+      font-weight: 800 !important;
+    }
+    :host-context(body.dark) .svg-zone-title,
+    body.dark .svg-zone-title {
+      fill: #38bdf8 !important;
+      font-weight: 800 !important;
+    }
+    :host-context(body.dark) .svg-aisle-header,
+    body.dark .svg-aisle-header {
+      fill: #60a5fa !important;
+      font-weight: 800 !important;
+    }
+    :host-context(body.dark) .svg-badge-pill,
+    body.dark .svg-badge-pill {
+      fill: #1e293b !important;
+      stroke: #334155 !important;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+    }
+    :host-context(body.dark) .svg-badge-text,
+    body.dark .svg-badge-text {
+      fill: #38bdf8 !important;
+      font-weight: 800 !important;
+    }
+    :host-context(body.dark) .svg-badge-text-sub,
+    body.dark .svg-badge-text-sub {
+      fill: #cbd5e1 !important;
+    }
+    :host-context(body.dark) .svg-zone-subtitle,
+    body.dark .svg-zone-subtitle {
+      fill: #94a3b8 !important;
+    }
+    :host-context(body.dark) .svg-reel-hub,
+    body.dark .svg-reel-hub {
+      fill: #38bdf8 !important;
+    }
+    :host-context(body.dark) .svg-reel-lbl,
+    body.dark .svg-reel-lbl {
+      fill: #f1f5f9 !important;
+    }
+
+    /* Racks & Shelves High-Contrast Typography in Dark Mode */
+    :host-context(body.dark) .rack-element,
+    body.dark .rack-element {
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45) !important;
+    }
+    :host-context(body.dark) .rack-code-text,
+    body.dark .rack-code-text {
+      color: #ffffff !important;
+      font-weight: 800 !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+    }
+    :host-context(body.dark) .rack-zone-text,
+    body.dark .rack-zone-text {
+      color: #cbd5e1 !important;
+    }
+    :host-context(body.dark) .rack-qty-text,
+    body.dark .rack-qty-text {
+      font-weight: 800 !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Completed (Verde Exclusivo) */
+    :host-context(body.dark) .color-completed,
+    body.dark .color-completed {
+      background: #064e3b !important;
+      border: 2px solid #10b981 !important;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.4) !important;
+    }
+    :host-context(body.dark) .color-completed .rack-code-text,
+    body.dark .color-completed .rack-code-text {
+      color: #ffffff !important;
+    }
+    :host-context(body.dark) .color-completed .rack-qty-text,
+    body.dark .color-completed .rack-qty-text {
+      color: #6ee7b7 !important;
+    }
+
+    /* Section Themes in Dark Mode */
+    :host-context(body.dark) .rack-sec-acero,
+    body.dark .rack-sec-acero {
+      background: #1e3a5f !important;
+      border-color: #3b82f6 !important;
+    }
+    :host-context(body.dark) .rack-sec-acero .rack-code-text,
+    body.dark .rack-sec-acero .rack-code-text { color: #bfdbfe !important; }
+
+    :host-context(body.dark) .rack-sec-kuriyama,
+    body.dark .rack-sec-kuriyama {
+      background: #431407 !important;
+      border-color: #f97316 !important;
+    }
+    :host-context(body.dark) .rack-sec-kuriyama .rack-code-text,
+    body.dark .rack-sec-kuriyama .rack-code-text { color: #fed7aa !important; }
+
+    :host-context(body.dark) .rack-sec-ypc,
+    body.dark .rack-sec-ypc {
+      background: #2e1065 !important;
+      border-color: #8b5cf6 !important;
+    }
+    :host-context(body.dark) .rack-sec-ypc .rack-code-text,
+    body.dark .rack-sec-ypc .rack-code-text { color: #ddd6fe !important; }
+
+    :host-context(body.dark) .rack-sec-dixon,
+    body.dark .rack-sec-dixon {
+      background: #4a044e !important;
+      border-color: #ec4899 !important;
+    }
+    :host-context(body.dark) .rack-sec-dixon .rack-code-text,
+    body.dark .rack-sec-dixon .rack-code-text { color: #fbcfe8 !important; }
+
+    :host-context(body.dark) .rack-sec-chid,
+    body.dark .rack-sec-chid {
+      background: #083344 !important;
+      border-color: #06b6d4 !important;
+    }
+    :host-context(body.dark) .rack-sec-chid .rack-code-text,
+    body.dark .rack-sec-chid .rack-code-text { color: #a5f3fc !important; }
+
+    :host-context(body.dark) .rack-sec-cyber,
+    body.dark .rack-sec-cyber {
+      background: #4c0519 !important;
+      border-color: #f43f5e !important;
+    }
+    :host-context(body.dark) .rack-sec-cyber .rack-code-text,
+    body.dark .rack-sec-cyber .rack-code-text { color: #fecdd3 !important; }
+
+    :host-context(body.dark) .rack-sec-inox,
+    body.dark .rack-sec-inox {
+      background: #1e293b !important;
+      border-color: #64748b !important;
+    }
+    :host-context(body.dark) .rack-sec-inox .rack-code-text,
+    body.dark .rack-sec-inox .rack-code-text { color: #f1f5f9 !important; }
+
+    :host-context(body.dark) .rack-sec-sellos,
+    body.dark .rack-sec-sellos {
+      background: #3b0764 !important;
+      border-color: #a855f7 !important;
+    }
+    :host-context(body.dark) .rack-sec-sellos .rack-code-text,
+    body.dark .rack-sec-sellos .rack-code-text { color: #e9d5ff !important; }
+
+    :host-context(body.dark) .rack-sec-p1,
+    body.dark .rack-sec-p1 {
+      background: #1e3a5f !important;
+      border-color: #3b82f6 !important;
+    }
+    :host-context(body.dark) .rack-sec-p1 .rack-code-text,
+    body.dark .rack-sec-p1 .rack-code-text { color: #bfdbfe !important; }
+
+    :host-context(body.dark) .rack-sec-p2,
+    body.dark .rack-sec-p2 {
+      background: #431407 !important;
+      border-color: #f97316 !important;
+    }
+    :host-context(body.dark) .rack-sec-p2 .rack-code-text,
+    body.dark .rack-sec-p2 .rack-code-text { color: #fed7aa !important; }
+
+    :host-context(body.dark) .rack-sec-p3,
+    body.dark .rack-sec-p3 {
+      background: #422006 !important;
+      border-color: #eab308 !important;
+    }
+    :host-context(body.dark) .rack-sec-p3 .rack-code-text,
+    body.dark .rack-sec-p3 .rack-code-text { color: #fef08a !important; }
+
+    :host-context(body.dark) .rack-sec-default,
+    body.dark .rack-sec-default {
+      background: #17254b !important;
+      border-color: #334155 !important;
+    }
+    :host-context(body.dark) .rack-sec-default .rack-code-text,
+    body.dark .rack-sec-default .rack-code-text { color: #e2e8f0 !important; }
+    :host-context(body.dark) .rack-sec-default .rack-qty-text,
+    body.dark .rack-sec-default .rack-qty-text { color: #94a3b8 !important; }
   `]
 })
 export class CroquisComponent implements OnInit {
