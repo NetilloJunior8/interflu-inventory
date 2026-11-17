@@ -106,6 +106,17 @@ public class CountController {
         }
     }
 
+    @PutMapping("/{id}/section")
+    public ResponseEntity<?> updateSection(@PathVariable Long id, @RequestParam(required = false) String section) {
+        User currentUser = userHelper.getCurrentUser();
+        try {
+            CountRecord updated = countService.updateSection(id, section, currentUser);
+            return ResponseEntity.ok(toDto(updated));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     private Map<String, Object> toDto(CountRecord r) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", r.getId());
@@ -114,6 +125,7 @@ public class CountController {
         map.put("shelfCode", r.getShelf().getCode());
         map.put("shelfZone", r.getShelf().getZone());
         map.put("capturedCode", r.getCapturedCode());
+        map.put("section", r.getSection() != null ? r.getSection() : "");
         map.put("description", r.getProduct() != null ? r.getProduct().getDescription() : r.getCapturedCode());
         map.put("unit", r.getProduct() != null ? r.getProduct().getUnit() : "PZA");
         map.put("existsInCatalog", r.getProduct() != null);

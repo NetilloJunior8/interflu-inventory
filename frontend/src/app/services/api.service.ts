@@ -102,6 +102,7 @@ export interface CountRecordDto {
   shelfCode: string;
   shelfZone: string;
   capturedCode: string;
+  section?: string;
   description: string;
   unit: string;
   existsInCatalog: boolean;
@@ -308,6 +309,7 @@ export class ApiService {
     shelfId: number;
     productCode: string;
     quantity: number;
+    section?: string;
     mode?: string;
     notes?: string;
   }): Observable<CountRecordDto> {
@@ -317,9 +319,15 @@ export class ApiService {
   batchSaveSheet(payload: {
     sessionId: number;
     shelfId: number;
-    rows: Array<{ id?: number; code: string; quantity: number; notes?: string }>;
+    rows: Array<{ id?: number; code: string; quantity: number; notes?: string; section?: string }>;
   }): Observable<CountRecordDto[]> {
     return this.http.post<CountRecordDto[]>(`${this.baseUrl}/counts/batch-sheet`, payload);
+  }
+
+  updateCountSection(id: number, section: string): Observable<CountRecordDto> {
+    const params: any = {};
+    if (section) params.section = section;
+    return this.http.put<CountRecordDto>(`${this.baseUrl}/counts/${id}/section`, null, { params });
   }
 
   importExcelCounts(sessionId: number, file: File, shelfId?: number): Observable<{ importedRecords: number; totalPieces: number; shelvesUpdated: number; affectedShelves?: string[] }> {

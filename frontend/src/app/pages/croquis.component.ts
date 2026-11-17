@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import * as QRCode from 'qrcode';
-import { ApiService, ShelfAssignmentDto, InventorySessionSummary } from '../services/api.service';
+import { ApiService, ShelfAssignmentDto, InventorySessionSummary, CountRecordDto } from '../services/api.service';
 import { ToastService } from '../services/toast.service';
 
 export interface SectionStat {
@@ -782,57 +782,255 @@ export interface SectionStat {
         </div>
       </div>
 
-      <!-- Shelf Inspector & Detail Modal -->
-      <div class="modal-backdrop" *ngIf="inspectedShelf && !editMode()" (click)="inspectedShelf = null">
-        <div class="modal-box" (click)="$event.stopPropagation()">
+      <!-- Shelf Inspector & Interactive Visual Rack Modal (Secciones A-F) -->
+      <div class="modal-backdrop" *ngIf="inspectedShelf && !editMode()" (click)="closeInspectedShelf()">
+        <div class="modal-box shelf-inspector-modal" (click)="$event.stopPropagation()">
           <div class="modal-header-row">
             <div>
               <div class="font-xs text-muted uppercase">{{ inspectedShelf.plant || selectedPlant() }} &bull; {{ inspectedShelf.shelfZone }}</div>
-              <h2 class="mono fw-800 modal-code-title">{{ inspectedShelf.shelfCode }}</h2>
+              <div class="modal-title-inline">
+                <h2 class="mono fw-800 modal-code-title">{{ inspectedShelf.shelfCode }}</h2>
+                <span class="badge" [ngClass]="badgeForStatus(inspectedShelf)">
+                  {{ statusLabel(inspectedShelf) }}
+                </span>
+              </div>
               <div class="font-sm text-secondary">{{ inspectedShelf.shelfDescription || inspectedShelf.shelfZone }}</div>
             </div>
             <div class="modal-header-actions-group">
-              <span class="badge" [ngClass]="badgeForStatus(inspectedShelf)">
-                {{ statusLabel(inspectedShelf) }}
-              </span>
+              <div class="compact-kpi-strip">
+                <div class="c-kpi">
+                  <span class="c-kpi-lbl">Piezas</span>
+                  <span class="c-kpi-val mono text-primary-brand">{{ (inspectedShelf.totalPieces || 0) | number:'1.0-2' }}</span>
+                </div>
+                <div class="c-kpi">
+                  <span class="c-kpi-lbl">Partidas</span>
+                  <span class="c-kpi-val mono">{{ inspectedMaterials().length || inspectedShelf.recordCount || 0 }}</span>
+                </div>
+              </div>
               <button class="btn btn-sm btn-outline" (click)="openEditShelf(inspectedShelf)" title="Cambiar nombre, código o zona de este anaquel">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
                 Editar
               </button>
-              <button class="modal-close-icon-btn" (click)="inspectedShelf = null" title="Cerrar ventana">✕</button>
+              <button class="modal-close-icon-btn" (click)="closeInspectedShelf()" title="Cerrar ventana">✕</button>
             </div>
           </div>
 
-          <div class="inspect-stats-grid">
-            <div class="i-card">
-              <span class="i-lbl">Piezas Físicas</span>
-              <span class="i-val mono text-primary-brand">{{ (inspectedShelf.totalPieces || 0) | number:'1.0-2' }}</span>
-            </div>
-            <div class="i-card">
-              <span class="i-lbl">Partidas Contadas</span>
-              <span class="i-val mono">{{ inspectedShelf.recordCount || 0 }}</span>
-            </div>
-            <div class="i-card">
-              <span class="i-lbl">Operador Asignado</span>
-              <span class="i-val font-sm">{{ inspectedShelf.assignedUserName || 'Por Asignar' }}</span>
-            </div>
-          </div>
+          <!-- Interactive Rack Blueprint (Left) + Materials & Quick Level Assigner (Right) -->
+          <div class="shelf-inspector-body">
+            <!-- Left Pane: Visual Physical Rack Blueprint (A to F) -->
+            <div class="rack-blueprint-card">
+              <div class="blueprint-card-header">
+                <span class="blueprint-kicker">CROQUIS DEL ANAQUEL (A-F)</span>
+                <span class="font-xs text-muted">Clic en nivel para filtrar</span>
+              </div>
 
-          <div class="modal-actions-list">
-            <div class="action-desc">
-              <strong class="font-sm">Estado en el Croquis:</strong>
-              <span *ngIf="isCompleted(inspectedShelf)" class="text-success font-sm">
-                &bull; Contabilizado (Marcado en verde)
-              </span>
-              <span *ngIf="!isCompleted(inspectedShelf)" class="text-muted font-sm">
-                &bull; Pendiente por contar (Estado neutral)
-              </span>
+              <!-- Visual Rack Graphic (Matches Official Blueprint) -->
+              <div class="physical-rack-graphic">
+                <!-- Yellow Top Header with Short Number -->
+                <div class="rack-graphic-top-header mono">
+                  {{ getRackShortHeader(inspectedShelf) }}
+                </div>
+
+                <!-- Main Frame: Mint Left Strip (A-F) + 6 Interactive Horizontal Shelf Tiers -->
+                <div class="rack-graphic-main-frame">
+                  <div class="rack-levels-sidebar">
+                    <button
+                      type="button"
+                      *ngFor="let lvl of rackLevels"
+                      class="rack-level-tag mono"
+                      [class.active-level]="selectedLevelFilter() === lvl"
+                      (click)="toggleLevelFilter(lvl)"
+                      [title]="'Filtrar materiales en Nivel ' + lvl"
+                    >
+                      {{ lvl }}
+                    </button>
+                  </div>
+
+                  <div class="rack-tiers-container">
+                    <div
+                      *ngFor="let lvl of rackLevels"
+                      class="rack-tier-row"
+                      [class.tier-selected]="selectedLevelFilter() === lvl"
+                      [class.tier-populated]="getLevelStats(lvl).count > 0"
+                      (click)="toggleLevelFilter(lvl)"
+                      [title]="'Ver códigos del Nivel ' + lvl"
+                    >
+                      <!-- 4 Compartment Box Outlines -->
+                      <div class="tier-boxes-strip">
+                        <div class="tier-box-frame"></div>
+                        <div class="tier-box-frame"></div>
+                        <div class="tier-box-frame"></div>
+                        <div class="tier-box-frame"></div>
+                      </div>
+
+                      <!-- Live Stats Overlay per Level -->
+                      <div class="tier-info-overlay">
+                        <span class="tier-stats-pill" [class.has-content]="getLevelStats(lvl).count > 0">
+                          <ng-container *ngIf="getLevelStats(lvl).count > 0">
+                            <strong>{{ getLevelStats(lvl).count }}</strong> cód. &bull; <strong>{{ getLevelStats(lvl).pieces | number:'1.0-0' }}</strong> pzas
+                          </ng-container>
+                          <ng-container *ngIf="getLevelStats(lvl).count === 0">
+                            Nivel {{ lvl }} vacío
+                          </ng-container>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Bottom Rack Base Label -->
+                <div class="rack-graphic-bottom-base mono">
+                  {{ inspectedShelf.shelfCode }}
+                </div>
+              </div>
+
+              <!-- Blueprint Quick Actions -->
+              <div class="rack-blueprint-footer">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-block"
+                  [class.btn-primary]="selectedLevelFilter() === 'TODOS'"
+                  [class.btn-outline]="selectedLevelFilter() !== 'TODOS'"
+                  (click)="selectedLevelFilter.set('TODOS')"
+                >
+                  Ver Todo el Anaquel ({{ inspectedMaterials().length }})
+                </button>
+                <div class="unassigned-alert-pill" *ngIf="getLevelStats('SIN_NIVEL').count > 0" (click)="selectedLevelFilter.set('SIN_NIVEL')">
+                  <strong>{{ getLevelStats('SIN_NIVEL').count }}</strong> partidas sin sección asignada
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Pane: Materials List & 1-Click Section Assignment -->
+            <div class="shelf-materials-card">
+              <div class="materials-card-header">
+                <div class="materials-title-row">
+                  <span class="blueprint-kicker">MATERIALES EN ANAQUEL &bull; ASIGNACIÓN POR SECCIÓN</span>
+                  <span class="materials-count-badge mono">
+                    {{ filteredMaterials().length }} / {{ inspectedMaterials().length }} partidas
+                  </span>
+                </div>
+
+                <!-- Level Filter Pills -->
+                <div class="level-pills-bar">
+                  <button
+                    type="button"
+                    class="lvl-pill-btn"
+                    [class.active]="selectedLevelFilter() === 'TODOS'"
+                    (click)="selectedLevelFilter.set('TODOS')"
+                  >
+                    Todos ({{ inspectedMaterials().length }})
+                  </button>
+                  <button
+                    type="button"
+                    *ngFor="let lvl of rackLevels"
+                    class="lvl-pill-btn mono"
+                    [class.active]="selectedLevelFilter() === lvl"
+                    [class.has-items]="getLevelStats(lvl).count > 0"
+                    (click)="toggleLevelFilter(lvl)"
+                  >
+                    {{ lvl }} ({{ getLevelStats(lvl).count }})
+                  </button>
+                  <button
+                    type="button"
+                    *ngIf="getLevelStats('SIN_NIVEL').count > 0"
+                    class="lvl-pill-btn unassigned-pill"
+                    [class.active]="selectedLevelFilter() === 'SIN_NIVEL'"
+                    (click)="selectedLevelFilter.set('SIN_NIVEL')"
+                  >
+                    Sin Nivel ({{ getLevelStats('SIN_NIVEL').count }})
+                  </button>
+                </div>
+
+                <!-- Search within this Shelf -->
+                <div class="shelf-mat-search-wrap">
+                  <input
+                    type="text"
+                    class="input input-sm mono"
+                    [ngModel]="shelfMaterialSearch()"
+                    (ngModelChange)="shelfMaterialSearch.set($event)"
+                    placeholder="Buscar clave o refacción en este anaquel..."
+                  />
+                  <button *ngIf="shelfMaterialSearch()" type="button" class="btn-clear-mat-search" (click)="shelfMaterialSearch.set('')">✕</button>
+                </div>
+              </div>
+
+              <!-- Materials Table with 1-Click Level Assignment -->
+              <div class="materials-scroll-list">
+                <div *ngIf="loadingMaterials()" class="materials-empty-box">
+                  Cargando partidas del anaquel...
+                </div>
+
+                <div *ngIf="!loadingMaterials() && filteredMaterials().length === 0" class="materials-empty-box">
+                  <ng-container *ngIf="inspectedMaterials().length === 0">
+                    No hay materiales capturados en este anaquel todavía. Pulsa <strong>"Abrir Cédula"</strong> para registrar códigos y secciones.
+                  </ng-container>
+                  <ng-container *ngIf="inspectedMaterials().length > 0">
+                    No se encontraron partidas en el filtro seleccionado (<strong>{{ selectedLevelFilter() === 'SIN_NIVEL' ? 'Sin Nivel' : 'Nivel ' + selectedLevelFilter() }}</strong>).
+                  </ng-container>
+                </div>
+
+                <table *ngIf="!loadingMaterials() && filteredMaterials().length > 0" class="materials-assign-table">
+                  <thead>
+                    <tr>
+                      <th class="mat-th-code">Clave Material</th>
+                      <th class="mat-th-qty text-right">Piezas</th>
+                      <th class="mat-th-sec text-center">Nivel</th>
+                      <th class="mat-th-assign text-center">Asignar Nivel (1 Clic)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let item of filteredMaterials()" [class.row-sec-matched]="item.section && item.section === selectedLevelFilter()">
+                      <td class="mat-td-code mono fw-700">
+                        {{ item.capturedCode }}
+                        <span *ngIf="item.notes" class="mat-item-notes">{{ item.notes }}</span>
+                      </td>
+                      <td class="mat-td-qty text-right mono fw-700">
+                        {{ item.quantity | number:'1.0-2' }}
+                      </td>
+                      <td class="mat-td-sec text-center">
+                        <span *ngIf="item.section" class="badge-level-chip mono" [ngClass]="'level-chip-' + item.section.toLowerCase()">
+                          {{ item.section }}
+                        </span>
+                        <span *ngIf="!item.section" class="badge-level-unassigned">
+                          --
+                        </span>
+                      </td>
+                      <td class="mat-td-assign text-center">
+                        <div class="quick-level-buttons">
+                          <button
+                            *ngFor="let btnLvl of rackLevels"
+                            type="button"
+                            class="quick-lvl-btn mono"
+                            [class.btn-active-lvl]="item.section === btnLvl"
+                            [disabled]="updatingRecordId() === item.id"
+                            (click)="assignSectionToMaterial(item, btnLvl)"
+                            [title]="'Asignar ' + item.capturedCode + ' al Nivel ' + btnLvl"
+                          >
+                            {{ btnLvl }}
+                          </button>
+                          <button
+                            *ngIf="item.section"
+                            type="button"
+                            class="quick-lvl-clear-btn"
+                            [disabled]="updatingRecordId() === item.id"
+                            (click)="assignSectionToMaterial(item, '')"
+                            title="Quitar sección asignada"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
           <div class="modal-footer-advanced">
             <div class="footer-left-group">
-              <button class="btn btn-secondary" (click)="inspectedShelf = null">Cerrar</button>
+              <button class="btn btn-secondary" (click)="closeInspectedShelf()">Cerrar</button>
               <button
                 *ngIf="!isUntouched(inspectedShelf)"
                 class="btn btn-outline"
@@ -2389,6 +2587,581 @@ export interface SectionStat {
     body.dark .rack-sec-default .rack-code-text { color: #e2e8f0 !important; }
     :host-context(body.dark) .rack-sec-default .rack-qty-text,
     body.dark .rack-sec-default .rack-qty-text { color: #94a3b8 !important; }
+
+    /* =========================================================================
+       SHELF INSPECTOR & PHYSICAL RACK BLUEPRINT (LEVELS A-F)
+       ========================================================================= */
+    .shelf-inspector-modal {
+      max-width: 1060px !important;
+      width: 96vw;
+      max-height: 92vh;
+      overflow-y: auto;
+      padding: 1.25rem 1.5rem;
+      gap: 1rem;
+    }
+
+    .modal-title-inline {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .compact-kpi-strip {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #f8fafc;
+      padding: 4px 12px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+    .c-kpi {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      line-height: 1.15;
+    }
+    .c-kpi-lbl {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+    .c-kpi-val {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .shelf-inspector-body {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 1.25rem;
+      align-items: stretch;
+    }
+
+    @media (max-width: 960px) {
+      .shelf-inspector-body {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Left Card: Rack Blueprint */
+    .rack-blueprint-card {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .blueprint-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .blueprint-kicker {
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: #475569;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    /* The Physical Rack Graphic (Faithful to Architectural Blueprint) */
+    .physical-rack-graphic {
+      background: #ffffff;
+      border-radius: 6px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    }
+
+    .rack-graphic-top-header {
+      background: #fef08a;
+      border: 2px solid #0f172a;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      font-weight: 900;
+      color: #0f172a;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .rack-graphic-main-frame {
+      display: flex;
+      border-left: 2px solid #0f172a;
+      border-right: 2px solid #0f172a;
+      border-bottom: 2px solid #0f172a;
+      background: #ffffff;
+    }
+
+    .rack-levels-sidebar {
+      width: 44px;
+      background: #bbf7d0;
+      border-right: 2px solid #0f172a;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    .rack-level-tag {
+      flex: 1;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      font-weight: 900;
+      color: #064e3b;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid #0f172a;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .rack-level-tag:last-child {
+      border-bottom: none;
+    }
+    .rack-level-tag:hover {
+      background: #86efac;
+      color: #064e3b;
+    }
+    .rack-level-tag.active-level {
+      background: #059669 !important;
+      color: #ffffff !important;
+      box-shadow: inset 0 0 0 2px #047857;
+    }
+
+    .rack-tiers-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .rack-tier-row {
+      flex: 1;
+      min-height: 48px;
+      border-bottom: 2px solid #0f172a;
+      position: relative;
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      transition: background 0.12s ease;
+    }
+    .rack-tier-row:last-child {
+      border-bottom: none;
+    }
+    .rack-tier-row:hover {
+      background: rgba(224, 242, 254, 0.45);
+    }
+    .rack-tier-row.tier-selected {
+      background: #e0f2fe !important;
+      outline: 2.5px solid #0284c7;
+      z-index: 2;
+    }
+    .rack-tier-row.tier-populated {
+      background: #f0fdf4;
+    }
+
+    /* 4 Compartment Box Frames per tier */
+    .tier-boxes-strip {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 5px;
+      pointer-events: none;
+    }
+    .tier-box-frame {
+      border: 1.5px solid #334155;
+      background: #ffffff;
+      position: relative;
+      border-radius: 2px;
+      height: 38px;
+    }
+    .tier-box-frame::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      border-top: 1.5px solid #334155;
+    }
+
+    .tier-info-overlay {
+      position: absolute;
+      inset: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .tier-stats-pill {
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #cbd5e1;
+      border-radius: 999px;
+      padding: 2px 10px;
+      color: #64748b;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+      white-space: nowrap;
+    }
+    .tier-stats-pill.has-content {
+      background: #eff6ff;
+      border-color: #93c5fd;
+      color: #1d4ed8;
+      font-weight: 800;
+    }
+
+    .rack-graphic-bottom-base {
+      text-align: center;
+      padding-top: 6px;
+      font-weight: 800;
+      font-size: 0.82rem;
+      color: #0f172a;
+      letter-spacing: 0.03em;
+    }
+
+    .rack-blueprint-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .btn-block {
+      width: 100%;
+    }
+    .unassigned-alert-pill {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #b45309;
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 6px;
+      text-align: center;
+      cursor: pointer;
+    }
+    .unassigned-alert-pill:hover {
+      background: #fef3c7;
+    }
+
+    /* Right Card: Materials by Level & Quick Assignment */
+    .shelf-materials-card {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .materials-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.35rem;
+    }
+    .materials-count-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #0284c7;
+      background: #e0f2fe;
+      border: 1px solid #bae6fd;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
+    .level-pills-bar {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .lvl-pill-btn {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .lvl-pill-btn:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+    .lvl-pill-btn.has-items {
+      border-color: #93c5fd;
+      color: #1d4ed8;
+      background: #eff6ff;
+    }
+    .lvl-pill-btn.active {
+      background: #0a2472 !important;
+      color: #ffffff !important;
+      border-color: #0a2472 !important;
+      box-shadow: 0 2px 6px rgba(10, 36, 114, 0.35);
+    }
+    .lvl-pill-btn.unassigned-pill {
+      background: #fffbeb;
+      border-color: #fde68a;
+      color: #b45309;
+    }
+    .lvl-pill-btn.unassigned-pill.active {
+      background: #b45309 !important;
+      color: #ffffff !important;
+      border-color: #b45309 !important;
+    }
+
+    .shelf-mat-search-wrap {
+      position: relative;
+      width: 100%;
+    }
+    .btn-clear-mat-search {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .materials-scroll-list {
+      max-height: 380px;
+      overflow-y: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #ffffff;
+      scrollbar-width: thin;
+    }
+    .materials-empty-box {
+      padding: 2.5rem 1rem;
+      text-align: center;
+      color: #64748b;
+      font-size: 0.85rem;
+    }
+
+    .materials-assign-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .materials-assign-table th {
+      background: #f1f5f9;
+      color: #334155;
+      font-weight: 700;
+      padding: 6px 10px;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      border-bottom: 2px solid #cbd5e1;
+    }
+    .materials-assign-table td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    .materials-assign-table tr:hover {
+      background: #f8fafc;
+    }
+    .row-sec-matched {
+      background: #eff6ff !important;
+    }
+
+    .mat-th-code { text-align: left; }
+    .mat-th-qty { width: 90px; text-align: right; }
+    .mat-th-sec { width: 70px; text-align: center; }
+    .mat-th-assign { width: 195px; text-align: center; }
+
+    .mat-td-code {
+      color: #0f172a;
+    }
+    .mat-item-notes {
+      display: block;
+      color: #64748b;
+      font-size: 0.72rem;
+      font-weight: 400;
+    }
+    .mat-td-qty {
+      color: #1d4ed8;
+    }
+
+    /* Badges of current assigned level */
+    .badge-level-chip {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .level-chip-a { background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; }
+    .level-chip-b { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .level-chip-c { background: #ecfeff; color: #0e7490; border: 1px solid #a5f3fc; }
+    .level-chip-d { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+    .level-chip-e { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+    .level-chip-f { background: #fdf2f8; color: #be185d; border: 1px solid #fbcfe8; }
+    .badge-level-unassigned {
+      color: #94a3b8;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    /* Quick 1-Click Level Assignment Buttons */
+    .quick-level-buttons {
+      display: inline-flex;
+      gap: 3px;
+      align-items: center;
+    }
+    .quick-lvl-btn {
+      width: 26px;
+      height: 24px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      background: #f8fafc;
+      color: #334155;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.12s ease;
+      padding: 0;
+    }
+    .quick-lvl-btn:hover {
+      background: #eff6ff;
+      border-color: #2563eb;
+      color: #1d4ed8;
+      transform: scale(1.08);
+    }
+    .quick-lvl-btn.btn-active-lvl {
+      background: #2563eb !important;
+      color: #ffffff !important;
+      border-color: #1d4ed8 !important;
+      font-weight: 900;
+      box-shadow: 0 1px 4px rgba(37, 99, 235, 0.4);
+    }
+    .quick-lvl-clear-btn {
+      width: 20px;
+      height: 24px;
+      border: none;
+      background: transparent;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .quick-lvl-clear-btn:hover {
+      color: #dc2626;
+    }
+
+    /* Dark Mode Support for Inspector & Rack Blueprint */
+    :host-context(body.dark) .shelf-inspector-modal,
+    body.dark .shelf-inspector-modal {
+      background: #0f172a !important;
+      color: #f8fafc !important;
+    }
+    :host-context(body.dark) .compact-kpi-strip,
+    body.dark .compact-kpi-strip {
+      background: #1e293b !important;
+      border-color: #334155 !important;
+    }
+    :host-context(body.dark) .c-kpi-val,
+    body.dark .c-kpi-val {
+      color: #f8fafc !important;
+    }
+    :host-context(body.dark) .rack-blueprint-card,
+    body.dark .rack-blueprint-card {
+      background: #111c38 !important;
+      border-color: #1e293b !important;
+    }
+    :host-context(body.dark) .physical-rack-graphic,
+    body.dark .physical-rack-graphic {
+      background: #0b1329 !important;
+    }
+    :host-context(body.dark) .rack-graphic-top-header,
+    body.dark .rack-graphic-top-header {
+      background: #fef08a !important;
+      color: #0f172a !important;
+    }
+    :host-context(body.dark) .rack-graphic-bottom-base,
+    body.dark .rack-graphic-bottom-base {
+      color: #f8fafc !important;
+    }
+    :host-context(body.dark) .shelf-materials-card,
+    body.dark .shelf-materials-card {
+      background: #111c38 !important;
+      border-color: #1e293b !important;
+    }
+    :host-context(body.dark) .materials-scroll-list,
+    body.dark .materials-scroll-list {
+      background: #0b1329 !important;
+      border-color: #1e293b !important;
+    }
+    :host-context(body.dark) .materials-assign-table th,
+    body.dark .materials-assign-table th {
+      background: #1e293b !important;
+      color: #e2e8f0 !important;
+      border-color: #334155 !important;
+    }
+    :host-context(body.dark) .materials-assign-table td,
+    body.dark .materials-assign-table td {
+      border-color: #1e293b !important;
+    }
+    :host-context(body.dark) .mat-td-code,
+    body.dark .mat-td-code {
+      color: #f8fafc !important;
+    }
+    :host-context(body.dark) .quick-lvl-btn,
+    body.dark .quick-lvl-btn {
+      background: #1e293b !important;
+      border-color: #334155 !important;
+      color: #e2e8f0 !important;
+    }
+    :host-context(body.dark) .quick-lvl-btn:hover,
+    body.dark .quick-lvl-btn:hover {
+      background: #0284c7 !important;
+      color: #ffffff !important;
+    }
+    :host-context(body.dark) .tier-box-frame,
+    body.dark .tier-box-frame {
+      background: #111c38 !important;
+      border-color: #334155 !important;
+    }
+    :host-context(body.dark) .tier-box-frame::after,
+    body.dark .tier-box-frame::after {
+      border-color: #334155 !important;
+    }
+    :host-context(body.dark) .tier-stats-pill,
+    body.dark .tier-stats-pill {
+      background: #1e293b !important;
+      border-color: #334155 !important;
+      color: #cbd5e1 !important;
+    }
+    :host-context(body.dark) .tier-stats-pill.has-content,
+    body.dark .tier-stats-pill.has-content {
+      background: #0369a1 !important;
+      border-color: #0284c7 !important;
+      color: #ffffff !important;
+    }
   `]
 })
 export class CroquisComponent implements OnInit {
@@ -2427,6 +3200,33 @@ export class CroquisComponent implements OnInit {
   dragInitialY = 0;
   draggedRack: ShelfAssignmentDto | null = null;
   inspectedShelf: ShelfAssignmentDto | null = null;
+
+  // Physical Rack Blueprint & Quick Section Assignment State (Niveles A-F)
+  rackLevels: string[] = ['A', 'B', 'C', 'D', 'E', 'F'];
+  inspectedMaterials = signal<CountRecordDto[]>([]);
+  loadingMaterials = signal<boolean>(false);
+  selectedLevelFilter = signal<string>('TODOS');
+  shelfMaterialSearch = signal<string>('');
+  updatingRecordId = signal<number | null>(null);
+
+  filteredMaterials = computed(() => {
+    let list = this.inspectedMaterials();
+    const lvl = this.selectedLevelFilter();
+    if (lvl === 'SIN_NIVEL') {
+      list = list.filter(m => !m.section || !m.section.trim());
+    } else if (lvl !== 'TODOS') {
+      list = list.filter(m => m.section && m.section.toUpperCase() === lvl);
+    }
+
+    const q = this.shelfMaterialSearch().trim().toLowerCase();
+    if (q) {
+      list = list.filter(m =>
+        m.capturedCode.toLowerCase().includes(q) ||
+        (m.notes && m.notes.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  });
 
   // Shelf Editing Modal State
   editingShelf: { id: number; code: string; zone: string; description: string; plant: string } | null = null;
@@ -3014,6 +3814,7 @@ export class CroquisComponent implements OnInit {
           this.inspectedShelf.totalPieces = 0;
           this.inspectedShelf.recordCount = 0;
           this.inspectedShelf.status = 'PENDIENTE';
+          this.inspectedMaterials.set([]);
         }
         this.shelfToClearCounts = null;
       },
@@ -3067,6 +3868,89 @@ export class CroquisComponent implements OnInit {
     });
   }
 
+  // Physical Rack (Levels A-F) & Section Assignment Methods
+  getRackShortHeader(shelf: ShelfAssignmentDto | null): string {
+    if (!shelf || !shelf.shelfCode) return '01';
+    const code = shelf.shelfCode;
+    const matches = code.match(/(\d+)$/);
+    if (matches && matches[1]) {
+      return matches[1].padStart(2, '0');
+    }
+    const parts = code.split('-');
+    return parts[parts.length - 1] || code;
+  }
+
+  getLevelStats(level: string): { count: number; pieces: number } {
+    const mats = this.inspectedMaterials();
+    if (level === 'SIN_NIVEL') {
+      const filtered = mats.filter(m => !m.section || !m.section.trim());
+      return {
+        count: filtered.length,
+        pieces: filtered.reduce((sum, m) => sum + (m.quantity || 0), 0)
+      };
+    }
+    const cleanLvl = level.toUpperCase();
+    const filtered = mats.filter(m => m.section && m.section.toUpperCase() === cleanLvl);
+    return {
+      count: filtered.length,
+      pieces: filtered.reduce((sum, m) => sum + (m.quantity || 0), 0)
+    };
+  }
+
+  toggleLevelFilter(lvl: string) {
+    if (this.selectedLevelFilter() === lvl) {
+      this.selectedLevelFilter.set('TODOS');
+    } else {
+      this.selectedLevelFilter.set(lvl);
+    }
+  }
+
+  closeInspectedShelf() {
+    this.inspectedShelf = null;
+    this.inspectedMaterials.set([]);
+    this.selectedLevelFilter.set('TODOS');
+    this.shelfMaterialSearch.set('');
+  }
+
+  loadInspectedShelfMaterials(shelfId: number) {
+    const sessionId = this.activeSessionId();
+    if (!sessionId || sessionId === 0) return;
+    this.loadingMaterials.set(true);
+    this.api.getCounts(sessionId, shelfId).subscribe({
+      next: (records) => {
+        this.inspectedMaterials.set(records);
+        this.loadingMaterials.set(false);
+      },
+      error: (err) => {
+        this.loadingMaterials.set(false);
+        this.toast.error('Error al cargar refacciones del anaquel: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  assignSectionToMaterial(item: CountRecordDto, section: string) {
+    const cleanSec = section.trim().toUpperCase();
+    if (cleanSec && !/^[A-F]$/.test(cleanSec)) return;
+
+    this.updatingRecordId.set(item.id);
+    this.api.updateCountSection(item.id, cleanSec).subscribe({
+      next: (updated) => {
+        this.updatingRecordId.set(null);
+        item.section = updated.section || '';
+        this.toast.success(
+          cleanSec
+            ? `Clave ${item.capturedCode} asignada al Nivel ${cleanSec}.`
+            : `Sección de ${item.capturedCode} removida.`
+        );
+        this.inspectedMaterials.update(list => [...list]);
+      },
+      error: (err: any) => {
+        this.updatingRecordId.set(null);
+        this.toast.error('Error al asignar sección: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
   // Rack Clicks and Drag & Drop (Modo Acomodo Fluido)
   onRackClick(event: MouseEvent, shelf: ShelfAssignmentDto) {
     event.stopPropagation();
@@ -3079,6 +3963,9 @@ export class CroquisComponent implements OnInit {
         return;
       }
       this.inspectedShelf = shelf;
+      this.selectedLevelFilter.set('TODOS');
+      this.shelfMaterialSearch.set('');
+      this.loadInspectedShelfMaterials(shelf.shelfId);
     }
   }
 

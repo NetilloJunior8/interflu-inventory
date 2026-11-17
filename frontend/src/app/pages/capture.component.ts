@@ -19,6 +19,7 @@ import { PatternSuggesterService, SuggestionItem, SimilarCodeAlert } from '../se
 export interface SheetRow {
   id?: number;              // Database ID if saved
   tempId: string;           // Local unique key
+  section?: string;         // Level A - F
   code: string;             // Raw entered code
   quantity: number | null;  // Number of pieces
   unit: string;
@@ -361,6 +362,7 @@ export interface SheetRow {
             <thead>
               <tr>
                 <th class="th-row-num">#</th>
+                <th class="th-sec" title="Nivel o Sección del Anaquel (A = Superior, B, C, D, E, F = Base)">Nivel (A-F)</th>
                 <th class="th-code">Código / Clave Material</th>
                 <th class="th-qty">Piezas (Físico)</th>
                 <th class="th-status">Estado / Alerta</th>
@@ -377,13 +379,40 @@ export interface SheetRow {
                 <!-- Row Number -->
                 <td class="td-row-num mono">{{ i + 1 }}</td>
 
+                <!-- Section / Level Input Cell (A - F) -->
+                <td class="td-sec">
+                  <div class="sec-input-wrap">
+                    <input
+                      #secInput
+                      type="text"
+                      maxlength="1"
+                      class="sec-cell-input mono"
+                      [class.sec-badge-a]="row.section === 'A'"
+                      [class.sec-badge-b]="row.section === 'B'"
+                      [class.sec-badge-c]="row.section === 'C'"
+                      [class.sec-badge-d]="row.section === 'D'"
+                      [class.sec-badge-e]="row.section === 'E'"
+                      [class.sec-badge-f]="row.section === 'F'"
+                      [(ngModel)]="row.section"
+                      (focus)="onCellFocus(i, 'sec')"
+                      (blur)="onCellBlur(i)"
+                      (input)="onSectionInput(i, $event)"
+                      (keydown)="onSectionKeyDown($event, i)"
+                      [disabled]="!isEditable()"
+                      placeholder="-"
+                      title="Nivel de anaquel (solo letras A a F)"
+                      autocomplete="off"
+                    />
+                  </div>
+                </td>
+
                 <!-- Code Input Cell -->
                 <td class="td-code relative">
                   <div class="cell-input-wrap">
                     <input
                       #codeInput
                       type="text"
-                      class="cell-input mono"
+                      class="cell-input code-cell-input mono"
                       [class.input-duplicate]="row.isDuplicate"
                       [(ngModel)]="row.code"
                       (focus)="onCellFocus(i, 'code')"
@@ -1177,9 +1206,49 @@ export interface SheetRow {
       font-weight: 600;
     }
 
-    .th-code { width: 450px; }
-    .th-qty { width: 180px; }
-    .th-status { width: 220px; }
+    .th-sec, .td-sec {
+      width: 94px;
+      text-align: center !important;
+    }
+
+    .sec-input-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .sec-cell-input {
+      width: 44px;
+      height: 30px;
+      text-align: center;
+      text-transform: uppercase;
+      font-weight: 800;
+      font-size: 0.9rem;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 6px;
+      background: #f8fafc;
+      color: #334155;
+      outline: none;
+      transition: all 0.15s ease;
+    }
+
+    .sec-cell-input:focus {
+      border-color: #2563eb;
+      background: #ffffff;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.22);
+      transform: scale(1.04);
+    }
+
+    .sec-cell-input.sec-badge-a { background: #eef2ff; color: #3730a3; border-color: #a5b4fc; }
+    .sec-cell-input.sec-badge-b { background: #eff6ff; color: #1d4ed8; border-color: #93c5fd; }
+    .sec-cell-input.sec-badge-c { background: #ecfeff; color: #0e7490; border-color: #67e8f9; }
+    .sec-cell-input.sec-badge-d { background: #fffbeb; color: #b45309; border-color: #fcd34d; }
+    .sec-cell-input.sec-badge-e { background: #fff7ed; color: #c2410c; border-color: #fdba74; }
+    .sec-cell-input.sec-badge-f { background: #fdf2f8; color: #be185d; border-color: #f9a8d4; }
+
+    .th-code { width: 410px; }
+    .th-qty { width: 170px; }
+    .th-status { width: 210px; }
     .th-actions { width: 140px; }
 
     /* Inputs in Cells */
@@ -1560,7 +1629,7 @@ export class CaptureComponent implements OnInit {
 
   // Active focus in cell
   activeRowIndex: number = -1;
-  activeCellType: 'code' | 'qty' | null = null;
+  activeCellType: 'sec' | 'code' | 'qty' | null = null;
   currentSuggestions = signal<SuggestionItem[]>([]);
 
   // Search subject for catalog lookups
@@ -1973,6 +2042,7 @@ export class CaptureComponent implements OnInit {
         const loadedRows: SheetRow[] = records.map((r, i) => ({
           id: r.id,
           tempId: 'row_' + r.id + '_' + i,
+          section: (r.section || '').toUpperCase(),
           code: r.capturedCode,
           quantity: r.quantity,
           unit: r.unit || 'PZA',
@@ -2000,9 +2070,10 @@ export class CaptureComponent implements OnInit {
     });
   }
 
-  createEmptyRow(): SheetRow {
+  createEmptyRow(defaultSection: string = ''): SheetRow {
     return {
       tempId: 'temp_' + Math.random().toString(36).substring(2, 9),
+      section: defaultSection,
       code: '',
       quantity: null,
       unit: 'PZA',
@@ -2011,7 +2082,7 @@ export class CaptureComponent implements OnInit {
     };
   }
 
-  onCellFocus(rowIndex: number, cellType: 'code' | 'qty') {
+  onCellFocus(rowIndex: number, cellType: 'sec' | 'code' | 'qty') {
     this.activeRowIndex = rowIndex;
     this.activeCellType = cellType;
     this.focusSnapshot = this.rows().map(r => ({ ...r }));
@@ -2031,16 +2102,69 @@ export class CaptureComponent implements OnInit {
     if (this.focusSnapshot) {
       const oldRow = this.focusSnapshot[rowIndex];
       const curRow = this.rows()[rowIndex];
-      if (oldRow && curRow && (oldRow.code !== curRow.code || oldRow.quantity !== curRow.quantity)) {
+      if (oldRow && curRow && (oldRow.code !== curRow.code || oldRow.quantity !== curRow.quantity || oldRow.section !== curRow.section)) {
         this.undoStack.push({
           rows: this.focusSnapshot,
-          description: `Modificar renglón ${rowIndex + 1} (${curRow.code || 'vacía'})`,
+          description: `Modificar renglón ${rowIndex + 1} (${curRow.code || curRow.section || 'vacía'})`,
           timestamp: new Date()
         });
         if (this.undoStack.length > 35) this.undoStack.shift();
         this.undoCount.set(this.undoStack.length);
       }
       this.focusSnapshot = null;
+    }
+  }
+
+  onSectionInput(index: number, event: Event) {
+    this.hasUnsavedChanges.set(true);
+    const inputEl = event.target as HTMLInputElement;
+    const rawVal = inputEl?.value || '';
+    const cleaned = rawVal.trim().toUpperCase();
+
+    // Strict validation: Only letters A to F allowed
+    if (/^[A-F]$/.test(cleaned)) {
+      this.rows()[index].section = cleaned;
+      if (inputEl) inputEl.value = cleaned;
+      // Auto-advance to material code input in the same row
+      setTimeout(() => {
+        const codeInputs = document.querySelectorAll<HTMLInputElement>('.cell-input-wrap .cell-input');
+        if (codeInputs[index]) {
+          codeInputs[index].focus();
+          codeInputs[index].select();
+        }
+      }, 50);
+    } else if (cleaned.length === 0) {
+      this.rows()[index].section = '';
+      if (inputEl) inputEl.value = '';
+    } else {
+      // Reject any non A-F character
+      const validChar = cleaned.split('').find(c => /^[A-F]$/.test(c)) || '';
+      this.rows()[index].section = validChar;
+      if (inputEl) inputEl.value = validChar;
+      this.toast.warning('Nivel inválido. Solo se admiten niveles de la A a la F.');
+    }
+  }
+
+  onSectionKeyDown(event: KeyboardEvent, index: number) {
+    if (event.key === 'Enter' || event.key === 'Tab' || event.key === 'ArrowRight') {
+      event.preventDefault();
+      const codeInputs = document.querySelectorAll<HTMLInputElement>('.cell-input-wrap .cell-input');
+      if (codeInputs[index]) {
+        codeInputs[index].focus();
+        codeInputs[index].select();
+      }
+    } else if (event.key === 'ArrowDown') {
+      const secInputs = document.querySelectorAll<HTMLInputElement>('.sec-cell-input');
+      if (secInputs[index + 1]) {
+        secInputs[index + 1].focus();
+        secInputs[index + 1].select();
+      }
+    } else if (event.key === 'ArrowUp') {
+      const secInputs = document.querySelectorAll<HTMLInputElement>('.sec-cell-input');
+      if (secInputs[index - 1]) {
+        secInputs[index - 1].focus();
+        secInputs[index - 1].select();
+      }
     }
   }
 
@@ -2152,7 +2276,8 @@ export class CaptureComponent implements OnInit {
   insertRowBelow(index: number) {
     this.saveUndoSnapshot(`Insertar fila intermedia abajo de ${index + 1}`);
     const list = [...this.rows()];
-    const newRow = this.createEmptyRow();
+    const currentSec = list[index]?.section || '';
+    const newRow = this.createEmptyRow(currentSec);
     list.splice(index + 1, 0, newRow);
     this.rows.set(list);
     this.hasUnsavedChanges.set(true);
@@ -2168,7 +2293,10 @@ export class CaptureComponent implements OnInit {
 
   addRowAtEnd() {
     this.saveUndoSnapshot('Agregar fila al final');
-    const list = [...this.rows(), this.createEmptyRow()];
+    const list = [...this.rows()];
+    const lastSec = list.length > 0 ? (list[list.length - 1].section || '') : '';
+    const newRow = this.createEmptyRow(lastSec);
+    list.push(newRow);
     this.rows.set(list);
     this.hasUnsavedChanges.set(true);
   }
@@ -2283,6 +2411,7 @@ export class CaptureComponent implements OnInit {
       shelfId: this.selectedShelfId(),
       rows: validRows.map(r => ({
         id: r.id,
+        section: (r.section || '').trim().toUpperCase(),
         code: r.code.trim().toUpperCase(),
         quantity: r.quantity !== null && r.quantity !== undefined ? Number(r.quantity) : 0,
         notes: r.notes
@@ -2335,6 +2464,7 @@ export class CaptureComponent implements OnInit {
     const lines = rawText.split(/\r?\n/).filter(l => l.trim().length > 0);
     const newItems: SheetRow[] = [];
 
+    let secCol = -1;
     let codeCol = -1;
     let qtyCol = -1;
 
@@ -2347,6 +2477,10 @@ export class CaptureComponent implements OnInit {
       let isHeader = false;
       for (let c = 0; c < parts.length; c++) {
         const cu = parts[c].toUpperCase();
+        if (cu === 'SECCION' || cu === 'SECCIÓN' || cu === 'NIVEL' || cu === 'SEC' || cu.includes('NIVEL (A-F)')) {
+          isHeader = true;
+          secCol = c;
+        }
         if ((cu.includes('CVE') || cu.includes('COD') || cu.includes('ART') || cu.includes('CLAVE')) && !cu.includes('ESQ')) {
           isHeader = true;
           codeCol = c;
@@ -2359,6 +2493,7 @@ export class CaptureComponent implements OnInit {
       if (isHeader) continue; // Skip header line!
 
       // If columns not determined from header, detect by structure:
+      let sCol = secCol;
       let cCol = codeCol;
       let qCol = qtyCol;
 
@@ -2367,6 +2502,11 @@ export class CaptureComponent implements OnInit {
           // Aspel SAE 5-column format: ESTATUS, TIPO, CLAVE, ESQ, EXISTENCIA FÍSICA
           cCol = 2;
           qCol = 4;
+        } else if (parts.length === 3 && /^[A-Fa-f]$/.test(parts[0])) {
+          // 3 columns: SECCION (A-F), CODIGO, CANTIDAD
+          sCol = 0;
+          cCol = 1;
+          qCol = 2;
         } else if (parts.length >= 3) {
           cCol = 0;
           qCol = 2;
@@ -2388,6 +2528,14 @@ export class CaptureComponent implements OnInit {
         continue;
       }
 
+      let secVal = '';
+      if (sCol >= 0 && sCol < parts.length && parts[sCol]) {
+        const cleanedSec = parts[sCol].trim().toUpperCase();
+        if (/^[A-F]$/.test(cleanedSec)) {
+          secVal = cleanedSec;
+        }
+      }
+
       let qty = 1;
       if (qCol >= 0 && qCol < parts.length && parts[qCol]) {
         const parsed = parseFloat(parts[qCol].replace(/[^0-9.]/g, ''));
@@ -2396,6 +2544,7 @@ export class CaptureComponent implements OnInit {
 
       newItems.push({
         tempId: 'paste_' + Math.random().toString(36).substring(2, 9),
+        section: secVal,
         code,
         quantity: qty,
         unit: 'PZA',

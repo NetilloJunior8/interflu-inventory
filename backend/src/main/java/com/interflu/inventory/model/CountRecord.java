@@ -42,6 +42,9 @@ public class CountRecord {
     @Column(nullable = false, length = 30)
     private ValidationStatus validationStatus = ValidationStatus.VALIDO;
 
+    @Column(name = "section_level", length = 10)
+    private String section;
+
     @Column(length = 300)
     private String notes;
 
@@ -96,6 +99,18 @@ public class CountRecord {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getSection() { return section; }
+    public void setSection(String section) { this.section = normalizeSection(section); }
+
+    public static String normalizeSection(String sec) {
+        if (sec == null) return null;
+        String clean = sec.trim().toUpperCase();
+        if (clean.matches("^[A-F]$")) {
+            return clean;
+        }
+        return null;
+    }
 
     public Long getVersion() { return version; }
     public void setVersion(Long version) { this.version = version; }

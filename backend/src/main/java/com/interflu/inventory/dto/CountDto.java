@@ -11,6 +11,7 @@ public class CountDto {
         private Double quantity;
         private String mode = "NORMAL"; // NORMAL, ADD, REPLACE, FORCE
         private String notes;
+        private String section;
 
         public Long getSessionId() { return sessionId; }
         public void setSessionId(Long sessionId) { this.sessionId = sessionId; }
@@ -29,6 +30,9 @@ public class CountDto {
 
         public String getNotes() { return notes; }
         public void setNotes(String notes) { this.notes = notes; }
+
+        public String getSection() { return section; }
+        public void setSection(String section) { this.section = section; }
     }
 
     public static class CheckDuplicateResponse {
@@ -118,6 +122,7 @@ public class CountDto {
         private String code;
         private Double quantity;
         private String notes;
+        private String section;
 
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
@@ -127,5 +132,7 @@ public class CountDto {
         public void setQuantity(Double quantity) { this.quantity = quantity; }
         public String getNotes() { return notes; }
         public void setNotes(String notes) { this.notes = notes; }
+        public String getSection() { return section; }
+        public void setSection(String section) { this.section = section; }
     }
 }

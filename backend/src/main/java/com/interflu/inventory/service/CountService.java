@@ -153,6 +153,9 @@ public class CountService {
 
             record.setUser(user);
             record.setUpdatedAt(LocalDateTime.now());
+            if (req.getSection() != null) {
+                record.setSection(CountRecord.normalizeSection(req.getSection()));
+            }
             if (req.getNotes() != null && !req.getNotes().isBlank()) {
                 record.setNotes(req.getNotes());
             }
@@ -170,6 +173,7 @@ public class CountService {
             record.setProduct(product);
             record.setCapturedCode(cleanCode);
             record.setQuantity(req.getQuantity());
+            record.setSection(CountRecord.normalizeSection(req.getSection()));
             record.setUser(user);
             record.setNotes(req.getNotes());
             record.setCountedAt(LocalDateTime.now());
@@ -307,6 +311,7 @@ public class CountService {
         int qtyCol = -1;
         int shelfCol = -1;
         int descCol = -1;
+        int secCol = -1;
 
         int importedCount = 0;
         double totalPiecesImported = 0.0;
@@ -348,6 +353,8 @@ public class CountService {
                         shelfCol = c;
                     } else if (cu.contains("DESC") || cu.contains("NOMBRE")) {
                         descCol = c;
+                    } else if (cu.contains("SECCION") || cu.contains("SECCIÓN") || cu.contains("NIVEL") || cu.equals("SEC")) {
+                        secCol = c;
                     }
                 }
                 continue; // Skip header row!
@@ -427,10 +434,15 @@ public class CountService {
             Optional<CountRecord> existingOpt = countRepo.findBySessionIdAndShelfIdAndCapturedCodeIgnoreCase(
                     session.getId(), finalShelf.getId(), code);
 
+            String sectionVal = (secCol >= 0 && row.length > secCol) ? row[secCol].trim() : null;
+
             if (existingOpt.isPresent()) {
                 CountRecord rec = existingOpt.get();
                 rec.setPreviousQuantity(rec.getQuantity());
                 rec.setQuantity(rec.getQuantity() + qty);
+                if (sectionVal != null && !sectionVal.isBlank()) {
+                    rec.setSection(CountRecord.normalizeSection(sectionVal));
+                }
                 rec.setUpdatedAt(LocalDateTime.now());
                 rec.setValidationStatus(CountRecord.ValidationStatus.VALIDO);
                 countRepo.save(rec);
@@ -441,6 +453,9 @@ public class CountService {
                 rec.setProduct(product);
                 rec.setCapturedCode(code);
                 rec.setQuantity(qty);
+                if (sectionVal != null && !sectionVal.isBlank()) {
+                    rec.setSection(CountRecord.normalizeSection(sectionVal));
+                }
                 rec.setUser(user);
                 rec.setNotes("Importado de archivo: " + file.getOriginalFilename());
                 rec.setCountedAt(LocalDateTime.now());
@@ -555,6 +570,7 @@ public class CountService {
                     rec.setProduct(prod);
                     rec.setCapturedCode(cleanCode);
                     rec.setQuantity(qty);
+                    rec.setSection(CountRecord.normalizeSection(item.getSection()));
                     rec.setNotes(item.getNotes());
                     rec.setUser(user);
                     rec.setUpdatedAt(LocalDateTime.now());
@@ -565,6 +581,7 @@ public class CountService {
                     rec.setProduct(prod);
                     rec.setCapturedCode(cleanCode);
                     rec.setQuantity(qty);
+                    rec.setSection(CountRecord.normalizeSection(item.getSection()));
                     rec.setNotes(item.getNotes());
                     rec.setUser(user);
                     rec.setValidationStatus(CountRecord.ValidationStatus.VALIDO);
@@ -628,5 +645,30 @@ public class CountService {
                         record.getCapturedCode(), record.getQuantity(), record.getShelf().getCode()));
 
         countRepo.delete(record);
+    }
+
+    @Transactional
+    public CountRecord updateSection(Long recordId, String section, User user) {
+        CountRecord record = countRepo.findById(recordId)
+                .orElseThrow(() -> new IllegalArgumentException("Registro no encontrado."));
+
+        if (!record.getSession().isEditable()) {
+            throw new IllegalStateException("No se puede editar un conteo de un inventario cerrado.");
+        }
+
+        String normalized = CountRecord.normalizeSection(section);
+        String oldSec = record.getSection();
+        record.setSection(normalized);
+        record.setUpdatedAt(LocalDateTime.now());
+        record = countRepo.save(record);
+
+        auditService.log(record.getSession().getId(), record.getSession().getFolio(),
+                user.getUsername(), user.getFullName(),
+                "CAMBIAR_SECCION", "CountRecord", record.getId(),
+                oldSec, normalized,
+                String.format("Código %s en %s: nivel asignado %s -> %s",
+                        record.getCapturedCode(), record.getShelf().getCode(), oldSec, normalized));
+
+        return record;
     }
 }
