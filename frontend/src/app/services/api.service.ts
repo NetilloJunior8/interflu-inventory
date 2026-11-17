@@ -330,12 +330,40 @@ export class ApiService {
     return this.http.put<CountRecordDto>(`${this.baseUrl}/counts/${id}/section`, null, { params });
   }
 
-  importExcelCounts(sessionId: number, file: File, shelfId?: number): Observable<{ importedRecords: number; totalPieces: number; shelvesUpdated: number; affectedShelves?: string[] }> {
+  importExcelCounts(
+    sessionId: number,
+    file: File,
+    shelfId?: number,
+    mode: 'SMART_MERGE' | 'REPLACE_ALL' = 'SMART_MERGE'
+  ): Observable<{
+    importedRecords: number;
+    addedRecords?: number;
+    updatedRecords?: number;
+    withSectionCount?: number;
+    totalPieces: number;
+    shelvesUpdated: number;
+    affectedShelves?: string[];
+    importMode?: string;
+  }> {
     const formData = new FormData();
     formData.append('sessionId', String(sessionId));
     if (shelfId) formData.append('shelfId', String(shelfId));
+    formData.append('mode', mode);
     formData.append('file', file);
-    return this.http.post<{ importedRecords: number; totalPieces: number; shelvesUpdated: number; affectedShelves?: string[] }>(`${this.baseUrl}/counts/import-excel`, formData);
+    return this.http.post<{
+      importedRecords: number;
+      addedRecords?: number;
+      updatedRecords?: number;
+      withSectionCount?: number;
+      totalPieces: number;
+      shelvesUpdated: number;
+      affectedShelves?: string[];
+      importMode?: string;
+    }>(`${this.baseUrl}/counts/import-excel`, formData);
+  }
+
+  downloadImportTemplate(): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/counts/import-template`, { responseType: 'blob' });
   }
 
   getCounts(sessionId: number, shelfId?: number): Observable<CountRecordDto[]> {

@@ -655,75 +655,213 @@ export interface SheetRow {
         </div>
       </div>
 
-      <!-- Import Excel Counts File Modal -->
-      <div class="modal-overlay" *ngIf="showImportExcelModal">
-        <div class="modal-card">
-          <div class="modal-header">
-            <h3>Importar Excel de Anaqueles Contados</h3>
-            <button class="btn-close" (click)="closeImportExcelModal()">✕</button>
+      <!-- Import Excel Counts File Modal (Smart Nivel A-F & Fluid UX) -->
+      <div class="modal-overlay import-modal-overlay" *ngIf="showImportExcelModal" (click)="closeImportExcelModal()">
+        <div class="modal-card import-excel-modal" (click)="$event.stopPropagation()">
+          <div class="import-modal-header">
+            <div class="import-header-title-wrap">
+              <div class="import-header-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="12" y1="18" x2="12" y2="12"></line>
+                  <polyline points="9 15 12 12 15 15"></polyline>
+                </svg>
+              </div>
+              <div>
+                <h3>Importar Excel por Anaquel y Nivel (A-F)</h3>
+                <span class="import-header-sub">Acomoda automáticamente cada código en su nivel físico del croquis</span>
+              </div>
+            </div>
+            <button type="button" class="import-close-btn" (click)="closeImportExcelModal()" title="Cerrar ventana (Esc)">✕</button>
           </div>
-          <div class="modal-body">
-            <p class="text-muted">
-              Carga tu archivo de Excel (<strong>.xlsx</strong> o <strong>.csv</strong>) con los conteos ya realizados. El sistema registrará los materiales, marcará automáticamente los anaqueles correspondientes en <strong>VERDE (Contabilizado)</strong> en el croquis y generará los códigos QR listos para imprimir.
-            </p>
-            <div class="excel-format-hints">
-              <span class="hint-title">Formatos de columnas compatibles Aspel SAE / Excel:</span>
-              <div class="mono hint-cols">ESTATUS | TIPO | CLAVE | CLAVE ESQ | EXISTENCIA FÍSICA</div>
-              <div class="font-xs text-secondary mt-1">O formato simplificado: ANAQUEL | CÓDIGO | PIEZAS</div>
+
+          <!-- STATE 1: UPLOAD & CONFIGURE -->
+          <ng-container *ngIf="!importResult">
+            <div class="modal-body import-modal-body">
+              <!-- Format Banner + 1-Click Official Template Download -->
+              <div class="excel-template-banner">
+                <div class="template-banner-info">
+                  <span class="hint-title">Columnas reconocidas automáticamente:</span>
+                  <div class="format-col-chips mono">
+                    <span class="col-chip col-chip-level">NIVEL (A-F)</span>
+                    <span class="col-chip">CLAVE</span>
+                    <span class="col-chip">EXISTENCIA FÍSICA</span>
+                    <span class="col-chip col-chip-opt">ANAQUEL (opc.)</span>
+                  </div>
+                  <span class="font-xs text-muted">También compatible con exportaciones directas de Aspel SAE (.xlsx / .csv).</span>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-template-dl"
+                  [disabled]="downloadingTemplate()"
+                  (click)="downloadExcelTemplate()"
+                  title="Descargar archivo Excel oficial ya configurado con columna Nivel (A-F) desplegable"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  <span>{{ downloadingTemplate() ? 'Generando...' : 'Plantilla (.xlsx)' }}</span>
+                </button>
+              </div>
+
+              <!-- Destination Shelf -->
+              <div class="form-group">
+                <label class="field-label">Anaquel Destino:</label>
+                <select class="select-field" [ngModel]="importTargetShelfId()" (ngModelChange)="importTargetShelfId.set($event)">
+                  <option [ngValue]="0">Detectar automáticamente (según columna ANAQUEL o nombre del archivo)</option>
+                  <option *ngFor="let sh of shelves()" [value]="sh.shelfId">
+                    [{{ sh.plant || 'Planta Baja' }}] {{ sh.shelfCode }} &bull; {{ sh.shelfZone }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Smart Import Mode Selector -->
+              <div class="form-group">
+                <label class="field-label">Comportamiento si el anaquel ya tiene registros:</label>
+                <div class="import-mode-grid">
+                  <button
+                    type="button"
+                    class="import-mode-card"
+                    [class.active]="importMode() === 'SMART_MERGE'"
+                    (click)="importMode.set('SMART_MERGE')"
+                  >
+                    <div class="mode-card-top">
+                      <span class="mode-radio"></span>
+                      <span class="mode-title">Inteligente: Actualizar y Agregar</span>
+                      <span class="mode-rec-badge">Recomendado</span>
+                    </div>
+                    <p class="mode-desc">
+                      Sustituye piezas y nivel (A-F) de códigos repetidos, agrega los códigos nuevos y conserva los demás sin borrar nada.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="import-mode-card mode-card-replace"
+                    [class.active]="importMode() === 'REPLACE_ALL'"
+                    (click)="importMode.set('REPLACE_ALL')"
+                  >
+                    <div class="mode-card-top">
+                      <span class="mode-radio"></span>
+                      <span class="mode-title">Sustituir Todo el Anaquel</span>
+                    </div>
+                    <p class="mode-desc">
+                      Borra los conteos previos del anaquel destino y deja exactamente lo que trae este archivo Excel.
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Interactive Drag & Drop File Zone -->
+              <div
+                class="file-drop-area"
+                [class.drag-active]="isDraggingFile()"
+                [class.has-file]="!!selectedExcelFile"
+                (click)="fileInput.click()"
+                (dragover)="onDragOverImport($event)"
+                (dragleave)="onDragLeaveImport($event)"
+                (drop)="onDropImport($event)"
+              >
+                <input #fileInput type="file" accept=".xlsx,.xls,.csv" style="display: none;" (change)="onFileSelectedForImport($event)" />
+                <ng-container *ngIf="!selectedExcelFile">
+                  <div class="drop-icon-circle">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                  </div>
+                  <strong class="drop-main-text">Arrastra tu archivo Excel aquí o haz clic para buscar</strong>
+                  <span class="font-xs text-muted">Formatos .xlsx, .xls o .csv &bull; Hasta 50 MB</span>
+                </ng-container>
+
+                <div *ngIf="selectedExcelFile" class="selected-file-pill" (click)="$event.stopPropagation()">
+                  <div class="file-pill-icon">XLS</div>
+                  <div class="file-pill-meta">
+                    <strong class="file-pill-name">{{ selectedExcelFile.name }}</strong>
+                    <span class="font-xs text-muted">{{ (selectedExcelFile.size / 1024) | number:'1.1-2' }} KB &bull; Listo para importar</span>
+                  </div>
+                  <button type="button" class="btn-remove-file" (click)="selectedExcelFile = null" title="Quitar archivo">✕</button>
+                </div>
+              </div>
             </div>
 
-            <div class="form-group mt-3 mb-2">
-              <label class="field-label">Asignación de Anaquel Destino:</label>
-              <select class="select-field" [ngModel]="importTargetShelfId()" (ngModelChange)="importTargetShelfId.set($event)">
-                <option [ngValue]="0">Detectar automáticamente (o según columna en archivo)</option>
-                <option *ngFor="let sh of shelves()" [value]="sh.shelfId">
-                  Asignar todo a: [{{ sh.plant || 'Planta 1' }}] {{ sh.shelfCode }} &bull; {{ sh.shelfZone }}
-                </option>
-              </select>
+            <div class="modal-footer import-modal-footer">
+              <button type="button" class="btn btn-outline" (click)="closeImportExcelModal()">Cancelar</button>
+              <button
+                type="button"
+                class="btn btn-primary btn-import-go"
+                [disabled]="!selectedExcelFile || importingExcel()"
+                (click)="submitImportExcel()"
+              >
+                <span *ngIf="importingExcel()" class="btn-spinner"></span>
+                <span>{{ importingExcel() ? 'Procesando archivo...' : (importMode() === 'REPLACE_ALL' ? 'Sustituir e Importar Excel' : 'Importar con Modo Inteligente') }}</span>
+              </button>
             </div>
-            
-            <div class="file-drop-area mt-2" (click)="fileInput.click()">
-              <input #fileInput type="file" accept=".xlsx,.xls,.csv" style="display: none;" (change)="onFileSelectedForImport($event)" />
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
-              <div *ngIf="!selectedExcelFile">
-                <strong>Haz clic aquí para seleccionar el archivo Excel (.xlsx / .csv)</strong>
-                <div class="font-xs text-muted">Compatible con exportaciones de conteo físico y catálogos &bull; Hasta 50MB</div>
+          </ng-container>
+
+          <!-- STATE 2: CLEAN POST-IMPORT SUCCESS VIEW (EFFORTLESS 1-CLICK EXIT) -->
+          <ng-container *ngIf="importResult as res">
+            <div class="modal-body import-success-body">
+              <div class="success-hero">
+                <div class="success-check-circle">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+                <h4 class="success-title">Importación Completada con Éxito</h4>
+                <p class="success-subtitle">
+                  {{ res.importMode === 'REPLACE_ALL' ? 'Se reemplazó el contenido completo del anaquel destino.' : 'Modo inteligente aplicado: códigos repetidos actualizados y nuevos agregados.' }}
+                </p>
               </div>
-              <div *ngIf="selectedExcelFile" class="selected-file-info">
-                <strong class="text-primary-brand">{{ selectedExcelFile.name }}</strong>
-                <span class="font-xs text-muted">({{ (selectedExcelFile.size / 1024) | number:'1.1-2' }} KB)</span>
+
+              <div class="import-kpi-grid">
+                <div class="imp-kpi-card">
+                  <span class="imp-kpi-val mono text-success">+{{ res.addedRecords ?? res.importedRecords }}</span>
+                  <span class="imp-kpi-lbl">Nuevos Agregados</span>
+                </div>
+                <div class="imp-kpi-card">
+                  <span class="imp-kpi-val mono text-primary-brand">{{ res.updatedRecords ?? 0 }}</span>
+                  <span class="imp-kpi-lbl">Actualizados</span>
+                </div>
+                <div class="imp-kpi-card">
+                  <span class="imp-kpi-val mono text-indigo">{{ res.withSectionCount ?? 0 }}</span>
+                  <span class="imp-kpi-lbl">Con Nivel A-F</span>
+                </div>
+                <div class="imp-kpi-card">
+                  <span class="imp-kpi-val mono">{{ res.totalPieces | number:'1.0-2' }}</span>
+                  <span class="imp-kpi-lbl">Piezas Totales</span>
+                </div>
+              </div>
+
+              <div class="affected-shelves-bar" *ngIf="res.affectedShelves && res.affectedShelves.length > 0">
+                <span class="affected-lbl">Anaqueles actualizados y marcados en verde ({{ res.shelvesUpdated }}):</span>
+                <div class="affected-chips">
+                  <span class="affected-chip mono" *ngFor="let shCode of res.affectedShelves">{{ shCode }}</span>
+                </div>
               </div>
             </div>
 
-            <div *ngIf="importResult" class="import-summary-card">
-              <div class="font-sm text-success fw-700">✓ Archivo importado correctamente:</div>
-              <ul class="font-xs mt-1">
-                <li><strong>{{ importResult.importedRecords }}</strong> partidas de materiales registradas.</li>
-                <li><strong>{{ importResult.totalPieces | number:'1.0-2' }}</strong> piezas físicas contabilizadas.</li>
-                <li><strong>{{ importResult.shelvesUpdated }}</strong> anaqueles actualizados y marcados en verde:
-                  <span class="mono">{{ importResult.affectedShelves?.join(', ') }}</span>
-                </li>
-              </ul>
-              <div class="mt-2 flex gap-2">
-                <a routerLink="/croquis" class="btn btn-sm btn-outline-primary">Ver Croquis (Verdes) &rarr;</a>
-                <a routerLink="/qr-labels" [queryParams]="{sessionId: selectedSessionId()}" class="btn btn-sm btn-success">Ver Etiquetas QR &rarr;</a>
+            <div class="modal-footer import-success-footer">
+              <div class="success-footer-links">
+                <button type="button" class="btn btn-sm btn-outline" (click)="resetForAnotherImport()">
+                  Importar Otro Archivo
+                </button>
+                <a routerLink="/croquis" (click)="closeImportExcelModal()" class="btn btn-sm btn-outline-primary">
+                  Ver en Croquis A-F &rarr;
+                </a>
+                <a routerLink="/qr-labels" [queryParams]="{sessionId: selectedSessionId()}" (click)="closeImportExcelModal()" class="btn btn-sm btn-outline">
+                  Etiquetas QR
+                </a>
               </div>
+              <button type="button" class="btn btn-primary btn-done-exit" (click)="closeImportExcelModal()">
+                Listo, Ver Cédula
+              </button>
             </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-outline" (click)="closeImportExcelModal()">{{ importResult ? 'Cerrar' : 'Cancelar' }}</button>
-            <button
-              class="btn btn-primary"
-              [disabled]="!selectedExcelFile || importingExcel()"
-              (click)="submitImportExcel()"
-            >
-              {{ importingExcel() ? 'Importando y Marcando...' : 'Importar y Marcar Contabilizados' }}
-            </button>
-          </div>
+          </ng-container>
         </div>
       </div>
 
@@ -1548,13 +1686,472 @@ export interface SheetRow {
       border-radius: 999px;
       border: 1px solid #fde68a;
     }
-    .excel-format-hints { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem; }
-    .hint-title { font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 4px; }
-    .hint-cols { font-size: 0.82rem; font-weight: 700; color: #0a2472; }
-    .file-drop-area { border: 2px dashed #93c5fd; background: #eff6ff; border-radius: 10px; padding: 1.5rem; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; transition: all 0.2s; }
-    .file-drop-area:hover { background: #dbeafe; border-color: #2563eb; transform: translateY(-1px); }
-    .selected-file-info { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; }
-    .import-summary-card { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 0.85rem; }
+    /* Modern Fluid Import Excel Modal */
+    @keyframes impFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes impSlideUp {
+      from { opacity: 0; transform: translateY(14px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes impSpin {
+      to { transform: rotate(360deg); }
+    }
+
+    .import-modal-overlay {
+      background: rgba(15, 23, 42, 0.58);
+      backdrop-filter: blur(4px);
+      animation: impFadeIn 0.16s ease-out;
+      z-index: 1000;
+    }
+    .import-excel-modal {
+      max-width: 660px;
+      width: 95vw;
+      max-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      border-radius: 16px;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 24px 48px -12px rgba(15, 23, 42, 0.28);
+      animation: impSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+    }
+    .import-modal-header {
+      padding: 1.05rem 1.35rem;
+      background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .import-header-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .import-header-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #0a2472;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 10px rgba(10, 36, 114, 0.25);
+    }
+    .import-modal-header h3 {
+      margin: 0;
+      font-size: 1.08rem;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.2;
+    }
+    .import-header-sub {
+      display: block;
+      font-size: 0.76rem;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .import-close-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #475569;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.14s ease;
+      flex-shrink: 0;
+    }
+    .import-close-btn:hover {
+      background: #fee2e2;
+      border-color: #fca5a5;
+      color: #b91c1c;
+    }
+    .import-modal-body {
+      padding: 1.2rem 1.35rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    /* Template Banner */
+    .excel-template-banner {
+      background: #f8fafc;
+      border: 1px solid #dbeafe;
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .template-banner-info {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .hint-title {
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .format-col-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .col-chip {
+      font-size: 0.73rem;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 5px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #0a2472;
+    }
+    .col-chip-level {
+      background: #dcfce7;
+      border-color: #86efac;
+      color: #166534;
+    }
+    .col-chip-opt {
+      background: #f1f5f9;
+      border-style: dashed;
+      color: #64748b;
+    }
+    .btn-template-dl {
+      background: #ffffff;
+      border: 1.5px solid #2563eb;
+      color: #1d4ed8;
+      font-weight: 700;
+      border-radius: 8px;
+      padding: 6px 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.14s ease;
+      white-space: nowrap;
+    }
+    .btn-template-dl:hover:not(:disabled) {
+      background: #2563eb;
+      color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+    }
+
+    /* Smart Import Mode Cards */
+    .import-mode-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 6px;
+    }
+    @media (max-width: 600px) {
+      .import-mode-grid { grid-template-columns: 1fr; }
+    }
+    .import-mode-card {
+      text-align: left;
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 0.75rem 0.9rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+    .import-mode-card:hover {
+      border-color: #93c5fd;
+      background: #f8fafc;
+    }
+    .import-mode-card.active {
+      border-color: #2563eb;
+      background: #eff6ff;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+    }
+    .import-mode-card.mode-card-replace.active {
+      border-color: #d97706;
+      background: #fffbeb;
+      box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.14);
+    }
+    .mode-card-top {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+    .mode-radio {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid #94a3b8;
+      display: inline-block;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .import-mode-card.active .mode-radio {
+      border-color: #2563eb;
+      background: #2563eb;
+      box-shadow: inset 0 0 0 3px #ffffff;
+    }
+    .import-mode-card.mode-card-replace.active .mode-radio {
+      border-color: #d97706;
+      background: #d97706;
+    }
+    .mode-title {
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .mode-rec-badge {
+      font-size: 0.64rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+    .mode-desc {
+      margin: 0;
+      font-size: 0.72rem;
+      color: #475569;
+      line-height: 1.35;
+    }
+
+    /* Drag & Drop Area */
+    .file-drop-area {
+      border: 2px dashed #93c5fd;
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 1.35rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.45rem;
+      transition: all 0.18s ease;
+    }
+    .file-drop-area:hover, .file-drop-area.drag-active {
+      background: #eff6ff;
+      border-color: #2563eb;
+      transform: translateY(-1px);
+    }
+    .file-drop-area.has-file {
+      border-style: solid;
+      border-color: #93c5fd;
+      background: #eff6ff;
+      padding: 0.85rem 1rem;
+    }
+    .drop-icon-circle {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #dbeafe;
+      color: #1d4ed8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .drop-main-text {
+      font-size: 0.88rem;
+      color: #0f172a;
+    }
+    .selected-file-pill {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #ffffff;
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      padding: 0.65rem 0.85rem;
+      text-align: left;
+    }
+    .file-pill-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background: #16a34a;
+      color: #ffffff;
+      font-weight: 900;
+      font-size: 0.72rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .file-pill-meta {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .file-pill-name {
+      font-size: 0.86rem;
+      color: #0f172a;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .btn-remove-file {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      color: #64748b;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .btn-remove-file:hover {
+      background: #fee2e2;
+      color: #dc2626;
+      border-color: #fecaca;
+    }
+    .btn-import-go {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0.55rem 1.25rem;
+    }
+    .btn-spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: impSpin 0.7s linear infinite;
+    }
+
+    /* Post-Import Success View */
+    .import-success-body {
+      padding: 1.5rem 1.35rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.15rem;
+      animation: impFadeIn 0.2s ease-out;
+    }
+    .success-hero {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .success-check-circle {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: #dcfce7;
+      color: #15803d;
+      border: 2px solid #86efac;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4px;
+    }
+    .success-title {
+      margin: 0;
+      font-size: 1.18rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .success-subtitle {
+      margin: 0;
+      font-size: 0.82rem;
+      color: #475569;
+    }
+    .import-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    @media (max-width: 600px) {
+      .import-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    .imp-kpi-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 0.75rem 0.6rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .imp-kpi-val {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .imp-kpi-lbl {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      text-align: center;
+    }
+    .text-indigo { color: #4338ca; }
+    .affected-shelves-bar {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 0.75rem 0.9rem;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .affected-lbl {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: #166534;
+    }
+    .affected-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .affected-chip {
+      font-size: 0.74rem;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: #ffffff;
+      border: 1px solid #86efac;
+      color: #15803d;
+    }
+    .import-success-footer {
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .success-footer-links {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .btn-done-exit {
+      padding: 0.55rem 1.35rem;
+      font-weight: 700;
+    }
 
     /* Modal Backdrop & Shared Form Styles */
     .modal-backdrop {
@@ -1647,8 +2244,20 @@ export class CaptureComponent implements OnInit {
   showImportExcelModal = false;
   selectedExcelFile: File | null = null;
   importTargetShelfId = signal<number>(0);
+  importMode = signal<'SMART_MERGE' | 'REPLACE_ALL'>('SMART_MERGE');
+  isDraggingFile = signal<boolean>(false);
+  downloadingTemplate = signal<boolean>(false);
   importingExcel = signal<boolean>(false);
-  importResult: { importedRecords: number; totalPieces: number; shelvesUpdated: number; affectedShelves?: string[] } | null = null;
+  importResult: {
+    importedRecords: number;
+    addedRecords?: number;
+    updatedRecords?: number;
+    withSectionCount?: number;
+    totalPieces: number;
+    shelvesUpdated: number;
+    affectedShelves?: string[];
+    importMode?: string;
+  } | null = null;
 
   quickChips: string[] = [];
   learnedCount = computed(() => this.patternSuggester.getLearnedChipsCount());
@@ -1719,6 +2328,32 @@ export class CaptureComponent implements OnInit {
 
   @HostListener('window:keydown', ['$event'])
   handleGlobalShortcuts(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      if (this.showImportExcelModal) {
+        this.closeImportExcelModal();
+        return;
+      }
+      if (this.showPasteModal) {
+        this.showPasteModal = false;
+        return;
+      }
+      if (this.showCreateSessionModal) {
+        this.showCreateSessionModal = false;
+        return;
+      }
+      if (this.showReopenModal) {
+        this.showReopenModal = false;
+        return;
+      }
+      if (this.showClearShelfModal) {
+        this.showClearShelfModal = false;
+        return;
+      }
+      if (this.editingShelf) {
+        this.editingShelf = null;
+        return;
+      }
+    }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !event.shiftKey) {
       if (this.canUndo() && this.isEditable()) {
         event.preventDefault();
@@ -2680,6 +3315,8 @@ export class CaptureComponent implements OnInit {
   openImportExcelModal() {
     this.selectedExcelFile = null;
     this.importResult = null;
+    this.isDraggingFile.set(false);
+    this.importMode.set('SMART_MERGE');
     this.importTargetShelfId.set(this.selectedShelfId() > 0 ? this.selectedShelfId() : 0);
     this.showImportExcelModal = true;
   }
@@ -2687,6 +3324,14 @@ export class CaptureComponent implements OnInit {
   closeImportExcelModal() {
     this.showImportExcelModal = false;
     this.selectedExcelFile = null;
+    this.importResult = null;
+    this.isDraggingFile.set(false);
+  }
+
+  resetForAnotherImport() {
+    this.selectedExcelFile = null;
+    this.importResult = null;
+    this.isDraggingFile.set(false);
   }
 
   onFileSelectedForImport(event: Event) {
@@ -2695,6 +3340,57 @@ export class CaptureComponent implements OnInit {
       this.selectedExcelFile = input.files[0];
       this.importResult = null;
     }
+  }
+
+  onDragOverImport(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDraggingFile.set(true);
+  }
+
+  onDragLeaveImport(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDraggingFile.set(false);
+  }
+
+  onDropImport(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDraggingFile.set(false);
+    const files = event.dataTransfer?.files;
+    if (files && files.length > 0) {
+      const f = files[0];
+      const lower = f.name.toLowerCase();
+      if (lower.endsWith('.xlsx') || lower.endsWith('.xls') || lower.endsWith('.csv')) {
+        this.selectedExcelFile = f;
+        this.importResult = null;
+      } else {
+        this.toast.warning('Formato no soportado. Usa un archivo .xlsx, .xls o .csv.');
+      }
+    }
+  }
+
+  downloadExcelTemplate() {
+    this.downloadingTemplate.set(true);
+    this.api.downloadImportTemplate().subscribe({
+      next: (blob) => {
+        this.downloadingTemplate.set(false);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Plantilla_Interflu_Conteo_Por_Nivel.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        this.toast.success('Plantilla oficial con columna Nivel (A-F) descargada.');
+      },
+      error: (err) => {
+        this.downloadingTemplate.set(false);
+        this.toast.error('Error al descargar plantilla: ' + (err.error?.message || err.message));
+      }
+    });
   }
 
   submitImportExcel() {
@@ -2709,12 +3405,15 @@ export class CaptureComponent implements OnInit {
     }
 
     const shelfParam = this.importTargetShelfId() > 0 ? this.importTargetShelfId() : undefined;
+    const mode = this.importMode();
     this.importingExcel.set(true);
-    this.api.importExcelCounts(sessionId, this.selectedExcelFile, shelfParam).subscribe({
+    this.api.importExcelCounts(sessionId, this.selectedExcelFile, shelfParam, mode).subscribe({
       next: (res) => {
         this.importingExcel.set(false);
         this.importResult = res;
-        this.toast.success(`¡Éxito! ${res.importedRecords} partidas (${res.totalPieces} pzas) importadas en ${res.shelvesUpdated} anaqueles.`);
+        this.toast.success(
+          `Importación exitosa: ${res.addedRecords ?? res.importedRecords} nuevos, ${res.updatedRecords ?? 0} actualizados (${res.totalPieces} pzas).`
+        );
         this.loadShelvesForSession(sessionId, this.selectedShelfId());
         if (this.selectedShelfId() > 0) {
           this.loadShelfCounts(sessionId, this.selectedShelfId());

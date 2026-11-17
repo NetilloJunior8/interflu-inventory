@@ -4,11 +4,14 @@ import com.interflu.inventory.dto.CountDto;
 import com.interflu.inventory.model.*;
 import com.interflu.inventory.repository.*;
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddressList;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -201,10 +204,11 @@ public class CountService {
 
     /**
      * Imports already counted Excel (.xlsx / .csv) directly into the session,
-     * immediately registering counts and marking shelves on the croquis.
+     * automatically mapping Nivel (A-F) to physical shelf sections and supporting
+     * SMART_MERGE (update existing + append new) or REPLACE_ALL modes.
      */
     @Transactional
-    public Map<String, Object> importExcelCounts(Long sessionId, Long targetShelfId, MultipartFile file, User user) throws Exception {
+    public Map<String, Object> importExcelCounts(Long sessionId, Long targetShelfId, String importMode, MultipartFile file, User user) throws Exception {
         InventorySession session = sessionRepo.findById(sessionId)
                 .orElseThrow(() -> new IllegalArgumentException("Sesión no encontrada"));
 
@@ -212,12 +216,16 @@ public class CountService {
             throw new IllegalStateException("El inventario está cerrado. Debe reabrirse para importar conteos.");
         }
 
+        String mode = (importMode != null && importMode.trim().equalsIgnoreCase("REPLACE_ALL"))
+                ? "REPLACE_ALL"
+                : "SMART_MERGE";
+
         String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase() : "";
         List<String[]> parsedRows = new ArrayList<>();
 
         // Shelf resolution: either passed explicitly or matched from file name (e.g., "ACEROS 5" -> "PB-ACE-05")
         Shelf defaultShelf = null;
-        if (targetShelfId != null) {
+        if (targetShelfId != null && targetShelfId > 0) {
             defaultShelf = shelfRepo.findById(targetShelfId).orElse(null);
         }
         if (defaultShelf == null && file.getOriginalFilename() != null) {
@@ -239,9 +247,6 @@ public class CountService {
             try (InputStream is = file.getInputStream(); Workbook workbook = WorkbookFactory.create(is)) {
                 DataFormatter formatter = new DataFormatter();
 
-                // Select the sheet:
-                // Priority 1: If defaultShelf is known, check if any sheet matches shelf code or number
-                // Priority 2: Use the ACTIVE sheet (workbook.getActiveSheetIndex()), which is where user saved data in Excel!
                 int selectedSheetIdx = workbook.getActiveSheetIndex();
                 if (selectedSheetIdx < 0 || selectedSheetIdx >= workbook.getNumberOfSheets()) {
                     selectedSheetIdx = 0;
@@ -314,16 +319,13 @@ public class CountService {
         int secCol = -1;
 
         int importedCount = 0;
+        int addedRecords = 0;
+        int updatedRecords = 0;
+        int withSectionCount = 0;
         double totalPiecesImported = 0.0;
-        Set<Long> affectedShelves = new HashSet<>();
-
-        // If a specific target shelf was selected or inferred, reset its previous counts so physical import is exact
-        if (defaultShelf != null) {
-            List<CountRecord> oldShelfRecords = countRepo.findBySessionIdAndShelfId(session.getId(), defaultShelf.getId());
-            if (!oldShelfRecords.isEmpty()) {
-                countRepo.deleteAll(oldShelfRecords);
-            }
-        }
+        Set<Long> affectedShelves = new LinkedHashSet<>();
+        Set<Long> clearedShelves = new HashSet<>();
+        Set<String> seenInThisFile = new HashSet<>();
 
         for (int i = 0; i < parsedRows.size(); i++) {
             String[] row = parsedRows.get(i);
@@ -345,7 +347,9 @@ public class CountService {
                 // Update column mappings from this header
                 for (int c = 0; c < row.length; c++) {
                     String cu = row[c].toUpperCase().replace("\"", "").trim();
-                    if ((cu.contains("CVE") || cu.contains("COD") || cu.contains("ART") || cu.contains("CLAVE")) && !cu.contains("ESQ")) {
+                    if (cu.contains("NIVEL") || cu.contains("SECCION") || cu.contains("SECCIÓN") || cu.equals("SEC") || cu.contains("ESTANTE") || cu.contains("REPISA")) {
+                        secCol = c;
+                    } else if ((cu.contains("CVE") || cu.contains("COD") || cu.contains("ART") || cu.contains("CLAVE")) && !cu.contains("ESQ")) {
                         codeCol = c;
                     } else if (cu.contains("CANT") || cu.contains("PIEZA") || cu.contains("QTY") || cu.contains("TOTAL") || cu.contains("FISIC") || cu.contains("FÍSIC") || cu.contains("EXISTENCIA")) {
                         qtyCol = c;
@@ -353,8 +357,6 @@ public class CountService {
                         shelfCol = c;
                     } else if (cu.contains("DESC") || cu.contains("NOMBRE")) {
                         descCol = c;
-                    } else if (cu.contains("SECCION") || cu.contains("SECCIÓN") || cu.contains("NIVEL") || cu.equals("SEC")) {
-                        secCol = c;
                     }
                 }
                 continue; // Skip header row!
@@ -362,10 +364,21 @@ public class CountService {
 
             // Fallback for headerless rows
             if (codeCol < 0 || qtyCol < 0) {
-                if (row.length >= 5 && (row[0].equalsIgnoreCase("A") || row[1].equalsIgnoreCase("P"))) {
-                    // Aspel SAE 5-column format: ESTATUS, TIPO, CLAVE, ESQ, EXISTENCIA
+                if (row.length >= 5 && (row[0].equalsIgnoreCase("A") || row[1].equalsIgnoreCase("P")) && !row[1].trim().isEmpty() && row[1].trim().length() == 1) {
+                    // Aspel SAE 5-column format: ESTATUS, TIPO, CLAVE, ESQ, EXISTENCIA [, NIVEL]
                     codeCol = 2;
                     qtyCol = 4;
+                    if (row.length >= 6 && row[5].trim().matches("(?i)^[A-F]$")) {
+                        secCol = 5;
+                    }
+                } else if (row.length >= 3 && row[0].trim().matches("(?i)^[A-F]$")) {
+                    // 3-column Nivel format: NIVEL (A-F), CLAVE, CANTIDAD [, ANAQUEL]
+                    secCol = 0;
+                    codeCol = 1;
+                    qtyCol = 2;
+                    if (row.length >= 4 && !row[3].trim().isEmpty()) {
+                        shelfCol = 3;
+                    }
                 } else if (row.length >= 3) {
                     codeCol = 0;
                     qtyCol = 2;
@@ -381,9 +394,9 @@ public class CountService {
 
             // Header keyword filter
             if (code.equals("CLAVE") || code.equals("CVE") || code.equals("CVE_ART")
-                    || code.equals("CODIGO") || code.equals("ARTICULO")
+                    || code.equals("CODIGO") || code.equals("CÓDIGO") || code.equals("ARTICULO")
                     || code.equals("EXISTENCIA") || code.equals("EXISTENCIA FÍSICA") || code.equals("TOTAL")
-                    || code.contains("TIPO DE ELEMENTO") || code.equals("ESTATUS")) {
+                    || code.contains("TIPO DE ELEMENTO") || code.equals("ESTATUS") || code.equals("NIVEL")) {
                 continue;
             }
 
@@ -397,17 +410,19 @@ public class CountService {
 
             String shelfName = (shelfCol >= 0 && row.length > shelfCol) ? row[shelfCol].replace("\"", "").trim().toUpperCase() : null;
             String description = (descCol >= 0 && row.length > descCol) ? row[descCol].replace("\"", "").trim() : null;
+            String rawSec = (secCol >= 0 && row.length > secCol) ? row[secCol].replace("\"", "").trim() : null;
+            String normalizedSec = CountRecord.normalizeSection(rawSec);
 
             Shelf targetShelf = defaultShelf;
             if (shelfName != null && !shelfName.isBlank()) {
                 Optional<Shelf> found = shelfRepo.findByCodeIgnoreCase(shelfName);
                 if (found.isPresent()) {
                     targetShelf = found.get();
-                } else {
-                    Shelf newShelf = new Shelf(shelfName, "Área General", "Importado de Excel", "1", "Planta 1", 10.0, 10.0, 12.0, 8.0);
+                } else if (defaultShelf == null) {
+                    Shelf newShelf = new Shelf(shelfName, "Área General", "Importado de Excel", "1", "Planta Baja", 10.0, 10.0, 12.0, 8.0);
                     targetShelf = shelfRepo.save(newShelf);
                 }
-            } else if (targetShelfId == null && defaultShelf == null) {
+            } else if ((targetShelfId == null || targetShelfId == 0) && defaultShelf == null) {
                 Optional<Product> prodOpt = productRepo.findByCodeIgnoreCase(code);
                 if (prodOpt.isPresent() && prodOpt.get().getLocationSaE() != null && !prodOpt.get().getLocationSaE().isBlank()) {
                     Optional<Shelf> foundLoc = shelfRepo.findByCodeIgnoreCase(prodOpt.get().getLocationSaE().trim());
@@ -418,8 +433,18 @@ public class CountService {
             }
             if (targetShelf == null) continue;
 
-            // Ensure assignment exists for this session
             final Shelf finalShelf = targetShelf;
+
+            // In REPLACE_ALL mode, wipe previous counts on each affected shelf once before inserting fresh rows
+            if ("REPLACE_ALL".equals(mode) && clearedShelves.add(finalShelf.getId())) {
+                List<CountRecord> oldShelfRecords = countRepo.findBySessionIdAndShelfId(session.getId(), finalShelf.getId());
+                if (!oldShelfRecords.isEmpty()) {
+                    countRepo.deleteAll(oldShelfRecords);
+                    countRepo.flush();
+                }
+            }
+
+            // Ensure assignment exists for this session
             ShelfAssignment sa = assignmentRepo.findBySessionIdAndShelfId(session.getId(), finalShelf.getId())
                     .orElseGet(() -> assignmentRepo.save(new ShelfAssignment(session, finalShelf, user)));
 
@@ -430,22 +455,35 @@ public class CountService {
                 return productRepo.save(p);
             });
 
-            // Save or accumulate count for exact physical count
+            String fileKey = finalShelf.getId() + "::" + code;
+            boolean alreadySeenInThisFile = !seenInThisFile.add(fileKey);
+
             Optional<CountRecord> existingOpt = countRepo.findBySessionIdAndShelfIdAndCapturedCodeIgnoreCase(
                     session.getId(), finalShelf.getId(), code);
 
-            String sectionVal = (secCol >= 0 && row.length > secCol) ? row[secCol].trim() : null;
-
             if (existingOpt.isPresent()) {
                 CountRecord rec = existingOpt.get();
-                rec.setPreviousQuantity(rec.getQuantity());
-                rec.setQuantity(rec.getQuantity() + qty);
-                if (sectionVal != null && !sectionVal.isBlank()) {
-                    rec.setSection(CountRecord.normalizeSection(sectionVal));
+                if (alreadySeenInThisFile) {
+                    // Duplicate row inside the SAME Excel file -> accumulate quantities cleanly
+                    rec.setQuantity(rec.getQuantity() + qty);
+                    if (normalizedSec != null && (rec.getSection() == null || rec.getSection().isBlank())) {
+                        rec.setSection(normalizedSec);
+                    }
+                } else {
+                    // Existing code from previous count -> SMART_MERGE substitutes/updates cleanly!
+                    rec.setPreviousQuantity(rec.getQuantity());
+                    rec.setQuantity(qty);
+                    if (normalizedSec != null) {
+                        rec.setSection(normalizedSec);
+                    }
+                    updatedRecords++;
                 }
                 rec.setUpdatedAt(LocalDateTime.now());
                 rec.setValidationStatus(CountRecord.ValidationStatus.VALIDO);
                 countRepo.save(rec);
+                if (rec.getSection() != null && !rec.getSection().isBlank() && !alreadySeenInThisFile) {
+                    withSectionCount++;
+                }
             } else {
                 CountRecord rec = new CountRecord();
                 rec.setSession(session);
@@ -453,8 +491,9 @@ public class CountService {
                 rec.setProduct(product);
                 rec.setCapturedCode(code);
                 rec.setQuantity(qty);
-                if (sectionVal != null && !sectionVal.isBlank()) {
-                    rec.setSection(CountRecord.normalizeSection(sectionVal));
+                if (normalizedSec != null) {
+                    rec.setSection(normalizedSec);
+                    withSectionCount++;
                 }
                 rec.setUser(user);
                 rec.setNotes("Importado de archivo: " + file.getOriginalFilename());
@@ -462,6 +501,7 @@ public class CountService {
                 rec.setUpdatedAt(LocalDateTime.now());
                 rec.setValidationStatus(CountRecord.ValidationStatus.VALIDO);
                 countRepo.save(rec);
+                addedRecords++;
             }
 
             sa.setStatus(ShelfAssignment.Status.COMPLETADO);
@@ -480,16 +520,109 @@ public class CountService {
 
         auditService.log(session.getId(), session.getFolio(), user.getUsername(), user.getFullName(),
                 "IMPORTAR_CONTEOS_EXCEL", "CountRecord", null,
-                null, String.valueOf(importedCount),
-                String.format("Importados %d registros (%.2f pzas) en %d anaqueles desde %s",
-                        importedCount, totalPiecesImported, affectedShelves.size(), file.getOriginalFilename()));
+                mode, String.valueOf(importedCount),
+                String.format("Importación (%s): %d partidas (%d nuevas, %d actualizadas, %d con nivel A-F, %.2f pzas) en %d anaqueles desde %s",
+                        mode, importedCount, addedRecords, updatedRecords, withSectionCount, totalPiecesImported, affectedShelves.size(), file.getOriginalFilename()));
 
         Map<String, Object> resp = new HashMap<>();
         resp.put("importedRecords", importedCount);
+        resp.put("addedRecords", addedRecords);
+        resp.put("updatedRecords", updatedRecords);
+        resp.put("withSectionCount", withSectionCount);
         resp.put("totalPieces", totalPiecesImported);
         resp.put("shelvesUpdated", affectedShelves.size());
         resp.put("affectedShelves", affectedCodes);
+        resp.put("importMode", mode);
         return resp;
+    }
+
+    /**
+     * Generates a clean, corporate Excel template (.xlsx) with the official Nivel (A-F) column
+     * and dropdown validation so operators can import directly into visual shelf levels.
+     */
+    public byte[] generateImportTemplateXlsx() throws Exception {
+        try (XSSFWorkbook wb = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = wb.createSheet("Conteo_Por_Nivel");
+
+            // Header style (Interflu Navy)
+            CellStyle headerStyle = wb.createCellStyle();
+            Font headerFont = wb.createFont();
+            headerFont.setBold(true);
+            headerFont.setColor(IndexedColors.WHITE.getIndex());
+            headerFont.setFontHeightInPoints((short) 11);
+            headerStyle.setFont(headerFont);
+            headerStyle.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            headerStyle.setAlignment(HorizontalAlignment.CENTER);
+            headerStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+
+            // Level badge style
+            CellStyle levelStyle = wb.createCellStyle();
+            Font levelFont = wb.createFont();
+            levelFont.setBold(true);
+            levelStyle.setFont(levelFont);
+            levelStyle.setAlignment(HorizontalAlignment.CENTER);
+            levelStyle.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
+            levelStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+            // Header row
+            Row header = sheet.createRow(0);
+            header.setHeightInPoints(24);
+            String[] cols = {"NIVEL", "CLAVE", "EXISTENCIA FÍSICA", "ANAQUEL"};
+            int[] widths = {14 * 256, 28 * 256, 20 * 256, 18 * 256};
+            for (int c = 0; c < cols.length; c++) {
+                Cell cell = header.createCell(c);
+                cell.setCellValue(cols[c]);
+                cell.setCellStyle(headerStyle);
+                sheet.setColumnWidth(c, widths[c]);
+            }
+
+            // Example rows to guide operators
+            Object[][] samples = {
+                {"A", "EJEMPLO-REF-01", 15, "PB-ACE-01"},
+                {"B", "EJEMPLO-REF-02", 8, "PB-ACE-01"},
+                {"C", "EJEMPLO-REF-03", 24, "PB-ACE-01"}
+            };
+            for (int r = 0; r < samples.length; r++) {
+                Row row = sheet.createRow(r + 1);
+                Cell c0 = row.createCell(0);
+                c0.setCellValue((String) samples[r][0]);
+                c0.setCellStyle(levelStyle);
+                row.createCell(1).setCellValue((String) samples[r][1]);
+                row.createCell(2).setCellValue(((Integer) samples[r][2]).doubleValue());
+                row.createCell(3).setCellValue((String) samples[r][3]);
+            }
+
+            // Excel Dropdown Validation for NIVEL column (A-F) on rows 2..500
+            DataValidationHelper dvHelper = sheet.getDataValidationHelper();
+            DataValidationConstraint dvConstraint = dvHelper.createExplicitListConstraint(new String[]{"A", "B", "C", "D", "E", "F"});
+            CellRangeAddressList addressList = new CellRangeAddressList(1, 500, 0, 0);
+            DataValidation validation = dvHelper.createValidation(dvConstraint, addressList);
+            validation.setShowErrorBox(true);
+            validation.createErrorBox("Nivel no válido", "Solo se permiten letras de nivel A, B, C, D, E o F.");
+            sheet.addValidationData(validation);
+
+            // Instructions Sheet
+            Sheet info = wb.createSheet("Instrucciones");
+            info.setColumnWidth(0, 95 * 256);
+            String[] tips = {
+                "PLANTILLA OFICIAL INTERFLU INVENTORY - IMPORTACION POR NIVEL (A-F)",
+                "",
+                "1. Columna NIVEL: Escribe o selecciona una letra de la A (nivel superior) a la F (nivel base). Las minusculas se convierten automaticamente a mayusculas.",
+                "2. Columna CLAVE: Escribe el codigo/SKU exacto del material.",
+                "3. Columna EXISTENCIA FISICA: Escribe la cantidad fisica contada.",
+                "4. Columna ANAQUEL (Opcional): Si importas varios anaqueles en un mismo archivo, escribe el codigo (ej. PB-ACE-09). Si seleccionas el anaquel destino en pantalla, puedes dejar esta columna vacia.",
+                "5. Reemplaza las 3 filas de ejemplo antes de importar tu archivo real.",
+                "6. En la app puedes elegir Modo Inteligente (actualiza codigos repetidos y agrega los nuevos sin borrar los demas) o Modo Reemplazar Todo el Anaquel."
+            };
+            for (int i = 0; i < tips.length; i++) {
+                Row r = info.createRow(i);
+                r.createCell(0).setCellValue(tips[i]);
+            }
+
+            wb.write(out);
+            return out.toByteArray();
+        }
     }
 
     @Transactional

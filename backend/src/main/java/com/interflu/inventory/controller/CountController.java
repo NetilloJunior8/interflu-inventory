@@ -66,13 +66,29 @@ public class CountController {
     @PostMapping("/import-excel")
     public ResponseEntity<?> importExcelCounts(@RequestParam Long sessionId,
                                                @RequestParam(required = false) Long shelfId,
+                                               @RequestParam(defaultValue = "SMART_MERGE") String mode,
                                                @RequestParam("file") MultipartFile file) {
         User currentUser = userHelper.getCurrentUser();
         try {
-            Map<String, Object> result = countService.importExcelCounts(sessionId, shelfId, file, currentUser);
+            Map<String, Object> result = countService.importExcelCounts(sessionId, shelfId, mode, file, currentUser);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", "Error al importar Excel: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/import-template")
+    public ResponseEntity<byte[]> downloadImportTemplate() {
+        try {
+            byte[] data = countService.generateImportTemplateXlsx();
+            return ResponseEntity.ok()
+                    .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"Plantilla_Interflu_Conteo_Por_Nivel.xlsx\"")
+                    .contentType(org.springframework.http.MediaType.parseMediaType(
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(data);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
         }
     }
 
