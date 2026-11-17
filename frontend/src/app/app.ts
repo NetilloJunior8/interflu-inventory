@@ -20,6 +20,10 @@ export class App implements OnInit {
     private router: Router
   ) {}
 
+  isLoginPage(): boolean {
+    return this.router.url.includes('/login');
+  }
+
   ngOnInit() {
     const saved = localStorage.getItem('interflu_inventory_theme');
     const prefersDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;

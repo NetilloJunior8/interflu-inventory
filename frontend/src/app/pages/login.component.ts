@@ -274,6 +274,12 @@ export class LoginComponent implements OnInit {
           this.toast.error(err.error?.message || 'Error al validar sesión compartida');
         }
       });
+    } else {
+      // Si entra a la página de login manualmente sin SSO, limpiamos cualquier sesión anterior en caché
+      // para evitar que se muestre como si ya hubiera una sesión activa de otro usuario (ej. Osiris)
+      if (this.auth.isLoggedIn()) {
+        this.auth.logout();
+      }
     }
   }
 

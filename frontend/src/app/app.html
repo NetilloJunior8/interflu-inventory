@@ -1,6 +1,6 @@
-<div class="app-shell" [class.no-nav]="!auth.isLoggedIn()">
+<div class="app-shell" [class.no-nav]="!auth.isLoggedIn() || isLoginPage()">
   <!-- Top Industrial Navigation Header (Always Visible & Fully Responsive) -->
-  <header class="app-header no-print" *ngIf="auth.isLoggedIn()">
+  <header class="app-header no-print" *ngIf="auth.isLoggedIn() && !isLoginPage()">
     
     <!-- Row 1: Brand Identity & User Profile Utility (ALWAYS PINNED) -->
     <div class="header-top-row">
