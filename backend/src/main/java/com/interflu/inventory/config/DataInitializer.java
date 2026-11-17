@@ -9,8 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -103,46 +102,133 @@ public class DataInitializer implements CommandLineRunner {
             shelfRepo.saveAll(buildRealBlueprintShelves());
         }
 
-        // Update slanted coordinates for east wall PB and PA, and Acero 1..19
+        // Update slanted coordinates for east wall PB and PA, and self-heal Acero 1..19
         try {
-            // Update Acero 1..19 to match exact layout from blueprint
-            jdbcTemplate.update("UPDATE shelves SET posx = 810.0, posy = 104.0, width = 95.4, height = 34.0, description = 'Acero 1 - Fondo Pasillo' WHERE code = 'PB-ACE-01';");
-            jdbcTemplate.update("UPDATE shelves SET posx = 810.0, posy = 144.0, width = 25.0, height = 54.0, description = 'Pasillo Acero 2' WHERE code = 'PB-ACE-02';");
-            jdbcTemplate.update("UPDATE shelves SET posx = 810.0, posy = 203.4, width = 25.0, height = 54.0, description = 'Pasillo Acero 3' WHERE code = 'PB-ACE-03';");
-            jdbcTemplate.update("UPDATE shelves SET posx = 810.0, posy = 263.1, width = 25.0, height = 54.0, description = 'Pasillo Acero 4' WHERE code = 'PB-ACE-04';");
-            jdbcTemplate.update("UPDATE shelves SET posx = 810.0, posy = 321.8, width = 25.0, height = 54.0, description = 'Pasillo Acero 5' WHERE code = 'PB-ACE-05';");
-            jdbcTemplate.update("UPDATE shelves SET posx = 810.0, posy = 381.3, width = 25.0, height = 54.0, description = 'Pasillo Acero 6' WHERE code = 'PB-ACE-06';");
-            jdbcTemplate.update("UPDATE shelves SET posx = 810.0, posy = 440.2, width = 25.0, height = 54.0, description = 'Pasillo Acero 7' WHERE code = 'PB-ACE-07';");
-            jdbcTemplate.update("UPDATE shelves SET posx = 810.0, posy = 499.5, width = 25.0, height = 54.0, description = 'Pasillo Acero 8' WHERE code = 'PB-ACE-08';");
-            jdbcTemplate.update("UPDATE shelves SET posx = 810.0, posy = 558.9, width = 25.0, height = 54.0, description = 'Pasillo Acero 9' WHERE code = 'PB-ACE-09';");
-            jdbcTemplate.update("UPDATE shelves SET posx = 810.0, posy = 618.3, width = 25.0, height = 54.0, description = 'Pasillo Acero 10' WHERE code = 'PB-ACE-10';");
-            jdbcTemplate.update("UPDATE shelves SET posx = 880.4, posy = 618.3, width = 25.0, height = 54.0, description = 'Pasillo Acero 11' WHERE code = 'PB-ACE-11';");
-            jdbcTemplate.update("UPDATE shelves SET posx = 880.4, posy = 558.9, width = 25.0, height = 54.0, description = 'Pasillo Acero 12' WHERE code = 'PB-ACE-12';");
-            jdbcTemplate.update("UPDATE shelves SET posx = 880.4, posy = 499.5, width = 25.0, height = 54.0, description = 'Pasillo Acero 13' WHERE code = 'PB-ACE-13';");
-            jdbcTemplate.update("UPDATE shelves SET posx = 880.4, posy = 440.2, width = 25.0, height = 54.0, description = 'Pasillo Acero 14' WHERE code = 'PB-ACE-14';");
-            jdbcTemplate.update("UPDATE shelves SET posx = 880.4, posy = 381.3, width = 25.0, height = 54.0, description = 'Pasillo Acero 15' WHERE code = 'PB-ACE-15';");
-            jdbcTemplate.update("UPDATE shelves SET posx = 880.4, posy = 321.3, width = 25.0, height = 54.0, description = 'Pasillo Acero 16' WHERE code = 'PB-ACE-16';");
-            jdbcTemplate.update("UPDATE shelves SET posx = 880.4, posy = 261.6, width = 25.0, height = 54.0, description = 'Pasillo Acero 17' WHERE code = 'PB-ACE-17';");
-            jdbcTemplate.update("UPDATE shelves SET posx = 880.4, posy = 203.4, width = 25.0, height = 54.0, description = 'Pasillo Acero 18' WHERE code = 'PB-ACE-18';");
+            // Canonical blueprint definitions for all 19 Acero shelves (Planta Baja)
+            String[][] canonicalAcero = {
+                {"PB-ACE-01", "810.0", "104.0", "95.4", "34.0", "Acero 1 - Fondo Pasillo"},
+                {"PB-ACE-02", "810.0", "144.0", "25.0", "54.0", "Pasillo Acero 2"},
+                {"PB-ACE-03", "810.0", "203.4", "25.0", "54.0", "Pasillo Acero 3"},
+                {"PB-ACE-04", "810.0", "263.1", "25.0", "54.0", "Pasillo Acero 4"},
+                {"PB-ACE-05", "810.0", "321.8", "25.0", "54.0", "Pasillo Acero 5"},
+                {"PB-ACE-06", "810.0", "381.3", "25.0", "54.0", "Pasillo Acero 6"},
+                {"PB-ACE-07", "810.0", "440.2", "25.0", "54.0", "Pasillo Acero 7"},
+                {"PB-ACE-08", "810.0", "499.5", "25.0", "54.0", "Pasillo Acero 8"},
+                {"PB-ACE-09", "810.0", "558.9", "25.0", "54.0", "Pasillo Acero 9"},
+                {"PB-ACE-10", "810.0", "618.3", "25.0", "54.0", "Pasillo Acero 10"},
+                {"PB-ACE-11", "880.4", "618.3", "25.0", "54.0", "Pasillo Acero 11"},
+                {"PB-ACE-12", "880.4", "558.9", "25.0", "54.0", "Pasillo Acero 12"},
+                {"PB-ACE-13", "880.4", "499.5", "25.0", "54.0", "Pasillo Acero 13"},
+                {"PB-ACE-14", "880.4", "440.2", "25.0", "54.0", "Pasillo Acero 14"},
+                {"PB-ACE-15", "880.4", "381.3", "25.0", "54.0", "Pasillo Acero 15"},
+                {"PB-ACE-16", "880.4", "321.3", "25.0", "54.0", "Pasillo Acero 16"},
+                {"PB-ACE-17", "880.4", "261.6", "25.0", "54.0", "Pasillo Acero 17"},
+                {"PB-ACE-18", "880.4", "203.4", "25.0", "54.0", "Pasillo Acero 18"},
+                {"PB-ACE-19", "880.4", "144.0", "25.0", "54.0", "Pasillo Acero 19"}
+            };
 
-            // Ensure PB-ACE-19 exists
-            List<Map<String, Object>> r19 = jdbcTemplate.queryForList("SELECT id FROM shelves WHERE code = 'PB-ACE-19'");
-            if (r19.isEmpty()) {
-                jdbcTemplate.update("INSERT INTO shelves (code, zone, description, warehouse_code, plant, posx, posy, width, height, active) VALUES ('PB-ACE-19', 'Acero', 'Pasillo Acero 19', '1', 'Planta Baja', 880.4, 144.0, 25.0, 54.0, 1)");
-                Long sId = jdbcTemplate.queryForObject("SELECT id FROM shelves WHERE code = 'PB-ACE-19'", Long.class);
-                List<Long> sessionIds = jdbcTemplate.queryForList("SELECT id FROM inventory_sessions", Long.class);
-                for (Long sIdSess : sessionIds) {
-                    jdbcTemplate.update("INSERT INTO shelf_assignments (session_id, shelf_id, status) VALUES (?, ?, 'PENDIENTE')", sIdSess, sId);
+            Set<String> canonicalCodes = new LinkedHashSet<>();
+            for (String[] row : canonicalAcero) {
+                canonicalCodes.add(row[0]);
+            }
+
+            // 1. Inspect all existing Acero shelves in Planta Baja (including inactive or accidentally renamed)
+            List<Map<String, Object>> existingAcero = jdbcTemplate.queryForList(
+                "SELECT id, code, posy FROM shelves WHERE UPPER(TRIM(plant)) = 'PLANTA BAJA' AND (UPPER(TRIM(code)) LIKE 'PB-ACE%' OR UPPER(TRIM(zone)) LIKE '%ACERO%')"
+            );
+            Set<String> presentCanonical = new HashSet<>();
+            List<Map<String, Object>> nonCanonical = new ArrayList<>();
+            for (Map<String, Object> r : existingAcero) {
+                String rawCode = r.get("code") == null ? "" : r.get("code").toString();
+                String norm = rawCode.trim().toUpperCase();
+                if (canonicalCodes.contains(norm)) {
+                    presentCanonical.add(norm);
+                    if (!rawCode.equals(norm)) {
+                        jdbcTemplate.update("UPDATE shelves SET code = ? WHERE id = ?", norm, r.get("id"));
+                    }
+                } else {
+                    nonCanonical.add(r);
                 }
-            } else {
-                jdbcTemplate.update("UPDATE shelves SET posx = 880.4, posy = 144.0, width = 25.0, height = 54.0, description = 'Pasillo Acero 19' WHERE code = 'PB-ACE-19'");
+            }
+
+            // 2. Recover any accidentally renamed Acero shelf (e.g. PB-ACE-1 or PB-ACE-9) back to its missing canonical code without losing counts
+            List<String> missingCanonical = new ArrayList<>();
+            for (String c : canonicalCodes) {
+                if (!presentCanonical.contains(c)) {
+                    missingCanonical.add(c);
+                }
+            }
+            if (!missingCanonical.isEmpty() && !nonCanonical.isEmpty()) {
+                for (Map<String, Object> orphan : nonCanonical) {
+                    if (missingCanonical.isEmpty()) break;
+                    String raw = orphan.get("code") == null ? "" : orphan.get("code").toString().trim().toUpperCase();
+                    String target = null;
+                    // Direct numeric match first (e.g. PB-ACE-9 -> PB-ACE-09, PB-ACE-1 -> PB-ACE-10 if missing)
+                    String digits = raw.replaceAll("[^0-9]", "");
+                    if (!digits.isEmpty()) {
+                        String padded = "PB-ACE-" + (digits.length() == 1 ? "0" + digits : digits);
+                        if (missingCanonical.contains(padded)) {
+                            target = padded;
+                        } else if ("1".equals(digits) && missingCanonical.contains("PB-ACE-10")) {
+                            target = "PB-ACE-10";
+                        }
+                    }
+                    if (target == null) {
+                        target = missingCanonical.get(0);
+                    }
+                    jdbcTemplate.update("UPDATE shelves SET code = ?, zone = 'Acero', plant = 'Planta Baja', active = 1 WHERE id = ?", target, orphan.get("id"));
+                    missingCanonical.remove(target);
+                    presentCanonical.add(target);
+                }
+            }
+
+            // 3. Ensure every single canonical Acero shelf (PB-ACE-01..PB-ACE-19) exists, is active, has exact coordinates, and has session assignments
+            List<Long> allSessionIds = jdbcTemplate.queryForList("SELECT id FROM inventory_sessions", Long.class);
+            for (String[] row : canonicalAcero) {
+                String code = row[0];
+                double px = Double.parseDouble(row[1]);
+                double py = Double.parseDouble(row[2]);
+                double w = Double.parseDouble(row[3]);
+                double h = Double.parseDouble(row[4]);
+                String desc = row[5];
+
+                List<Map<String, Object>> found = jdbcTemplate.queryForList("SELECT id FROM shelves WHERE UPPER(TRIM(code)) = ?", code);
+                Long shelfId;
+                if (found.isEmpty()) {
+                    jdbcTemplate.update(
+                        "INSERT INTO shelves (code, zone, description, warehouse_code, plant, posx, posy, width, height, active) VALUES (?, 'Acero', ?, '1', 'Planta Baja', ?, ?, ?, ?, 1)",
+                        code, desc, px, py, w, h
+                    );
+                    shelfId = jdbcTemplate.queryForObject("SELECT id FROM shelves WHERE code = ?", Long.class, code);
+                } else {
+                    shelfId = ((Number) found.get(0).get("id")).longValue();
+                    jdbcTemplate.update(
+                        "UPDATE shelves SET code = ?, zone = 'Acero', plant = 'Planta Baja', posx = ?, posy = ?, width = ?, height = ?, description = ?, active = 1 WHERE id = ?",
+                        code, px, py, w, h, desc, shelfId
+                    );
+                }
+
+                if (shelfId != null) {
+                    for (Long sessId : allSessionIds) {
+                        Integer existsAssign = jdbcTemplate.queryForObject(
+                            "SELECT COUNT(*) FROM shelf_assignments WHERE session_id = ? AND shelf_id = ?",
+                            Integer.class, sessId, shelfId
+                        );
+                        if (existsAssign == null || existsAssign == 0) {
+                            jdbcTemplate.update(
+                                "INSERT INTO shelf_assignments (session_id, shelf_id, status) VALUES (?, ?, 'PENDIENTE')",
+                                sessId, shelfId
+                            );
+                        }
+                    }
+                }
             }
 
             // Parker Inox - Horizontal Rack at North Wall (Only PB-INOX-01 exists!)
             jdbcTemplate.update("UPDATE shelves SET posx = 1258.0, posy = 96.0, width = 68.0, height = 42.0, zone = 'Parker Inox', description = 'Parker Inox - Muro Norte', active = 1 WHERE code = 'PB-INOX-01';");
-            // Permanently purge any PB-INOX-02..06, old unused racks, TUB/MAN zones or Planta 1 dummy racks
-            jdbcTemplate.update("DELETE FROM shelf_assignments WHERE shelf_id IN (SELECT id FROM shelves WHERE code IN ('PB-INOX-02', 'PB-INOX-03', 'PB-INOX-04', 'PB-INOX-05', 'PB-INOX-06', 'PB-CHID-A06', 'PB-CHID-B06', 'PB-TUB-01', 'PB-MAN-01') OR active = 0 OR plant = 'Planta 1' OR plant = '1');");
-            jdbcTemplate.update("DELETE FROM shelves WHERE code IN ('PB-INOX-02', 'PB-INOX-03', 'PB-INOX-04', 'PB-INOX-05', 'PB-INOX-06', 'PB-CHID-A06', 'PB-CHID-B06', 'PB-TUB-01', 'PB-MAN-01') OR active = 0 OR plant = 'Planta 1' OR plant = '1';");
+            // Purge only explicitly obsolete dummy racks that have ZERO count records (never touch real shelves)
+            jdbcTemplate.update("DELETE FROM shelf_assignments WHERE shelf_id IN (SELECT id FROM shelves WHERE (code IN ('PB-INOX-02', 'PB-INOX-03', 'PB-INOX-04', 'PB-INOX-05', 'PB-INOX-06', 'PB-CHID-A06', 'PB-CHID-B06', 'PB-TUB-01', 'PB-MAN-01', 'PA-DOC-01') OR plant = 'Planta 1' OR plant = '1') AND id NOT IN (SELECT DISTINCT shelf_id FROM count_records));");
+            jdbcTemplate.update("DELETE FROM shelves WHERE (code IN ('PB-INOX-02', 'PB-INOX-03', 'PB-INOX-04', 'PB-INOX-05', 'PB-INOX-06', 'PB-CHID-A06', 'PB-CHID-B06', 'PB-TUB-01', 'PB-MAN-01', 'PA-DOC-01') OR plant = 'Planta 1' OR plant = '1') AND id NOT IN (SELECT DISTINCT shelf_id FROM count_records);");
 
             // Dixon - Level 1 of Vertical Column
             jdbcTemplate.update("UPDATE shelves SET posx = 1195.1, posy = 141.8, width = 25.0, height = 54.0, zone = 'Dixon', description = 'Dixon Bahía 1', active = 1 WHERE code = 'PB-DIX-01';");

@@ -727,6 +727,26 @@ export interface SectionStat {
                   Completo
                 </span>
               </div>
+
+              <button
+                type="button"
+                class="sec-explore-btn"
+                (click)="openFamilyExplorer($event, sec)"
+                [title]="'Abrir pestaña con todos los códigos y materiales de ' + sec.name"
+              >
+                <span class="sec-explore-left">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <line x1="8" y1="6" x2="21" y2="6"></line>
+                    <line x1="8" y1="12" x2="21" y2="12"></line>
+                    <line x1="8" y1="18" x2="21" y2="18"></line>
+                    <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                    <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                    <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                  </svg>
+                  <span>Ver códigos de {{ sec.name }}</span>
+                </span>
+                <span class="sec-explore-arrow">&rarr;</span>
+              </button>
             </div>
           </div>
         </aside>
@@ -1073,6 +1093,320 @@ export interface SectionStat {
               <button class="btn btn-primary" (click)="goToCapture(inspectedShelf)">
                 Abrir Cédula &rarr;
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal / Pestaña: Explorador Completo de Códigos por Familia -->
+      <div class="modal-backdrop" *ngIf="activeFamilyExplorer() as fam" (click)="closeFamilyExplorer()">
+        <div class="modal-box family-explorer-modal" (click)="$event.stopPropagation()">
+          <!-- Explorer Header -->
+          <div class="fam-explorer-header">
+            <div class="fam-header-left">
+              <div class="font-xs text-muted uppercase">
+                EXPLORADOR DE FAMILIA &bull; {{ selectedPlant() }}
+              </div>
+              <div class="fam-title-row">
+                <span class="fam-color-dot" [style.background-color]="fam.color"></span>
+                <h2 class="fam-modal-title">{{ fam.name }}</h2>
+                <span class="fam-pct-badge mono" [class.pct-complete]="fam.percentage === 100">
+                  {{ fam.completedShelves }} / {{ fam.totalShelves }} anaqueles ({{ fam.percentage }}%)
+                </span>
+              </div>
+            </div>
+
+            <div class="fam-header-actions">
+              <div class="compact-kpi-strip">
+                <div class="c-kpi">
+                  <span class="c-kpi-lbl">Partidas</span>
+                  <span class="c-kpi-val mono">{{ familyCounts().length | number:'1.0-0' }}</span>
+                </div>
+                <div class="c-kpi">
+                  <span class="c-kpi-lbl">Códigos Únicos</span>
+                  <span class="c-kpi-val mono">{{ familyUniqueCodeCount() | number:'1.0-0' }}</span>
+                </div>
+                <div class="c-kpi">
+                  <span class="c-kpi-lbl">Piezas Totales</span>
+                  <span class="c-kpi-val mono text-primary-brand">{{ familyTotalPieces() | number:'1.0-2' }}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline"
+                (click)="exportFamilyCsv(fam)"
+                [disabled]="filteredFamilyCounts().length === 0"
+                title="Descargar listado de esta familia en formato CSV para Excel"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Exportar CSV
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline"
+                (click)="refreshFamilyCounts()"
+                [disabled]="loadingFamilyCounts()"
+                title="Actualizar datos desde el servidor"
+              >
+                Actualizar
+              </button>
+              <button type="button" class="modal-close-icon-btn" (click)="closeFamilyExplorer()" title="Cerrar pestaña">✕</button>
+            </div>
+          </div>
+
+          <!-- Family Switcher Tabs Ribbon (Permite brincar entre Acero, Kuriyama, YPC, Dixon, etc.) -->
+          <div class="fam-tabs-ribbon">
+            <button
+              type="button"
+              *ngFor="let tab of sectionsProgress()"
+              class="fam-tab-btn"
+              [class.active]="fam.id === tab.id"
+              [style.--tab-color]="tab.color"
+              (click)="switchFamilyTab(tab)"
+            >
+              <span class="fam-tab-dot" [style.background-color]="tab.color"></span>
+              <span>{{ tab.name }}</span>
+              <span class="fam-tab-count mono">{{ tab.totalPieces | number:'1.0-0' }}p</span>
+            </button>
+          </div>
+
+          <!-- Filter & View Mode Toolbar -->
+          <div class="fam-toolbar">
+            <div class="fam-search-wrap">
+              <input
+                type="text"
+                class="input input-sm mono"
+                [ngModel]="familySearchQuery()"
+                (ngModelChange)="familySearchQuery.set($event)"
+                placeholder="Buscar clave, código, descripción o anaquel..."
+              />
+              <button *ngIf="familySearchQuery()" type="button" class="btn-clear-mat-search" (click)="familySearchQuery.set('')">✕</button>
+            </div>
+
+            <select
+              class="select select-sm fam-shelf-select mono"
+              [ngModel]="familyShelfFilter()"
+              (ngModelChange)="familyShelfFilter.set($event)"
+              title="Filtrar por un anaquel específico de esta familia"
+            >
+              <option value="TODOS">Todos los anaqueles ({{ familyShelves().length }})</option>
+              <option *ngFor="let sh of familyShelves()" [value]="sh.shelfCode">
+                {{ sh.shelfCode }} ({{ sh.totalPieces | number:'1.0-0' }} pzas)
+              </option>
+            </select>
+
+            <div class="fam-view-toggle">
+              <button
+                type="button"
+                class="fam-view-btn"
+                [class.active]="familyViewMode() === 'DETALLE'"
+                (click)="familyViewMode.set('DETALLE')"
+                title="Ver cada partida con su anaquel y asignación rápida de nivel A-F"
+              >
+                Por Anaquel ({{ filteredFamilyCounts().length }})
+              </button>
+              <button
+                type="button"
+                class="fam-view-btn"
+                [class.active]="familyViewMode() === 'CONSOLIDADO'"
+                (click)="familyViewMode.set('CONSOLIDADO')"
+                title="Sumar existencias totales por código único en toda esta familia"
+              >
+                Consolidado ({{ consolidatedFamilyCounts().length }})
+              </button>
+            </div>
+          </div>
+
+          <!-- Level Filter Strip (only in Detail mode) -->
+          <div class="fam-level-strip" *ngIf="familyViewMode() === 'DETALLE'">
+            <span class="fam-strip-lbl">Filtrar Nivel:</span>
+            <button
+              type="button"
+              class="lvl-pill-btn"
+              [class.active]="familyLevelFilter() === 'TODOS'"
+              (click)="familyLevelFilter.set('TODOS')"
+            >
+              Todos ({{ familyCounts().length }})
+            </button>
+            <button
+              type="button"
+              *ngFor="let lvl of rackLevels"
+              class="lvl-pill-btn mono"
+              [class.active]="familyLevelFilter() === lvl"
+              [class.has-items]="getFamilyLevelCount(lvl) > 0"
+              (click)="familyLevelFilter.set(familyLevelFilter() === lvl ? 'TODOS' : lvl)"
+            >
+              Nivel {{ lvl }} ({{ getFamilyLevelCount(lvl) }})
+            </button>
+            <button
+              type="button"
+              class="lvl-pill-btn unassigned-pill"
+              [class.active]="familyLevelFilter() === 'SIN_NIVEL'"
+              (click)="familyLevelFilter.set(familyLevelFilter() === 'SIN_NIVEL' ? 'TODOS' : 'SIN_NIVEL')"
+            >
+              Sin Nivel ({{ getFamilyLevelCount('SIN_NIVEL') }})
+            </button>
+          </div>
+
+          <!-- Data Table Container -->
+          <div class="fam-table-scroll">
+            <div *ngIf="loadingFamilyCounts()" class="materials-empty-box">
+              Cargando catálogo completo de {{ fam.name }}...
+            </div>
+
+            <!-- DETALLE VIEW (Por Partida / Anaquel) -->
+            <ng-container *ngIf="!loadingFamilyCounts() && familyViewMode() === 'DETALLE'">
+              <div *ngIf="filteredFamilyCounts().length === 0" class="materials-empty-box">
+                <ng-container *ngIf="familyCounts().length === 0">
+                  Aún no hay códigos contabilizados en los anaqueles de <strong>{{ fam.name }}</strong>.
+                </ng-container>
+                <ng-container *ngIf="familyCounts().length > 0">
+                  No se encontraron coincidencias con los filtros actuales.
+                </ng-container>
+              </div>
+
+              <table *ngIf="filteredFamilyCounts().length > 0" class="materials-assign-table fam-table">
+                <thead>
+                  <tr>
+                    <th class="fam-th-shelf">Anaquel</th>
+                    <th class="fam-th-sec text-center">Nivel</th>
+                    <th class="fam-th-code">Código / Clave Material</th>
+                    <th class="fam-th-qty text-right">Piezas</th>
+                    <th class="fam-th-assign text-center">Asignar Nivel (A-F)</th>
+                    <th class="fam-th-act text-center">Ir</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of visibleFamilyCounts()">
+                    <td class="fam-td-shelf">
+                      <button
+                        type="button"
+                        class="fam-shelf-link mono"
+                        (click)="openShelfFromFamilyExplorer(item.shelfId)"
+                        title="Abrir croquis visual A-F de este anaquel"
+                      >
+                        {{ item.shelfCode }}
+                      </button>
+                    </td>
+                    <td class="text-center">
+                      <span *ngIf="item.section" class="badge-level-chip mono" [ngClass]="'level-chip-' + item.section.toLowerCase()">
+                        {{ item.section }}
+                      </span>
+                      <span *ngIf="!item.section" class="badge-level-unassigned">--</span>
+                    </td>
+                    <td class="mat-td-code mono fw-700">
+                      {{ item.capturedCode }}
+                      <span *ngIf="item.description" class="mat-item-notes">{{ item.description }}</span>
+                    </td>
+                    <td class="mat-td-qty text-right mono fw-700">
+                      {{ item.quantity | number:'1.0-2' }}
+                    </td>
+                    <td class="text-center">
+                      <div class="quick-level-buttons">
+                        <button
+                          *ngFor="let btnLvl of rackLevels"
+                          type="button"
+                          class="quick-lvl-btn mono"
+                          [class.btn-active-lvl]="item.section === btnLvl"
+                          [disabled]="updatingRecordId() === item.id"
+                          (click)="assignSectionFromFamilyExplorer(item, btnLvl)"
+                          [title]="'Asignar al Nivel ' + btnLvl"
+                        >
+                          {{ btnLvl }}
+                        </button>
+                        <button
+                          *ngIf="item.section"
+                          type="button"
+                          class="quick-lvl-clear-btn"
+                          [disabled]="updatingRecordId() === item.id"
+                          (click)="assignSectionFromFamilyExplorer(item, '')"
+                          title="Quitar nivel"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </td>
+                    <td class="text-center">
+                      <button
+                        type="button"
+                        class="btn btn-xs btn-outline"
+                        (click)="goToCaptureById(item.shelfId)"
+                        title="Abrir Cédula de Conteo de este anaquel"
+                      >
+                        Cédula
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="fam-load-more" *ngIf="filteredFamilyCounts().length > familyDisplayLimit()">
+                <span>Mostrando {{ familyDisplayLimit() }} de {{ filteredFamilyCounts().length }} partidas</span>
+                <button type="button" class="btn btn-sm btn-outline" (click)="familyDisplayLimit.set(familyDisplayLimit() + 250)">
+                  Cargar +250
+                </button>
+                <button type="button" class="btn btn-sm btn-primary" (click)="familyDisplayLimit.set(filteredFamilyCounts().length)">
+                  Mostrar todas ({{ filteredFamilyCounts().length }})
+                </button>
+              </div>
+            </ng-container>
+
+            <!-- CONSOLIDADO VIEW (Sumado por Código Único) -->
+            <ng-container *ngIf="!loadingFamilyCounts() && familyViewMode() === 'CONSOLIDADO'">
+              <div *ngIf="consolidatedFamilyCounts().length === 0" class="materials-empty-box">
+                No hay códigos consolidados para los filtros seleccionados.
+              </div>
+
+              <table *ngIf="consolidatedFamilyCounts().length > 0" class="materials-assign-table fam-table">
+                <thead>
+                  <tr>
+                    <th class="fam-th-code">Código / Clave Material</th>
+                    <th class="fam-th-locations">Ubicación (Anaqueles y Niveles)</th>
+                    <th class="fam-th-qty text-right">Total Piezas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of visibleConsolidatedCounts()">
+                    <td class="mat-td-code mono fw-700">
+                      {{ row.code }}
+                      <span *ngIf="row.description" class="mat-item-notes">{{ row.description }}</span>
+                    </td>
+                    <td>
+                      <div class="fam-loc-chips">
+                        <button
+                          type="button"
+                          *ngFor="let loc of row.locations"
+                          class="fam-loc-chip mono"
+                          (click)="openShelfFromFamilyExplorer(loc.shelfId)"
+                          [title]="'Abrir anaquel ' + loc.shelfCode"
+                        >
+                          {{ loc.shelfCode }}<span *ngIf="loc.section" class="loc-sec-tag"> &middot; {{ loc.section }}</span> ({{ loc.qty | number:'1.0-0' }})
+                        </button>
+                      </div>
+                    </td>
+                    <td class="mat-td-qty text-right mono fw-700">
+                      {{ row.totalQty | number:'1.0-2' }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="fam-load-more" *ngIf="consolidatedFamilyCounts().length > familyDisplayLimit()">
+                <span>Mostrando {{ familyDisplayLimit() }} de {{ consolidatedFamilyCounts().length }} códigos únicos</span>
+                <button type="button" class="btn btn-sm btn-primary" (click)="familyDisplayLimit.set(consolidatedFamilyCounts().length)">
+                  Mostrar todos ({{ consolidatedFamilyCounts().length }})
+                </button>
+              </div>
+            </ng-container>
+          </div>
+
+          <!-- Explorer Footer -->
+          <div class="modal-footer-advanced">
+            <div class="footer-left-group font-xs text-muted">
+              <span>Mostrando <strong>{{ familyViewMode() === 'DETALLE' ? filteredFamilyCounts().length : consolidatedFamilyCounts().length }}</strong> registros &bull; Haz clic en cualquier anaquel para ver su plano físico A-F.</span>
+            </div>
+            <div class="footer-right-group">
+              <button type="button" class="btn btn-secondary" (click)="closeFamilyExplorer()">Volver al Croquis</button>
             </div>
           </div>
         </div>
@@ -2044,11 +2378,15 @@ export interface SectionStat {
     }
     .narrow-qty-text {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.55rem;
+      font-size: 0.44rem;
       font-weight: 800;
       line-height: 1;
+      letter-spacing: -0.06em;
       margin-bottom: 2px;
       color: #0a2472;
+      max-width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
     }
 
     /* Slanted East Wall Shelves (Parker Inox & Sellos Muro Este: -7.8° parallel to angled blueprint wall) */
@@ -2838,6 +3176,282 @@ export interface SectionStat {
     .quick-lvl-clear-btn:hover {
       color: #dc2626;
     }
+
+    /* =========================================================================
+       PER-FAMILY EXPLORE BUTTON & TABBED FAMILY CODES EXPLORER MODAL
+       ========================================================================= */
+    .sec-explore-btn {
+      margin-top: 6px;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 5px 8px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #1e3a8a;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.14s ease;
+    }
+    .sec-explore-btn:hover {
+      background: #eff6ff;
+      border-color: var(--sec-accent, #2563eb);
+      color: #0a2472;
+      transform: translateY(-1px);
+    }
+    .sec-explore-left {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .sec-explore-arrow {
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .family-explorer-modal {
+      max-width: 1180px !important;
+      width: 96vw;
+      max-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      padding: 1.25rem 1.5rem;
+      gap: 0.85rem;
+      overflow: hidden;
+    }
+
+    .fam-explorer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 0.75rem;
+    }
+    .fam-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 2px;
+    }
+    .fam-color-dot {
+      width: 13px;
+      height: 13px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .fam-modal-title {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #0a2472;
+    }
+    .fam-pct-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 999px;
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+    }
+    .fam-pct-badge.pct-complete {
+      background: #ecfdf5;
+      color: #047857;
+      border-color: #a7f3d0;
+    }
+    .fam-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Family Switcher Tabs Ribbon */
+    .fam-tabs-ribbon {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: thin;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .fam-tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      font-size: 0.76rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.14s ease;
+    }
+    .fam-tab-btn:hover {
+      background: #eff6ff;
+      border-color: var(--tab-color, #2563eb);
+    }
+    .fam-tab-btn.active {
+      background: #0a2472;
+      color: #ffffff;
+      border-color: #0a2472;
+      box-shadow: 0 2px 6px rgba(10, 36, 114, 0.28);
+    }
+    .fam-tab-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .fam-tab-count {
+      font-size: 0.68rem;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(15, 23, 42, 0.08);
+    }
+    .fam-tab-btn.active .fam-tab-count {
+      background: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+    }
+
+    .fam-toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .fam-search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 220px;
+    }
+    .fam-shelf-select {
+      width: auto;
+      min-width: 230px;
+      max-width: 280px;
+    }
+    .fam-view-toggle {
+      display: inline-flex;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .fam-view-btn {
+      border: none;
+      background: transparent;
+      color: #475569;
+      font-size: 0.76rem;
+      font-weight: 700;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .fam-view-btn.active {
+      background: #ffffff;
+      color: #0a2472;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+    }
+
+    .fam-level-strip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .fam-strip-lbl {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #64748b;
+      margin-right: 4px;
+    }
+
+    .fam-table-scroll {
+      flex: 1;
+      min-height: 240px;
+      max-height: 52vh;
+      overflow-y: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #ffffff;
+      scrollbar-width: thin;
+    }
+    .fam-th-shelf { width: 120px; text-align: left; }
+    .fam-th-sec { width: 65px; }
+    .fam-th-code { text-align: left; }
+    .fam-th-qty { width: 100px; }
+    .fam-th-assign { width: 195px; }
+    .fam-th-act { width: 80px; }
+    .fam-th-locations { text-align: left; }
+
+    .fam-shelf-link {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      border-radius: 5px;
+      padding: 2px 7px;
+      font-size: 0.76rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .fam-shelf-link:hover {
+      background: #1d4ed8;
+      color: #ffffff;
+      border-color: #1d4ed8;
+    }
+
+    .fam-loc-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .fam-loc-chip {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      color: #1e293b;
+      border-radius: 5px;
+      padding: 2px 7px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .fam-loc-chip:hover {
+      background: #eff6ff;
+      border-color: #2563eb;
+      color: #1d4ed8;
+    }
+    .loc-sec-tag {
+      color: #0284c7;
+      font-weight: 800;
+    }
+
+    .fam-load-more {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      font-size: 0.8rem;
+      color: #475569;
+    }
   `]
 })
 export class CroquisComponent implements OnInit {
@@ -2902,6 +3516,132 @@ export class CroquisComponent implements OnInit {
       );
     }
     return list;
+  });
+
+  // Tabbed Family Codes Explorer State (Ver todos los códigos por familia: Acero, Kuriyama, YPC, etc.)
+  activeFamilyExplorer = signal<SectionStat | null>(null);
+  allSessionCounts = signal<CountRecordDto[]>([]);
+  loadingFamilyCounts = signal<boolean>(false);
+  familySearchQuery = signal<string>('');
+  familyShelfFilter = signal<string>('TODOS');
+  familyLevelFilter = signal<string>('TODOS');
+  familyViewMode = signal<'DETALLE' | 'CONSOLIDADO'>('DETALLE');
+  familyDisplayLimit = signal<number>(150);
+
+  familyShelves = computed(() => {
+    const fam = this.activeFamilyExplorer();
+    if (!fam) return [];
+    return this.plantShelves()
+      .filter(s => this.getSectionType(s) === fam.id)
+      .sort((a, b) => a.shelfCode.localeCompare(b.shelfCode, undefined, { numeric: true }));
+  });
+
+  familyCounts = computed(() => {
+    const fam = this.activeFamilyExplorer();
+    if (!fam) return [];
+    const allowedShelfIds = new Set(this.familyShelves().map(s => s.shelfId));
+    return this.allSessionCounts()
+      .filter(r => allowedShelfIds.has(r.shelfId))
+      .sort((a, b) => {
+        const shCmp = (a.shelfCode || '').localeCompare(b.shelfCode || '', undefined, { numeric: true });
+        if (shCmp !== 0) return shCmp;
+        const secCmp = (a.section || 'ZZ').localeCompare(b.section || 'ZZ');
+        if (secCmp !== 0) return secCmp;
+        return (a.capturedCode || '').localeCompare(b.capturedCode || '');
+      });
+  });
+
+  familyTotalPieces = computed(() => {
+    return this.familyCounts().reduce((sum, r) => sum + (r.quantity || 0), 0);
+  });
+
+  familyUniqueCodeCount = computed(() => {
+    const set = new Set<string>();
+    for (const r of this.familyCounts()) {
+      if (r.capturedCode) set.add(r.capturedCode.trim().toUpperCase());
+    }
+    return set.size;
+  });
+
+  filteredFamilyCounts = computed(() => {
+    let list = this.familyCounts();
+    const shFilter = this.familyShelfFilter();
+    if (shFilter !== 'TODOS') {
+      list = list.filter(r => r.shelfCode === shFilter);
+    }
+
+    const lvlFilter = this.familyLevelFilter();
+    if (lvlFilter === 'SIN_NIVEL') {
+      list = list.filter(r => !r.section || !r.section.trim());
+    } else if (lvlFilter !== 'TODOS') {
+      list = list.filter(r => r.section && r.section.toUpperCase() === lvlFilter);
+    }
+
+    const q = this.familySearchQuery().trim().toLowerCase();
+    if (q) {
+      list = list.filter(r =>
+        (r.capturedCode || '').toLowerCase().includes(q) ||
+        (r.description || '').toLowerCase().includes(q) ||
+        (r.shelfCode || '').toLowerCase().includes(q) ||
+        (r.notes || '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  });
+
+  visibleFamilyCounts = computed(() => {
+    return this.filteredFamilyCounts().slice(0, this.familyDisplayLimit());
+  });
+
+  consolidatedFamilyCounts = computed(() => {
+    let list = this.familyCounts();
+    const shFilter = this.familyShelfFilter();
+    if (shFilter !== 'TODOS') {
+      list = list.filter(r => r.shelfCode === shFilter);
+    }
+    const q = this.familySearchQuery().trim().toLowerCase();
+    if (q) {
+      list = list.filter(r =>
+        (r.capturedCode || '').toLowerCase().includes(q) ||
+        (r.description || '').toLowerCase().includes(q) ||
+        (r.shelfCode || '').toLowerCase().includes(q)
+      );
+    }
+
+    const map = new Map<string, {
+      code: string;
+      description: string;
+      totalQty: number;
+      locations: Array<{ shelfId: number; shelfCode: string; section: string; qty: number }>;
+    }>();
+
+    for (const r of list) {
+      const key = (r.capturedCode || '').trim().toUpperCase();
+      if (!key) continue;
+      if (!map.has(key)) {
+        map.set(key, {
+          code: key,
+          description: r.description || '',
+          totalQty: 0,
+          locations: []
+        });
+      }
+      const entry = map.get(key)!;
+      entry.totalQty += (r.quantity || 0);
+      if (!entry.description && r.description) entry.description = r.description;
+      entry.locations.push({
+        shelfId: r.shelfId,
+        shelfCode: r.shelfCode,
+        section: r.section || '',
+        qty: r.quantity || 0
+      });
+    }
+
+    return Array.from(map.values()).sort((a, b) => a.code.localeCompare(b.code));
+  });
+
+  visibleConsolidatedCounts = computed(() => {
+    return this.consolidatedFamilyCounts().slice(0, this.familyDisplayLimit());
   });
 
   // Shelf Editing Modal State
@@ -3821,5 +4561,147 @@ export class CroquisComponent implements OnInit {
         shelfCode: shelf ? shelf.shelfCode : undefined
       }
     });
+  }
+
+  // =========================================================================
+  // FAMILY CODES EXPLORER METHODS (Pestaña de Códigos por Familia)
+  // =========================================================================
+  openFamilyExplorer(event: MouseEvent, sec: SectionStat) {
+    event.stopPropagation();
+    if (this.sessions().length === 0 || this.activeSessionId() === 0) {
+      this.toast.warning('No hay inventario activo todavía.');
+      return;
+    }
+    this.activeFamilyExplorer.set(sec);
+    this.familySearchQuery.set('');
+    this.familyShelfFilter.set('TODOS');
+    this.familyLevelFilter.set('TODOS');
+    this.familyViewMode.set('DETALLE');
+    this.familyDisplayLimit.set(150);
+    this.refreshFamilyCounts();
+  }
+
+  switchFamilyTab(sec: SectionStat) {
+    this.activeFamilyExplorer.set(sec);
+    this.familyShelfFilter.set('TODOS');
+    this.familyLevelFilter.set('TODOS');
+    this.familyDisplayLimit.set(150);
+  }
+
+  closeFamilyExplorer() {
+    this.activeFamilyExplorer.set(null);
+  }
+
+  refreshFamilyCounts() {
+    const sessionId = this.activeSessionId();
+    if (!sessionId || sessionId === 0) return;
+    this.loadingFamilyCounts.set(true);
+    this.api.getCounts(sessionId).subscribe({
+      next: (records) => {
+        this.allSessionCounts.set(records);
+        this.loadingFamilyCounts.set(false);
+      },
+      error: (err: any) => {
+        this.loadingFamilyCounts.set(false);
+        this.toast.error('Error al cargar códigos de la familia: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  getFamilyLevelCount(lvl: string): number {
+    const list = this.familyCounts();
+    if (lvl === 'SIN_NIVEL') {
+      return list.filter(r => !r.section || !r.section.trim()).length;
+    }
+    const clean = lvl.toUpperCase();
+    return list.filter(r => r.section && r.section.toUpperCase() === clean).length;
+  }
+
+  assignSectionFromFamilyExplorer(item: CountRecordDto, section: string) {
+    const cleanSec = section.trim().toUpperCase();
+    if (cleanSec && !/^[A-F]$/.test(cleanSec)) return;
+
+    this.updatingRecordId.set(item.id);
+    this.api.updateCountSection(item.id, cleanSec).subscribe({
+      next: (updated) => {
+        this.updatingRecordId.set(null);
+        item.section = updated.section || '';
+        this.allSessionCounts.update(list => [...list]);
+        this.toast.success(
+          cleanSec
+            ? `Clave ${item.capturedCode} (${item.shelfCode}) asignada al Nivel ${cleanSec}.`
+            : `Nivel de ${item.capturedCode} removido.`
+        );
+      },
+      error: (err: any) => {
+        this.updatingRecordId.set(null);
+        this.toast.error('Error al asignar nivel: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  openShelfFromFamilyExplorer(shelfId: number) {
+    const target = this.allShelves().find(s => s.shelfId === shelfId);
+    if (!target) return;
+    this.activeFamilyExplorer.set(null);
+    this.inspectedShelf = target;
+    this.selectedLevelFilter.set('TODOS');
+    this.shelfMaterialSearch.set('');
+    this.loadInspectedShelfMaterials(target.shelfId);
+  }
+
+  goToCaptureById(shelfId: number) {
+    this.activeFamilyExplorer.set(null);
+    this.router.navigate(['/capture'], {
+      queryParams: {
+        sessionId: this.activeSessionId(),
+        shelfId
+      }
+    });
+  }
+
+  exportFamilyCsv(fam: SectionStat) {
+    const mode = this.familyViewMode();
+    const lines: string[] = [];
+    if (mode === 'CONSOLIDADO') {
+      lines.push('FAMILIA,CODIGO,DESCRIPCION,TOTAL_PIEZAS,UBICACIONES');
+      for (const row of this.consolidatedFamilyCounts()) {
+        const locs = row.locations
+          .map(l => `${l.shelfCode}${l.section ? '-' + l.section : ''} (${l.qty})`)
+          .join(' | ');
+        lines.push([
+          `"${fam.name.replace(/"/g, '""')}"`,
+          `"${row.code.replace(/"/g, '""')}"`,
+          `"${(row.description || '').replace(/"/g, '""')}"`,
+          row.totalQty,
+          `"${locs.replace(/"/g, '""')}"`
+        ].join(','));
+      }
+    } else {
+      lines.push('FAMILIA,ANAQUEL,NIVEL,CODIGO,DESCRIPCION,PIEZAS');
+      for (const item of this.filteredFamilyCounts()) {
+        lines.push([
+          `"${fam.name.replace(/"/g, '""')}"`,
+          `"${(item.shelfCode || '').replace(/"/g, '""')}"`,
+          `"${(item.section || '').replace(/"/g, '""')}"`,
+          `"${(item.capturedCode || '').replace(/"/g, '""')}"`,
+          `"${(item.description || '').replace(/"/g, '""')}"`,
+          item.quantity || 0
+        ].join(','));
+      }
+    }
+
+    const csvContent = '\uFEFF' + lines.join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeFam = fam.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+    a.href = url;
+    a.download = `Interflu_Familia_${safeFam}_${mode}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    this.toast.success(`Listado de ${fam.name} exportado a CSV.`);
   }
 }
