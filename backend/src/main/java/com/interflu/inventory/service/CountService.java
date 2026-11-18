@@ -368,11 +368,11 @@ public class CountService {
                     // Aspel SAE 5-column format: ESTATUS, TIPO, CLAVE, ESQ, EXISTENCIA [, NIVEL]
                     codeCol = 2;
                     qtyCol = 4;
-                    if (row.length >= 6 && row[5].trim().matches("(?i)^[A-F]$")) {
+                    if (row.length >= 6 && row[5].trim().matches("(?i)^[A-G]$")) {
                         secCol = 5;
                     }
-                } else if (row.length >= 3 && row[0].trim().matches("(?i)^[A-F]$")) {
-                    // 3-column Nivel format: NIVEL (A-F), CLAVE, CANTIDAD [, ANAQUEL]
+                } else if (row.length >= 3 && row[0].trim().matches("(?i)^[A-G]$")) {
+                    // 3-column Nivel format: NIVEL (A-G), CLAVE, CANTIDAD [, ANAQUEL]
                     secCol = 0;
                     codeCol = 1;
                     qtyCol = 2;
@@ -521,7 +521,7 @@ public class CountService {
         auditService.log(session.getId(), session.getFolio(), user.getUsername(), user.getFullName(),
                 "IMPORTAR_CONTEOS_EXCEL", "CountRecord", null,
                 mode, String.valueOf(importedCount),
-                String.format("Importación (%s): %d partidas (%d nuevas, %d actualizadas, %d con nivel A-F, %.2f pzas) en %d anaqueles desde %s",
+                String.format("Importación (%s): %d partidas (%d nuevas, %d actualizadas, %d con nivel A-G, %.2f pzas) en %d anaqueles desde %s",
                         mode, importedCount, addedRecords, updatedRecords, withSectionCount, totalPiecesImported, affectedShelves.size(), file.getOriginalFilename()));
 
         Map<String, Object> resp = new HashMap<>();
@@ -537,7 +537,7 @@ public class CountService {
     }
 
     /**
-     * Generates a clean, corporate Excel template (.xlsx) with the official Nivel (A-F) column
+     * Generates a clean, corporate Excel template (.xlsx) with the official Nivel (A-G) column
      * and dropdown validation so operators can import directly into visual shelf levels.
      */
     public byte[] generateImportTemplateXlsx() throws Exception {
@@ -581,7 +581,7 @@ public class CountService {
             Object[][] samples = {
                 {"A", "EJEMPLO-REF-01", 15, "PB-ACE-01"},
                 {"B", "EJEMPLO-REF-02", 8, "PB-ACE-01"},
-                {"C", "EJEMPLO-REF-03", 24, "PB-ACE-01"}
+                {"G", "EJEMPLO-REF-03", 24, "PB-ACE-01"}
             };
             for (int r = 0; r < samples.length; r++) {
                 Row row = sheet.createRow(r + 1);
@@ -593,22 +593,22 @@ public class CountService {
                 row.createCell(3).setCellValue((String) samples[r][3]);
             }
 
-            // Excel Dropdown Validation for NIVEL column (A-F) on rows 2..500
+            // Excel Dropdown Validation for NIVEL column (A-G) on rows 2..500
             DataValidationHelper dvHelper = sheet.getDataValidationHelper();
-            DataValidationConstraint dvConstraint = dvHelper.createExplicitListConstraint(new String[]{"A", "B", "C", "D", "E", "F"});
+            DataValidationConstraint dvConstraint = dvHelper.createExplicitListConstraint(new String[]{"A", "B", "C", "D", "E", "F", "G"});
             CellRangeAddressList addressList = new CellRangeAddressList(1, 500, 0, 0);
             DataValidation validation = dvHelper.createValidation(dvConstraint, addressList);
             validation.setShowErrorBox(true);
-            validation.createErrorBox("Nivel no válido", "Solo se permiten letras de nivel A, B, C, D, E o F.");
+            validation.createErrorBox("Nivel no válido", "Solo se permiten letras de nivel A, B, C, D, E, F o G.");
             sheet.addValidationData(validation);
 
             // Instructions Sheet
             Sheet info = wb.createSheet("Instrucciones");
             info.setColumnWidth(0, 95 * 256);
             String[] tips = {
-                "PLANTILLA OFICIAL INTERFLU INVENTORY - IMPORTACION POR NIVEL (A-F)",
+                "PLANTILLA OFICIAL INTERFLU INVENTORY - IMPORTACION POR NIVEL (A-G)",
                 "",
-                "1. Columna NIVEL: Escribe o selecciona una letra de la A (nivel superior) a la F (nivel base). Las minusculas se convierten automaticamente a mayusculas.",
+                "1. Columna NIVEL: Escribe o selecciona una letra de la A (nivel superior) a la G (nivel base). Las minusculas se convierten automaticamente a mayusculas.",
                 "2. Columna CLAVE: Escribe el codigo/SKU exacto del material.",
                 "3. Columna EXISTENCIA FISICA: Escribe la cantidad fisica contada.",
                 "4. Columna ANAQUEL (Opcional): Si importas varios anaqueles en un mismo archivo, escribe el codigo (ej. PB-ACE-09). Si seleccionas el anaquel destino en pantalla, puedes dejar esta columna vacia.",

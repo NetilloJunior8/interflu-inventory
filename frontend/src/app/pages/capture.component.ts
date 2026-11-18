@@ -362,7 +362,7 @@ export interface SheetRow {
             <thead>
               <tr>
                 <th class="th-row-num">#</th>
-                <th class="th-sec" title="Nivel o Sección del Anaquel (A = Superior, B, C, D, E, F = Base)">Nivel (A-F)</th>
+                <th class="th-sec" title="Nivel o Sección del Anaquel (A = Superior, B, C, D, E, F, G = Base)">Nivel (A-G)</th>
                 <th class="th-code">Código / Clave Material</th>
                 <th class="th-qty">Piezas (Físico)</th>
                 <th class="th-status">Estado / Alerta</th>
@@ -379,7 +379,7 @@ export interface SheetRow {
                 <!-- Row Number -->
                 <td class="td-row-num mono">{{ i + 1 }}</td>
 
-                <!-- Section / Level Input Cell (A - F) -->
+                <!-- Section / Level Input Cell (A - G) -->
                 <td class="td-sec">
                   <div class="sec-input-wrap">
                     <input
@@ -393,6 +393,7 @@ export interface SheetRow {
                       [class.sec-badge-d]="row.section === 'D'"
                       [class.sec-badge-e]="row.section === 'E'"
                       [class.sec-badge-f]="row.section === 'F'"
+                      [class.sec-badge-g]="row.section === 'G'"
                       [(ngModel)]="row.section"
                       (focus)="onCellFocus(i, 'sec')"
                       (blur)="onCellBlur(i)"
@@ -400,7 +401,7 @@ export interface SheetRow {
                       (keydown)="onSectionKeyDown($event, i)"
                       [disabled]="!isEditable()"
                       placeholder="-"
-                      title="Nivel de anaquel (solo letras A a F)"
+                      title="Nivel de anaquel (solo letras A a G)"
                       autocomplete="off"
                     />
                   </div>
@@ -655,7 +656,7 @@ export interface SheetRow {
         </div>
       </div>
 
-      <!-- Import Excel Counts File Modal (Smart Nivel A-F & Fluid UX) -->
+      <!-- Import Excel Counts File Modal (Smart Nivel A-G & Fluid UX) -->
       <div class="modal-overlay import-modal-overlay" *ngIf="showImportExcelModal" (click)="closeImportExcelModal()">
         <div class="modal-card import-excel-modal" (click)="$event.stopPropagation()">
           <div class="import-modal-header">
@@ -669,7 +670,7 @@ export interface SheetRow {
                 </svg>
               </div>
               <div>
-                <h3>Importar Excel por Anaquel y Nivel (A-F)</h3>
+                <h3>Importar Excel por Anaquel y Nivel (A-G)</h3>
                 <span class="import-header-sub">Acomoda automáticamente cada código en su nivel físico del croquis</span>
               </div>
             </div>
@@ -684,7 +685,7 @@ export interface SheetRow {
                 <div class="template-banner-info">
                   <span class="hint-title">Columnas reconocidas automáticamente:</span>
                   <div class="format-col-chips mono">
-                    <span class="col-chip col-chip-level">NIVEL (A-F)</span>
+                    <span class="col-chip col-chip-level">NIVEL (A-G)</span>
                     <span class="col-chip">CLAVE</span>
                     <span class="col-chip">EXISTENCIA FÍSICA</span>
                     <span class="col-chip col-chip-opt">ANAQUEL (opc.)</span>
@@ -696,7 +697,7 @@ export interface SheetRow {
                   class="btn btn-sm btn-template-dl"
                   [disabled]="downloadingTemplate()"
                   (click)="downloadExcelTemplate()"
-                  title="Descargar archivo Excel oficial ya configurado con columna Nivel (A-F) desplegable"
+                  title="Descargar archivo Excel oficial ya configurado con columna Nivel (A-G) desplegable"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -734,7 +735,7 @@ export interface SheetRow {
                       <span class="mode-rec-badge">Recomendado</span>
                     </div>
                     <p class="mode-desc">
-                      Sustituye piezas y nivel (A-F) de códigos repetidos, agrega los códigos nuevos y conserva los demás sin borrar nada.
+                      Sustituye piezas y nivel (A-G) de códigos repetidos, agrega los códigos nuevos y conserva los demás sin borrar nada.
                     </p>
                   </button>
 
@@ -829,7 +830,7 @@ export interface SheetRow {
                 </div>
                 <div class="imp-kpi-card">
                   <span class="imp-kpi-val mono text-indigo">{{ res.withSectionCount ?? 0 }}</span>
-                  <span class="imp-kpi-lbl">Con Nivel A-F</span>
+                  <span class="imp-kpi-lbl">Con Nivel A-G</span>
                 </div>
                 <div class="imp-kpi-card">
                   <span class="imp-kpi-val mono">{{ res.totalPieces | number:'1.0-2' }}</span>
@@ -851,7 +852,7 @@ export interface SheetRow {
                   Importar Otro Archivo
                 </button>
                 <a routerLink="/croquis" (click)="closeImportExcelModal()" class="btn btn-sm btn-outline-primary">
-                  Ver en Croquis A-F &rarr;
+                  Ver en Croquis A-G &rarr;
                 </a>
                 <a routerLink="/qr-labels" [queryParams]="{sessionId: selectedSessionId()}" (click)="closeImportExcelModal()" class="btn btn-sm btn-outline">
                   Etiquetas QR
@@ -1383,6 +1384,7 @@ export interface SheetRow {
     .sec-cell-input.sec-badge-d { background: #fffbeb; color: #b45309; border-color: #fcd34d; }
     .sec-cell-input.sec-badge-e { background: #fff7ed; color: #c2410c; border-color: #fdba74; }
     .sec-cell-input.sec-badge-f { background: #fdf2f8; color: #be185d; border-color: #f9a8d4; }
+    .sec-cell-input.sec-badge-g { background: #f3e8ff; color: #6b21a8; border-color: #d8b4fe; }
 
     .th-code { width: 410px; }
     .th-qty { width: 170px; }
@@ -2756,8 +2758,8 @@ export class CaptureComponent implements OnInit {
     const rawVal = inputEl?.value || '';
     const cleaned = rawVal.trim().toUpperCase();
 
-    // Strict validation: Only letters A to F allowed
-    if (/^[A-F]$/.test(cleaned)) {
+    // Strict validation: Only letters A to G allowed
+    if (/^[A-G]$/.test(cleaned)) {
       this.rows()[index].section = cleaned;
       if (inputEl) inputEl.value = cleaned;
       // Auto-advance to material code input in the same row
@@ -2772,11 +2774,11 @@ export class CaptureComponent implements OnInit {
       this.rows()[index].section = '';
       if (inputEl) inputEl.value = '';
     } else {
-      // Reject any non A-F character
-      const validChar = cleaned.split('').find(c => /^[A-F]$/.test(c)) || '';
+      // Reject any non A-G character
+      const validChar = cleaned.split('').find(c => /^[A-G]$/.test(c)) || '';
       this.rows()[index].section = validChar;
       if (inputEl) inputEl.value = validChar;
-      this.toast.warning('Nivel inválido. Solo se admiten niveles de la A a la F.');
+      this.toast.warning('Nivel inválido. Solo se admiten niveles de la A a la G.');
     }
   }
 
@@ -3112,7 +3114,7 @@ export class CaptureComponent implements OnInit {
       let isHeader = false;
       for (let c = 0; c < parts.length; c++) {
         const cu = parts[c].toUpperCase();
-        if (cu === 'SECCION' || cu === 'SECCIÓN' || cu === 'NIVEL' || cu === 'SEC' || cu.includes('NIVEL (A-F)')) {
+        if (cu === 'SECCION' || cu === 'SECCIÓN' || cu === 'NIVEL' || cu === 'SEC' || cu.includes('NIVEL (A-')) {
           isHeader = true;
           secCol = c;
         }
@@ -3137,8 +3139,8 @@ export class CaptureComponent implements OnInit {
           // Aspel SAE 5-column format: ESTATUS, TIPO, CLAVE, ESQ, EXISTENCIA FÍSICA
           cCol = 2;
           qCol = 4;
-        } else if (parts.length === 3 && /^[A-Fa-f]$/.test(parts[0])) {
-          // 3 columns: SECCION (A-F), CODIGO, CANTIDAD
+        } else if (parts.length === 3 && /^[A-Ga-g]$/.test(parts[0])) {
+          // 3 columns: SECCION (A-G), CODIGO, CANTIDAD
           sCol = 0;
           cCol = 1;
           qCol = 2;
@@ -3166,7 +3168,7 @@ export class CaptureComponent implements OnInit {
       let secVal = '';
       if (sCol >= 0 && sCol < parts.length && parts[sCol]) {
         const cleanedSec = parts[sCol].trim().toUpperCase();
-        if (/^[A-F]$/.test(cleanedSec)) {
+        if (/^[A-G]$/.test(cleanedSec)) {
           secVal = cleanedSec;
         }
       }
@@ -3384,7 +3386,7 @@ export class CaptureComponent implements OnInit {
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
-        this.toast.success('Plantilla oficial con columna Nivel (A-F) descargada.');
+        this.toast.success('Plantilla oficial con columna Nivel (A-G) descargada.');
       },
       error: (err) => {
         this.downloadingTemplate.set(false);

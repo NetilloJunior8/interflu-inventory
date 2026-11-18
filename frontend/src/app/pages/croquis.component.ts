@@ -802,7 +802,7 @@ export interface SectionStat {
         </div>
       </div>
 
-      <!-- Shelf Inspector & Interactive Visual Rack Modal (Secciones A-F) -->
+      <!-- Shelf Inspector & Interactive Visual Rack Modal (Secciones A-G) -->
       <div class="modal-backdrop" *ngIf="inspectedShelf && !editMode()" (click)="closeInspectedShelf()">
         <div class="modal-box shelf-inspector-modal" (click)="$event.stopPropagation()">
           <div class="modal-header-row">
@@ -840,7 +840,7 @@ export interface SectionStat {
             <!-- Left Pane: Visual Physical Rack Blueprint (A to F) -->
             <div class="rack-blueprint-card">
               <div class="blueprint-card-header">
-                <span class="blueprint-kicker">CROQUIS DEL ANAQUEL (A-F)</span>
+                <span class="blueprint-kicker">CROQUIS DEL ANAQUEL (A-G)</span>
                 <span class="font-xs text-muted">Clic en nivel para filtrar</span>
               </div>
 
@@ -851,7 +851,7 @@ export interface SectionStat {
                   {{ getRackShortHeader(inspectedShelf) }}
                 </div>
 
-                <!-- Main Frame: Mint Left Strip (A-F) + 6 Interactive Horizontal Shelf Tiers -->
+                <!-- Main Frame: Mint Left Strip (A-G) + 6 Interactive Horizontal Shelf Tiers -->
                 <div class="rack-graphic-main-frame">
                   <div class="rack-levels-sidebar">
                     <button
@@ -1201,7 +1201,7 @@ export interface SectionStat {
                 class="fam-view-btn"
                 [class.active]="familyViewMode() === 'DETALLE'"
                 (click)="familyViewMode.set('DETALLE')"
-                title="Ver cada partida con su anaquel y asignación rápida de nivel A-F"
+                title="Ver cada partida con su anaquel y asignación rápida de nivel A-G"
               >
                 Por Anaquel ({{ filteredFamilyCounts().length }})
               </button>
@@ -1272,7 +1272,7 @@ export interface SectionStat {
                     <th class="fam-th-sec text-center">Nivel</th>
                     <th class="fam-th-code">Código / Clave Material</th>
                     <th class="fam-th-qty text-right">Piezas</th>
-                    <th class="fam-th-assign text-center">Asignar Nivel (A-F)</th>
+                    <th class="fam-th-assign text-center">Asignar Nivel (A-G)</th>
                     <th class="fam-th-act text-center">Ir</th>
                   </tr>
                 </thead>
@@ -1283,7 +1283,7 @@ export interface SectionStat {
                         type="button"
                         class="fam-shelf-link mono"
                         (click)="openShelfFromFamilyExplorer(item.shelfId)"
-                        title="Abrir croquis visual A-F de este anaquel"
+                        title="Abrir croquis visual A-G de este anaquel"
                       >
                         {{ item.shelfCode }}
                       </button>
@@ -1403,7 +1403,7 @@ export interface SectionStat {
           <!-- Explorer Footer -->
           <div class="modal-footer-advanced">
             <div class="footer-left-group font-xs text-muted">
-              <span>Mostrando <strong>{{ familyViewMode() === 'DETALLE' ? filteredFamilyCounts().length : consolidatedFamilyCounts().length }}</strong> registros &bull; Haz clic en cualquier anaquel para ver su plano físico A-F.</span>
+              <span>Mostrando <strong>{{ familyViewMode() === 'DETALLE' ? filteredFamilyCounts().length : consolidatedFamilyCounts().length }}</strong> registros &bull; Haz clic en cualquier anaquel para ver su plano físico A-G.</span>
             </div>
             <div class="footer-right-group">
               <button type="button" class="btn btn-secondary" (click)="closeFamilyExplorer()">Volver al Croquis</button>
@@ -2817,11 +2817,11 @@ export interface SectionStat {
 
     .rack-level-tag {
       flex: 1;
-      min-height: 48px;
+      min-height: 42px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.15rem;
+      font-size: 1.05rem;
       font-weight: 900;
       color: #064e3b;
       background: transparent;
@@ -2851,11 +2851,11 @@ export interface SectionStat {
 
     .rack-tier-row {
       flex: 1;
-      min-height: 48px;
+      min-height: 42px;
       border-bottom: 2px solid #0f172a;
       position: relative;
       cursor: pointer;
-      padding: 4px;
+      padding: 3px 4px;
       display: flex;
       align-items: center;
       transition: background 0.12s ease;
@@ -2889,7 +2889,7 @@ export interface SectionStat {
       background: #ffffff;
       position: relative;
       border-radius: 2px;
-      height: 38px;
+      height: 32px;
     }
     .tier-box-frame::after {
       content: '';
@@ -3090,7 +3090,7 @@ export interface SectionStat {
     .mat-th-code { text-align: left; }
     .mat-th-qty { width: 90px; text-align: right; }
     .mat-th-sec { width: 70px; text-align: center; }
-    .mat-th-assign { width: 195px; text-align: center; }
+    .mat-th-assign { width: 228px; text-align: center; }
 
     .mat-td-code {
       color: #0f172a;
@@ -3120,6 +3120,7 @@ export interface SectionStat {
     .level-chip-d { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
     .level-chip-e { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
     .level-chip-f { background: #fdf2f8; color: #be185d; border: 1px solid #fbcfe8; }
+    .level-chip-g { background: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; }
     .badge-level-unassigned {
       color: #94a3b8;
       font-size: 0.75rem;
@@ -3395,7 +3396,7 @@ export interface SectionStat {
     .fam-th-sec { width: 65px; }
     .fam-th-code { text-align: left; }
     .fam-th-qty { width: 100px; }
-    .fam-th-assign { width: 195px; }
+    .fam-th-assign { width: 228px; }
     .fam-th-act { width: 80px; }
     .fam-th-locations { text-align: left; }
 
@@ -3491,8 +3492,8 @@ export class CroquisComponent implements OnInit {
   draggedRack: ShelfAssignmentDto | null = null;
   inspectedShelf: ShelfAssignmentDto | null = null;
 
-  // Physical Rack Blueprint & Quick Section Assignment State (Niveles A-F)
-  rackLevels: string[] = ['A', 'B', 'C', 'D', 'E', 'F'];
+  // Physical Rack Blueprint & Quick Section Assignment State (Niveles A-G)
+  rackLevels: string[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
   inspectedMaterials = signal<CountRecordDto[]>([]);
   loadingMaterials = signal<boolean>(false);
   selectedLevelFilter = signal<string>('TODOS');
@@ -4346,7 +4347,7 @@ export class CroquisComponent implements OnInit {
 
   assignSectionToMaterial(item: CountRecordDto, section: string) {
     const cleanSec = section.trim().toUpperCase();
-    if (cleanSec && !/^[A-F]$/.test(cleanSec)) return;
+    if (cleanSec && !/^[A-G]$/.test(cleanSec)) return;
 
     this.updatingRecordId.set(item.id);
     this.api.updateCountSection(item.id, cleanSec).subscribe({
@@ -4619,7 +4620,7 @@ export class CroquisComponent implements OnInit {
 
   assignSectionFromFamilyExplorer(item: CountRecordDto, section: string) {
     const cleanSec = section.trim().toUpperCase();
-    if (cleanSec && !/^[A-F]$/.test(cleanSec)) return;
+    if (cleanSec && !/^[A-G]$/.test(cleanSec)) return;
 
     this.updatingRecordId.set(item.id);
     this.api.updateCountSection(item.id, cleanSec).subscribe({
