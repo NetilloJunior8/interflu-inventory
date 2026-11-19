@@ -125,9 +125,21 @@ public class CountService {
 
         Optional<Product> prodOpt = productRepo.findByCodeIgnoreCase(cleanCode);
         Product product = prodOpt.orElseGet(() -> {
-            Product p = new Product(cleanCode, cleanCode + " (Refacción Industrial)", "PZA", "GENERAL", shelf.getCode(), 0.0);
+            String desc = (req.getDescription() != null && !req.getDescription().trim().isEmpty())
+                    ? req.getDescription().trim()
+                    : parseIndustrialDescription(cleanCode);
+            Product p = new Product(cleanCode, desc, "PZA", "GENERAL", shelf.getCode(), 0.0);
             return productRepo.save(p);
         });
+
+        if (req.getDescription() != null && !req.getDescription().trim().isEmpty()) {
+            String cleanDesc = req.getDescription().trim();
+            if (!cleanDesc.equalsIgnoreCase(product.getDescription())) {
+                product.setDescription(cleanDesc);
+                product.setUpdatedAt(LocalDateTime.now());
+                product = productRepo.save(product);
+            }
+        }
 
         Optional<CountRecord> existingInShelfOpt = countRepo.findBySessionIdAndShelfIdAndCapturedCodeIgnoreCase(
                 session.getId(), shelf.getId(), cleanCode);
@@ -693,9 +705,21 @@ public class CountService {
                 totalQuantity += qty;
 
                 Product prod = productRepo.findByCodeIgnoreCase(cleanCode).orElseGet(() -> {
-                    Product p = new Product(cleanCode, cleanCode + " (Refacción Industrial)", "PZA", "GENERAL", shelf.getCode(), 0.0);
+                    String desc = (item.getDescription() != null && !item.getDescription().trim().isEmpty())
+                            ? item.getDescription().trim()
+                            : parseIndustrialDescription(cleanCode);
+                    Product p = new Product(cleanCode, desc, "PZA", "GENERAL", shelf.getCode(), 0.0);
                     return productRepo.save(p);
                 });
+
+                if (item.getDescription() != null && !item.getDescription().trim().isEmpty()) {
+                    String cleanDesc = item.getDescription().trim();
+                    if (!cleanDesc.equalsIgnoreCase(prod.getDescription())) {
+                        prod.setDescription(cleanDesc);
+                        prod.setUpdatedAt(LocalDateTime.now());
+                        prod = productRepo.save(prod);
+                    }
+                }
 
                 CountRecord rec;
                 if (item.getId() != null && existingById.containsKey(item.getId())) {
@@ -803,5 +827,70 @@ public class CountService {
                         record.getCapturedCode(), record.getShelf().getCode(), oldSec, normalized));
 
         return record;
+    }
+
+    public static String parseIndustrialDescription(String code) {
+        if (code == null || code.trim().isEmpty()) {
+            return "Refacción Industrial";
+        }
+        String c = code.trim().toUpperCase();
+        if (c.equals("CG401/2")) return "Codo Galvanizado Cédula 40 de 1/2\"";
+        if (c.equals("CG403/4")) return "Codo Galvanizado Cédula 40 de 3/4\"";
+        if (c.equals("CG403/8")) return "Codo Galvanizado Cédula 40 de 3/8\"";
+        if (c.equals("CG401/4")) return "Codo Galvanizado Cédula 40 de 1/4\"";
+
+        if (c.matches("^C90I40.*")) return "Codo 90° Inoxidable Cédula 40 de " + c.substring(6) + "\"";
+        if (c.matches("^C90N80.*")) return "Codo 90° Negro Cédula 80 de " + c.substring(6) + "\"";
+        if (c.matches("^C90N40.*")) return "Codo 90° Negro Cédula 40 de " + c.substring(6) + "\"";
+        if (c.matches("^C45G40.*")) return "Codo 45° Galvanizado Cédula 40 de " + c.substring(6) + "\"";
+        if (c.matches("^C45I40.*")) return "Codo 45° Inoxidable Cédula 40 de " + c.substring(6) + "\"";
+        if (c.matches("^CG40.*")) return "Codo Galvanizado Cédula 40 de " + c.substring(4) + "\"";
+        if (c.matches("^CI40.*")) return "Codo Inoxidable Cédula 40 de " + c.substring(4) + "\"";
+        if (c.matches("^CN40.*")) return "Codo Negro Cédula 40 de " + c.substring(4) + "\"";
+
+        if (c.matches("^NG40.*XRC$")) return "Niple Galvanizado Cédula 40 de " + c.substring(4, c.length() - 3) + "\" Rosca Corrida";
+        if (c.matches("^NG40.*X.*")) {
+            String[] parts = c.substring(4).split("X");
+            return "Niple Galvanizado Cédula 40 de " + parts[0] + "\" x " + parts[1] + "\"";
+        }
+        if (c.matches("^NN80.*XRC$")) return "Niple Negro Cédula 80 de " + c.substring(4, c.length() - 3) + "\" Rosca Corrida";
+        if (c.matches("^NN80.*X.*")) {
+            String[] parts = c.substring(4).split("X");
+            return "Niple Negro Cédula 80 de " + parts[0] + "\" x " + parts[1] + "\"";
+        }
+        if (c.matches("^NI40.*XRC$")) return "Niple Inoxidable Cédula 40 de " + c.substring(4, c.length() - 3) + "\" Rosca Corrida";
+        if (c.matches("^NI40.*X.*")) {
+            String[] parts = c.substring(4).split("X");
+            return "Niple Inoxidable Cédula 40 de " + parts[0] + "\" x " + parts[1] + "\"";
+        }
+        if (c.matches("^NBI.*")) return "Niple Botella Inoxidable " + c.substring(3) + "\"";
+
+        if (c.matches("^RBG.*X.*")) {
+            String[] parts = c.substring(3).split("X");
+            return "Reducción Bushing Galvanizada " + parts[0] + "\" x " + parts[1] + "\"";
+        }
+        if (c.matches("^RBN40.*X.*")) {
+            String[] parts = c.substring(5).split("X");
+            return "Reducción Bushing Negra Cédula 40 de " + parts[0] + "\" x " + parts[1] + "\"";
+        }
+        if (c.matches("^RBN80.*X.*")) {
+            String[] parts = c.substring(5).split("X");
+            return "Reducción Bushing Negra Cédula 80 de " + parts[0] + "\" x " + parts[1] + "\"";
+        }
+        if (c.matches("^RCI.*X.*")) {
+            String[] parts = c.substring(3).split("X");
+            return "Reducción Campana Inoxidable " + parts[0] + "\" x " + parts[1] + "\"";
+        }
+
+        if (c.matches("^TMG.*")) return "Tapón Macho Galvanizado " + c.substring(3) + "\"";
+        if (c.matches("^TMA40.*")) return "Tapón Macho Acero Cédula 40 de " + c.substring(5) + "\"";
+        if (c.matches("^TUAN.*")) return "Tuerca Unión Acero Negro " + c.substring(4) + "\"";
+        if (c.matches("^TUINOX.*")) return "Tuerca Unión Inoxidable " + c.substring(6) + "\"";
+
+        if (c.matches("^VBIM.*")) return "Válvula de Bola Inoxidable Macho " + c.substring(4) + "\"";
+        if (c.matches("^VAI.*")) return "Válvula de Aguja Inoxidable " + c.substring(3) + "\"";
+        if (c.matches("^VW444T.*")) return "Válvula Tipo Mariposa / Wafer 444T " + c.substring(6) + "\"";
+
+        return "Conexión Industrial " + c;
     }
 }

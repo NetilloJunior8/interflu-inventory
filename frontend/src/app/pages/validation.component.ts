@@ -9,7 +9,7 @@ import { PatternSuggesterService } from '../services/pattern-suggester.service';
 @Component({
   selector: 'app-validation',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="qc-container">
       <!-- Header -->

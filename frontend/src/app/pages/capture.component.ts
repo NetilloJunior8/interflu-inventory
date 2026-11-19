@@ -19,8 +19,9 @@ import { PatternSuggesterService, SuggestionItem, SimilarCodeAlert } from '../se
 export interface SheetRow {
   id?: number;              // Database ID if saved
   tempId: string;           // Local unique key
-  section?: string;         // Level A - F
+  section?: string;         // Level A - G
   code: string;             // Raw entered code
+  description?: string;     // Product description (manual or auto-filled)
   quantity: number | null;  // Number of pieces
   unit: string;
   inCatalog: boolean;
@@ -364,6 +365,7 @@ export interface SheetRow {
                 <th class="th-row-num">#</th>
                 <th class="th-sec" title="Nivel o Sección del Anaquel (A = Superior, B, C, D, E, F, G = Base)">Nivel (A-G)</th>
                 <th class="th-code">Código / Clave Material</th>
+                <th class="th-desc">Descripción</th>
                 <th class="th-qty">Piezas (Físico)</th>
                 <th class="th-status">Estado / Alerta</th>
                 <th class="th-actions" *ngIf="isEditable()">Acciones</th>
@@ -443,6 +445,22 @@ export interface SheetRow {
                       </div>
                       <div class="sugg-desc">{{ sugg.description }}</div>
                     </div>
+                  </div>
+                </td>
+
+                <!-- Description Input Cell (Manual / Editable) -->
+                <td class="td-desc">
+                  <div class="cell-input-wrap">
+                    <input
+                      type="text"
+                      class="cell-input desc-cell-input"
+                      [(ngModel)]="row.description"
+                      (focus)="onCellFocus(i, 'desc')"
+                      (blur)="onCellBlur(i)"
+                      [disabled]="!isEditable()"
+                      placeholder="Descripción del material..."
+                      autocomplete="off"
+                    />
                   </div>
                 </td>
 
@@ -1386,10 +1404,16 @@ export interface SheetRow {
     .sec-cell-input.sec-badge-f { background: #fdf2f8; color: #be185d; border-color: #f9a8d4; }
     .sec-cell-input.sec-badge-g { background: #f3e8ff; color: #6b21a8; border-color: #d8b4fe; }
 
-    .th-code { width: 410px; }
-    .th-qty { width: 170px; }
-    .th-status { width: 210px; }
-    .th-actions { width: 140px; }
+    .th-code { width: 280px; }
+    .th-desc { width: 340px; }
+    .th-qty { width: 140px; }
+    .th-status { width: 160px; }
+    .th-actions { width: 120px; }
+
+    .desc-cell-input {
+      font-size: 0.88rem;
+      color: #334155;
+    }
 
     /* Inputs in Cells */
     .cell-input-wrap {
@@ -2228,7 +2252,7 @@ export class CaptureComponent implements OnInit {
 
   // Active focus in cell
   activeRowIndex: number = -1;
-  activeCellType: 'sec' | 'code' | 'qty' | null = null;
+  activeCellType: 'sec' | 'code' | 'desc' | 'qty' | null = null;
   currentSuggestions = signal<SuggestionItem[]>([]);
 
   // Search subject for catalog lookups
@@ -2681,6 +2705,7 @@ export class CaptureComponent implements OnInit {
           tempId: 'row_' + r.id + '_' + i,
           section: (r.section || '').toUpperCase(),
           code: r.capturedCode,
+          description: r.description || '',
           quantity: r.quantity,
           unit: r.unit || 'PZA',
           inCatalog: r.existsInCatalog,
@@ -2712,6 +2737,7 @@ export class CaptureComponent implements OnInit {
       tempId: 'temp_' + Math.random().toString(36).substring(2, 9),
       section: defaultSection,
       code: '',
+      description: '',
       quantity: null,
       unit: 'PZA',
       inCatalog: false,
@@ -2719,7 +2745,7 @@ export class CaptureComponent implements OnInit {
     };
   }
 
-  onCellFocus(rowIndex: number, cellType: 'sec' | 'code' | 'qty') {
+  onCellFocus(rowIndex: number, cellType: 'sec' | 'code' | 'desc' | 'qty') {
     this.activeRowIndex = rowIndex;
     this.activeCellType = cellType;
     this.focusSnapshot = this.rows().map(r => ({ ...r }));
@@ -2823,6 +2849,9 @@ export class CaptureComponent implements OnInit {
     this.saveUndoSnapshot('Sugerencia ' + sugg.code);
     const row = this.rows()[index];
     row.code = sugg.code;
+    if (sugg.description && !row.description) {
+      row.description = sugg.description;
+    }
     row.inCatalog = sugg.source === 'CATALOGO';
     this.patternSuggester.learn(sugg.code);
     this.currentSuggestions.set([]);
@@ -3050,6 +3079,7 @@ export class CaptureComponent implements OnInit {
         id: r.id,
         section: (r.section || '').trim().toUpperCase(),
         code: r.code.trim().toUpperCase(),
+        description: (r.description || '').trim(),
         quantity: r.quantity !== null && r.quantity !== undefined ? Number(r.quantity) : 0,
         notes: r.notes
       }))
