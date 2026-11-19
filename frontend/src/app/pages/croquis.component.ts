@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import * as QRCode from 'qrcode';
 import { ApiService, ShelfAssignmentDto, InventorySessionSummary, CountRecordDto } from '../services/api.service';
 import { ToastService } from '../services/toast.service';
+import { findAceroLocation, AceroLocationMeta } from '../data/acero-catalog';
 
 export interface SectionStat {
   id: string;
@@ -1069,8 +1070,19 @@ export interface ProductPlanningData {
                   <tbody>
                     <tr *ngFor="let item of filteredMaterials()" [class.row-sec-matched]="item.section && item.section === selectedLevelFilter()">
                       <td class="mat-td-code mono fw-700">
-                        {{ item.capturedCode }}
-                        <span *ngIf="item.notes" class="mat-item-notes">{{ item.notes }}</span>
+                        <span
+                          class="mat-code-link clickable"
+                          (click)="openProductPlanning(item)"
+                          title="Ver detalle del producto y cálculo de reabastecimiento"
+                        >
+                          {{ item.capturedCode }}
+                        </span>
+                        <span *ngIf="getItemLocationCode(item) !== '--'" class="mat-item-location-pill mono" (click)="openProductPlanning(item)" title="Ver ubicación en estante">
+                          {{ getItemLocationCode(item) }}
+                        </span>
+                        <span *ngIf="getItemDisplayDescription(item)" class="mat-item-notes">
+                          {{ getItemDisplayDescription(item) }}
+                        </span>
                       </td>
                       <td class="mat-td-qty text-right mono fw-700">
                         {{ item.quantity | number:'1.0-2' }}
@@ -1490,7 +1502,7 @@ export interface ProductPlanningData {
 
       <!-- MODAL: FICHA MAESTRA DE MATERIAL Y PLANIFICACIÓN DE REABASTECIMIENTO -->
       <div class="modal-backdrop modal-backdrop-planning" *ngIf="selectedProductPlanning() as plan" (click)="closeProductPlanning()">
-        <div class="modal-box modal-box-planning" (click)="$event.stopPropagation()">
+        <div class="modal-box-planning" (click)="$event.stopPropagation()">
           
           <!-- Top Header matching user mockup -->
           <div class="planning-header">
@@ -3462,6 +3474,24 @@ export interface ProductPlanningData {
       font-size: 0.72rem;
       font-weight: 400;
     }
+    .mat-item-location-pill {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #0369a1;
+      background: #e0f2fe;
+      border: 1px solid #bae6fd;
+      border-radius: 4px;
+      cursor: pointer;
+      vertical-align: middle;
+      transition: all 0.12s ease;
+    }
+    .mat-item-location-pill:hover {
+      background: #bae6fd;
+      color: #0c4a6e;
+    }
     .mat-td-qty {
       color: #1d4ed8;
     }
@@ -3822,16 +3852,17 @@ export interface ProductPlanningData {
       backdrop-filter: blur(4px);
     }
     .modal-box-planning {
-      max-width: 960px;
-      width: 95vw;
-      max-height: 92vh;
-      overflow-y: auto;
-      background: #0f172a;
-      color: #f1f5f9;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      padding: 24px 28px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      max-width: 960px !important;
+      width: 95vw !important;
+      max-height: 92vh !important;
+      overflow-y: auto !important;
+      background: #0b1329 !important;
+      color: #f8fafc !important;
+      border: 1px solid #1e293b !important;
+      border-radius: 14px !important;
+      padding: 24px 28px !important;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85) !important;
+      box-sizing: border-box !important;
     }
 
     .planning-header {
@@ -3841,6 +3872,7 @@ export interface ProductPlanningData {
       border-bottom: 1px solid #1e293b;
       padding-bottom: 16px;
       margin-bottom: 18px;
+      background: #0b1329 !important;
     }
     .planning-brand-crumbs {
       display: flex;
@@ -3853,26 +3885,32 @@ export interface ProductPlanningData {
       color: #94a3b8;
     }
     .planning-brand {
-      color: #38bdf8;
+      color: #38bdf8 !important;
+      font-weight: 800 !important;
     }
     .crumb-sep {
-      color: #475569;
+      color: #64748b;
+    }
+    .crumb-cat {
+      color: #cbd5e1 !important;
     }
     .planning-corte-date {
       font-size: 0.75rem;
-      color: #64748b;
+      color: #94a3b8 !important;
       margin-top: 4px;
     }
     .planning-product-title {
-      font-size: 1.55rem;
-      font-weight: 800;
-      color: #f8fafc;
-      margin: 4px 0 2px 0;
-      line-height: 1.25;
+      font-size: 1.65rem !important;
+      font-weight: 800 !important;
+      color: #ffffff !important;
+      margin: 6px 0 3px 0 !important;
+      line-height: 1.25 !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
     }
     .planning-product-subtitle {
-      font-size: 0.85rem;
-      color: #94a3b8;
+      font-size: 0.88rem;
+      color: #cbd5e1 !important;
+      font-weight: 600;
     }
     .planning-header-right {
       display: flex;
@@ -3883,26 +3921,53 @@ export interface ProductPlanningData {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 14px;
+      padding: 7px 16px;
       border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 700;
+      font-size: 0.82rem;
+      font-weight: 800;
       letter-spacing: 0.02em;
     }
     .planning-status-badge.status-en_camino {
-      background: rgba(234, 179, 8, 0.15);
-      color: #fef08a;
-      border: 1px solid #ca8a04;
+      background: #78350f !important;
+      color: #fef08a !important;
+      border: 1.5px solid #f59e0b !important;
+      font-weight: 800 !important;
+      letter-spacing: 0.03em !important;
+      box-shadow: 0 2px 10px rgba(245, 158, 11, 0.25) !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6) !important;
     }
     .planning-status-badge.status-reordenar {
-      background: rgba(239, 68, 68, 0.18);
-      color: #fca5a5;
-      border: 1px solid #dc2626;
+      background: #7f1d1d !important;
+      color: #fecaca !important;
+      border: 1.5px solid #ef4444 !important;
+      font-weight: 800 !important;
+      letter-spacing: 0.03em !important;
+      box-shadow: 0 2px 10px rgba(239, 68, 68, 0.25) !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6) !important;
     }
     .planning-status-badge.status-optimo {
-      background: rgba(34, 197, 94, 0.15);
-      color: #86efac;
-      border: 1px solid #16a34a;
+      background: #14532d !important;
+      color: #bbf7d0 !important;
+      border: 1.5px solid #22c55e !important;
+      font-weight: 800 !important;
+      letter-spacing: 0.03em !important;
+      box-shadow: 0 2px 10px rgba(34, 197, 94, 0.25) !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6) !important;
+    }
+    .modal-box-planning .modal-close-icon-btn {
+      color: #94a3b8 !important;
+      font-size: 1.4rem !important;
+      background: transparent !important;
+      border: none !important;
+      cursor: pointer !important;
+      padding: 4px 8px !important;
+      border-radius: 6px !important;
+      line-height: 1 !important;
+      transition: color 0.15s, background-color 0.15s !important;
+    }
+    .modal-box-planning .modal-close-icon-btn:hover {
+      color: #ffffff !important;
+      background: rgba(255, 255, 255, 0.12) !important;
     }
     .status-dot-pulse {
       width: 8px;
@@ -5545,10 +5610,23 @@ export class CroquisComponent implements OnInit {
   // =========================================================================
   getItemLocationCode(item: any): string {
     if (!item) return '--';
+    const code = (item.capturedCode || item.code || '').trim().toUpperCase();
+    const shelfCode = (item.shelfCode || (item.locations && item.locations[0] ? item.locations[0].shelfCode : '')).trim().toUpperCase();
+    const section = (item.section || (item.locations && item.locations[0] ? item.locations[0].section : '')).trim().toUpperCase();
+
+    // 1. Direct Acero Master Catalog lookup by code, shelf, and section
+    const aceroMeta = findAceroLocation(code, shelfCode, section);
+    if (aceroMeta) {
+      return aceroMeta.ubicacion;
+    }
+
+    // 2. Notes matching PB\d+-\d+[A-G]-?\d*
     if (item.notes && typeof item.notes === 'string') {
       const match = item.notes.match(/P[BA]\d+-\d+[A-G]-?\d*/i);
       if (match) return match[0].toUpperCase();
     }
+
+    // 3. Fallback for other families: shelf code + section
     if (item.locations && item.locations.length > 0) {
       const first = item.locations[0];
       return `${first.shelfCode}${first.section ? '-' + first.section : ''}`;
@@ -5632,17 +5710,44 @@ export class CroquisComponent implements OnInit {
     return 'Conexión Industrial ' + c;
   }
 
-  decodeLocation(locStr: string, sectionFallback?: string): DecodedLocation {
+  decodeLocation(locStr: string, sectionFallback?: string, productCode?: string, shelfCodeFallback?: string): DecodedLocation {
+    const code = (productCode || '').trim().toUpperCase();
+    const sec = (sectionFallback || '').trim().toUpperCase();
+    const sh = (shelfCodeFallback || '').trim().toUpperCase();
+
+    // 1. Check master Acero catalog
+    const meta = findAceroLocation(code, sh, sec) || findAceroLocation(locStr);
+    if (meta) {
+      const plant = meta.planta === 'PB' ? 'Planta Baja' : 'Planta Alta';
+      const aisle = `Pasillo ${meta.pasillo} (Acero)`;
+      const shelf = `Estante ${meta.estante} (Anaquel ${meta.estante})`;
+      const level = `Nivel ${meta.nivel}`;
+      const pos = `Posición ${meta.posicion}`;
+      return {
+        plant,
+        plantCode: meta.planta,
+        aisle,
+        aisleCode: meta.pasillo,
+        shelf,
+        shelfCode: meta.estante,
+        level,
+        levelCode: meta.nivel,
+        position: pos,
+        positionCode: meta.posicion,
+        summary: `${meta.planta} = ${plant} · ${meta.pasillo} = ${aisle} · ${meta.estante} = ${shelf} · ${meta.nivel} = ${level} · ${meta.posicion} = ${pos}`
+      };
+    }
+
     if (!locStr || locStr === '--') {
       return {
         plant: 'Planta Baja',
         plantCode: 'PB',
         aisle: 'Pasillo 3 (Acero)',
         aisleCode: '3',
-        shelf: 'Estante 1',
+        shelf: 'Estante 1 (Anaquel 1)',
         shelfCode: '1',
-        level: sectionFallback ? `Nivel ${sectionFallback}` : 'Nivel A',
-        levelCode: sectionFallback || 'A',
+        level: sec ? `Nivel ${sec}` : 'Nivel A',
+        levelCode: sec || 'A',
         position: 'Posición 1',
         positionCode: '1',
         summary: 'Ubicación General'
@@ -5655,7 +5760,7 @@ export class CroquisComponent implements OnInit {
     if (m1) {
       const plant = m1[1] === 'PB' ? 'Planta Baja' : 'Planta Alta';
       const aisle = `Pasillo ${m1[2]} (Acero)`;
-      const shelf = `Estante ${m1[3]}`;
+      const shelf = `Estante ${m1[3]} (Anaquel ${m1[3]})`;
       const level = `Nivel ${m1[4]}`;
       const pos = m1[5] ? `Posición ${m1[5]}` : 'Posición 1';
       return {
@@ -5673,27 +5778,27 @@ export class CroquisComponent implements OnInit {
       };
     }
 
-    // Pattern 2: PB-ACE-01 or PA-KUR-A01
-    const m2 = loc.match(/^(P[BA])-([A-Z0-9]+)-([A-Z0-9]+)$/);
+    // Pattern 2: PB-ACE-01 or PB-ACE-01-A
+    const m2 = loc.match(/^(P[BA])-([A-Z0-9]+)-(\d+)(?:-([A-G]))?$/);
     if (m2) {
       const plant = m2[1] === 'PB' ? 'Planta Baja' : 'Planta Alta';
       const fam = m2[2];
       const famName = fam.includes('ACE') ? 'Pasillo 3 (Acero)' : (fam.includes('KUR') ? 'Pasillo Kuriyama' : `Pasillo ${fam}`);
-      const shelfNum = m2[3].replace(/^0+/, '');
-      const shelf = `Estante ${shelfNum || m2[3]}`;
-      const lvlCode = sectionFallback || 'A';
+      const shelfNum = m2[3].replace(/^0+/, '') || m2[3];
+      const shelf = `Estante ${shelfNum} (Anaquel ${shelfNum})`;
+      const lvlCode = m2[4] || sec || 'A';
       return {
         plant,
         plantCode: m2[1],
         aisle: famName,
-        aisleCode: fam,
+        aisleCode: fam.includes('ACE') ? '3' : fam,
         shelf,
         shelfCode: shelfNum,
         level: `Nivel ${lvlCode}`,
         levelCode: lvlCode,
         position: 'Posición 1',
         positionCode: '1',
-        summary: `${m2[1]} = ${plant} · ${fam} = ${famName} · ${m2[3]} = ${shelf} · ${lvlCode} = Nivel ${lvlCode}`
+        summary: `${m2[1]} = ${plant} · ${fam} = ${famName} · ${shelfNum} = ${shelf} · ${lvlCode} = Nivel ${lvlCode}`
       };
     }
 
@@ -5704,8 +5809,8 @@ export class CroquisComponent implements OnInit {
       aisleCode: '3',
       shelf: `Estante ${loc}`,
       shelfCode: loc,
-      level: sectionFallback ? `Nivel ${sectionFallback}` : 'Nivel A',
-      levelCode: sectionFallback || 'A',
+      level: sec ? `Nivel ${sec}` : 'Nivel A',
+      levelCode: sec || 'A',
       position: 'Posición 1',
       positionCode: '1',
       summary: `Ubicación: ${loc}`
@@ -5717,7 +5822,8 @@ export class CroquisComponent implements OnInit {
     const code = (item.capturedCode || item.code || '').trim();
     const desc = this.getItemDisplayDescription(item);
     const locCode = this.getItemLocationCode(item);
-    const decoded = this.decodeLocation(locCode, item.section);
+    const shelfCode = (item.shelfCode || (item.locations && item.locations[0] ? item.locations[0].shelfCode : '')).trim().toUpperCase();
+    const decoded = this.decodeLocation(locCode, item.section, code, shelfCode);
     const stockActual = item.quantity !== undefined && item.quantity !== null ? Number(item.quantity) : (item.totalQty || 0);
 
     let minimoSeguridad: number;
@@ -5813,13 +5919,17 @@ export class CroquisComponent implements OnInit {
       shelfId = item.locations[0].shelfId;
     }
 
+    const finalLocationCode = (decoded.plantCode && decoded.aisleCode && decoded.shelfCode && decoded.levelCode)
+      ? `${decoded.plantCode}${decoded.aisleCode}-${decoded.shelfCode}${decoded.levelCode}-${decoded.positionCode}`
+      : locCode;
+
     this.selectedProductPlanning.set({
       code,
       description: desc,
-      category: this.activeFamilyExplorer()?.name || 'Aceros',
+      category: this.activeFamilyExplorer()?.name || 'Acero (1-19)',
       unit: item.unit || 'Piezas',
       lastMovementDate: 'Corte al 19 nov 2026',
-      locationCode: locCode,
+      locationCode: finalLocationCode,
       shelfId,
       decodedLocation: decoded,
       stockActual,
