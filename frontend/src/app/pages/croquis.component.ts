@@ -217,6 +217,21 @@ export interface ProductPlanningData {
             </svg>
             {{ savingLayout() ? 'Guardando...' : 'Guardar Coordenadas' }}
           </button>
+
+          <!-- Levantamiento Semanal SAE / Excel Import Button -->
+          <button
+            type="button"
+            class="btn btn-outline-primary btn-weekly-import"
+            (click)="openCroquisImportModal()"
+            title="Importar levantamiento semanal de Aspel SAE o Excel (actualiza piezas automáticamente)"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Levantamiento Semanal SAE
+          </button>
         </div>
       </div>
 
@@ -874,17 +889,48 @@ export interface ProductPlanningData {
       <div class="modal-backdrop" *ngIf="inspectedShelf && !editMode()" (click)="closeInspectedShelf()">
         <div class="modal-box shelf-inspector-modal" (click)="$event.stopPropagation()">
           <div class="modal-header-row">
-            <div>
+            <div *ngIf="!inlineRenamingShelf" class="header-info-col">
               <div class="font-xs text-muted uppercase">{{ inspectedShelf.plant || selectedPlant() }} &bull; {{ inspectedShelf.shelfZone }}</div>
               <div class="modal-title-inline">
                 <h2 class="mono fw-800 modal-code-title">{{ inspectedShelf.shelfCode }}</h2>
                 <span class="badge" [ngClass]="badgeForStatus(inspectedShelf)">
                   {{ statusLabel(inspectedShelf) }}
                 </span>
+                <button type="button" class="btn btn-xs btn-ghost btn-inline-pencil" (click)="startInlineShelfRename()" title="Cambiar rápidamente el nombre o código de este anaquel">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                  Cambiar Nombre
+                </button>
               </div>
               <div class="font-sm text-secondary">{{ inspectedShelf.shelfDescription || inspectedShelf.shelfZone }}</div>
             </div>
-            <div class="modal-header-actions-group">
+
+            <!-- Inline Quick Rename Form -->
+            <div *ngIf="inlineRenamingShelf" class="inline-rename-container">
+              <div class="rename-inputs-grid">
+                <div class="rename-field">
+                  <label class="font-xs fw-700 text-muted">Código:</label>
+                  <input type="text" class="input input-sm mono" [(ngModel)]="renameShelfCode" placeholder="Ej. PB-ACE-01" />
+                </div>
+                <div class="rename-field grow">
+                  <label class="font-xs fw-700 text-muted">Nombre / Descripción:</label>
+                  <input type="text" class="input input-sm" [(ngModel)]="renameShelfDesc" placeholder="Ej. ANAQUEL DE ACERO 01" />
+                </div>
+                <div class="rename-field">
+                  <label class="font-xs fw-700 text-muted">Zona / Familia:</label>
+                  <input type="text" class="input input-sm" [(ngModel)]="renameShelfZone" placeholder="Ej. Acero (1-19)" />
+                </div>
+              </div>
+              <div class="rename-actions-row">
+                <button type="button" class="btn btn-sm btn-primary" (click)="saveInlineShelfRename()" [disabled]="savingInlineRename()">
+                  {{ savingInlineRename() ? 'Guardando...' : 'Guardar Nombre' }}
+                </button>
+                <button type="button" class="btn btn-sm btn-outline" (click)="cancelInlineShelfRename()">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+
+            <div class="modal-header-actions-group" *ngIf="!inlineRenamingShelf">
               <div class="compact-kpi-strip">
                 <div class="c-kpi">
                   <span class="c-kpi-lbl">Piezas</span>
@@ -895,11 +941,19 @@ export interface ProductPlanningData {
                   <span class="c-kpi-val mono">{{ inspectedMaterials().length || inspectedShelf.recordCount || 0 }}</span>
                 </div>
               </div>
-              <button class="btn btn-sm btn-outline" (click)="openEditShelf(inspectedShelf)" title="Cambiar nombre, código o zona de este anaquel">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                Editar
+              <button class="btn btn-sm btn-outline" (click)="openCroquisImportModal(inspectedShelf.shelfId)" title="Importar conteo semanal directo a este anaquel">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Importar Excel
               </button>
-              <button class="modal-close-icon-btn" (click)="closeInspectedShelf()" title="Cerrar ventana">✕</button>
+              <button class="btn btn-sm btn-outline-primary" (click)="startInlineShelfRename()" title="Cambiar rápidamente el nombre o descripción de este anaquel">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                Cambiar Nombre
+              </button>
+              <button class="modal-close-icon-btn" (click)="closeInspectedShelf()" title="Cerrar ventana (Esc)">✕</button>
             </div>
           </div>
 
@@ -1273,6 +1327,17 @@ export interface ProductPlanningData {
                 {{ sh.shelfCode }} ({{ sh.totalPieces | number:'1.0-0' }} pzas)
               </option>
             </select>
+
+            <button
+              *ngIf="familyShelfFilter() !== 'TODOS'"
+              type="button"
+              class="btn btn-sm btn-outline btn-rename-fam-shelf"
+              (click)="openEditShelfByCode(familyShelfFilter())"
+              title="Cambiar el nombre o código de este anaquel"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+              Renombrar Anaquel
+            </button>
 
             <div class="fam-view-toggle">
               <button
@@ -1782,6 +1847,221 @@ export interface ProductPlanningData {
             </div>
           </div>
 
+      <!-- Import Excel Counts File Modal in Croquis (Levantamiento Semanal SAE & Nivel A-G) -->
+      <div class="modal-backdrop import-modal-backdrop" *ngIf="showImportExcelModal" (click)="closeCroquisImportModal()">
+        <div class="modal-box import-excel-modal" (click)="$event.stopPropagation()">
+          <div class="import-modal-header">
+            <div class="import-header-title-wrap">
+              <div class="import-header-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="12" y1="18" x2="12" y2="12"></line>
+                  <polyline points="9 15 12 12 15 15"></polyline>
+                </svg>
+              </div>
+              <div>
+                <h3>Importar Conteo Excel / SAE</h3>
+                <span class="import-header-sub">Actualización semanal de piezas y acomodo físico en croquis</span>
+              </div>
+            </div>
+            <button type="button" class="modal-close-icon-btn" (click)="closeCroquisImportModal()" title="Cerrar ventana (Esc)">✕</button>
+          </div>
+
+          <!-- STATE 1: UPLOAD & CONFIGURE -->
+          <ng-container *ngIf="!importResult">
+            <div class="modal-body import-modal-body">
+              <!-- Format Banner + 1-Click Official Template Download -->
+              <div class="excel-template-banner">
+                <div class="template-banner-info">
+                  <span class="hint-title">Columnas reconocidas automáticamente:</span>
+                  <div class="format-col-chips mono">
+                    <span class="col-chip">CLAVE</span>
+                    <span class="col-chip">EXISTENCIA FÍSICA</span>
+                    <span class="col-chip col-chip-level">NIVEL (A-G)</span>
+                    <span class="col-chip col-chip-opt">ANAQUEL</span>
+                  </div>
+                  <span class="font-xs text-muted">Compatible con reportes directos exportados de Aspel SAE (.xlsx / .csv).</span>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline"
+                  [disabled]="downloadingTemplate()"
+                  (click)="downloadExcelTemplate()"
+                  title="Descargar archivo Excel oficial"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  <span>{{ downloadingTemplate() ? 'Generando...' : 'Plantilla (.xlsx)' }}</span>
+                </button>
+              </div>
+
+              <!-- Destination Shelf -->
+              <div class="form-group mt-3">
+                <label class="field-label">Anaquel Destino:</label>
+                <select class="select select-sm" [ngModel]="importTargetShelfId()" (ngModelChange)="importTargetShelfId.set($event)">
+                  <option [ngValue]="0">Detectar automáticamente en todo el inventario (según códigos existentes)</option>
+                  <option *ngFor="let sh of allShelves()" [value]="sh.shelfId">
+                    [{{ sh.plant || 'Planta Baja' }}] {{ sh.shelfCode }} &bull; {{ sh.shelfDescription || sh.shelfZone }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Import Mode Selector -->
+              <div class="form-group mt-3">
+                <label class="field-label">Modalidad de Importación:</label>
+                <div class="import-mode-grid">
+                  <button
+                    type="button"
+                    class="import-mode-card mode-card-weekly"
+                    [class.active]="importMode() === 'WEEKLY_UPDATE'"
+                    (click)="importMode.set('WEEKLY_UPDATE')"
+                  >
+                    <div class="mode-card-top">
+                      <span class="mode-radio"></span>
+                      <span class="mode-title">Levantamiento Semanal SAE</span>
+                      <span class="mode-rec-badge badge-weekly">Solo Piezas</span>
+                    </div>
+                    <p class="mode-desc">
+                      Detecta códigos coincidentes del SAE y actualiza únicamente las piezas físicas. Conserva intactos anaqueles, niveles A-G, croquis y códigos de ubicación.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="import-mode-card"
+                    [class.active]="importMode() === 'SMART_MERGE'"
+                    (click)="importMode.set('SMART_MERGE')"
+                  >
+                    <div class="mode-card-top">
+                      <span class="mode-radio"></span>
+                      <span class="mode-title">Inteligente: Actualizar y Agregar</span>
+                      <span class="mode-rec-badge">Con Nivel A-G</span>
+                    </div>
+                    <p class="mode-desc">
+                      Sustituye piezas y asigna nivel (A-G) de códigos repetidos, agrega los códigos nuevos y conserva los demás sin borrar nada.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="import-mode-card mode-card-replace"
+                    [class.active]="importMode() === 'REPLACE_ALL'"
+                    (click)="importMode.set('REPLACE_ALL')"
+                  >
+                    <div class="mode-card-top">
+                      <span class="mode-radio"></span>
+                      <span class="mode-title">Sustituir Todo el Anaquel</span>
+                    </div>
+                    <p class="mode-desc">
+                      Borra los conteos previos del anaquel destino y deja exactamente lo que trae este archivo Excel.
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Drop Area -->
+              <div
+                class="file-drop-area mt-3"
+                [class.drag-active]="isDraggingFile()"
+                [class.has-file]="!!selectedExcelFile"
+                (click)="croquisFileInput.click()"
+                (dragover)="onDragOverImport($event)"
+                (dragleave)="onDragLeaveImport($event)"
+                (drop)="onDropImport($event)"
+              >
+                <input #croquisFileInput type="file" accept=".xlsx,.xls,.csv" style="display: none;" (change)="onFileSelectedForImport($event)" />
+                <ng-container *ngIf="!selectedExcelFile">
+                  <div class="drop-icon-circle">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                  </div>
+                  <strong class="drop-main-text">Arrastra tu archivo Excel aquí o haz clic para buscar</strong>
+                  <span class="font-xs text-muted">Formatos .xlsx, .xls o .csv &bull; Hasta 50 MB</span>
+                </ng-container>
+
+                <div *ngIf="selectedExcelFile" class="selected-file-pill" (click)="$event.stopPropagation()">
+                  <div class="file-pill-icon">XLS</div>
+                  <div class="file-pill-meta">
+                    <strong class="file-pill-name">{{ selectedExcelFile.name }}</strong>
+                    <span class="font-xs text-muted">{{ (selectedExcelFile.size / 1024) | number:'1.1-2' }} KB &bull; Listo para importar</span>
+                  </div>
+                  <button type="button" class="btn-remove-file" (click)="selectedExcelFile = null" title="Quitar archivo">✕</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer import-modal-footer">
+              <button type="button" class="btn btn-outline" (click)="closeCroquisImportModal()">Cancelar</button>
+              <button
+                type="button"
+                class="btn btn-primary btn-import-go"
+                [disabled]="!selectedExcelFile || importingExcel()"
+                (click)="submitCroquisImport()"
+              >
+                <span *ngIf="importingExcel()" class="btn-spinner"></span>
+                <span>{{ importingExcel() ? 'Procesando archivo...' : (importMode() === 'WEEKLY_UPDATE' ? 'Actualizar Piezas (Levantamiento SAE)' : (importMode() === 'REPLACE_ALL' ? 'Sustituir e Importar Todo' : 'Importar con Modo Inteligente')) }}</span>
+              </button>
+            </div>
+          </ng-container>
+
+          <!-- STATE 2: CLEAN POST-IMPORT SUCCESS VIEW -->
+          <ng-container *ngIf="importResult as res">
+            <div class="modal-body import-success-body">
+              <div class="success-hero">
+                <div class="success-check-circle">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+                <h4 class="success-title">Importación Completada con Éxito</h4>
+                <p class="success-subtitle">
+                  {{ res.importMode === 'WEEKLY_UPDATE' ? 'Levantamiento semanal completado: existencias físicas actualizadas manteniendo anaqueles, niveles A-G y ubicaciones intactas.' : (res.importMode === 'REPLACE_ALL' ? 'Se reemplazó el contenido completo del anaquel destino.' : 'Modo inteligente aplicado: códigos repetidos actualizados y nuevos agregados.') }}
+                </p>
+              </div>
+
+              <div class="import-kpi-grid">
+                <div class="imp-kpi-card">
+                  <span class="imp-kpi-val mono text-success">+{{ res.addedRecords ?? res.importedRecords }}</span>
+                  <span class="imp-kpi-lbl">Nuevos Agregados</span>
+                </div>
+                <div class="imp-kpi-card">
+                  <span class="imp-kpi-val mono text-primary-brand">{{ res.updatedRecords ?? 0 }}</span>
+                  <span class="imp-kpi-lbl">Actualizados</span>
+                </div>
+                <div class="imp-kpi-card">
+                  <span class="imp-kpi-val mono text-indigo">{{ res.withSectionCount ?? 0 }}</span>
+                  <span class="imp-kpi-lbl">Con Nivel A-G</span>
+                </div>
+                <div class="imp-kpi-card">
+                  <span class="imp-kpi-val mono">{{ res.totalPieces | number:'1.0-2' }}</span>
+                  <span class="imp-kpi-lbl">Piezas Totales</span>
+                </div>
+              </div>
+
+              <div class="affected-shelves-bar" *ngIf="res.affectedShelves && res.affectedShelves.length > 0">
+                <span class="affected-lbl">Anaqueles actualizados ({{ res.shelvesUpdated }}):</span>
+                <div class="affected-chips">
+                  <span class="affected-chip mono" *ngFor="let shCode of res.affectedShelves">{{ shCode }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer import-success-footer">
+              <button type="button" class="btn btn-outline" (click)="resetForAnotherImport()">
+                Importar Otro Archivo
+              </button>
+              <button type="button" class="btn btn-primary btn-done-exit" (click)="closeCroquisImportModal()">
+                Listo, Salir al Croquis
+              </button>
+            </div>
+          </ng-container>
         </div>
       </div>
 
@@ -3081,6 +3361,458 @@ export interface ProductPlanningData {
       display: flex;
       align-items: center;
       gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-inline-pencil {
+      color: #0284c7;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      gap: 5px;
+      border-radius: 6px;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      display: inline-flex;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-inline-pencil:hover {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+    }
+
+    .inline-rename-container {
+      flex: 1;
+      background: #f8fafc;
+      border: 1.5px solid #93c5fd;
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-right: 12px;
+    }
+    .rename-inputs-grid {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .rename-field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .rename-field.grow {
+      flex: 1;
+      min-width: 220px;
+    }
+    .rename-actions-row {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .btn-weekly-import {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      background: #ffffff;
+      border-color: #0284c7;
+      color: #0284c7;
+    }
+    .btn-weekly-import:hover {
+      background: #0284c7;
+      color: #ffffff;
+    }
+    .btn-rename-fam-shelf {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #0284c7;
+      border-color: #bae6fd;
+      background: #f0f9ff;
+    }
+    .btn-rename-fam-shelf:hover {
+      background: #0284c7;
+      color: #ffffff;
+    }
+
+    /* Import Excel Modal in Croquis */
+    .import-excel-modal {
+      max-width: 820px !important;
+      width: 95vw;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 20px 45px rgba(10, 36, 114, 0.22);
+    }
+    .import-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.1rem 1.4rem;
+      background: linear-gradient(135deg, #0a2472 0%, #1e40af 100%);
+      color: #ffffff;
+    }
+    .import-header-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .import-header-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.16);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .import-header-title-wrap h3 {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #ffffff;
+    }
+    .import-header-sub {
+      font-size: 0.78rem;
+      color: #bfdbfe;
+    }
+    .import-modal-body {
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+    .excel-template-banner {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .format-col-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 4px;
+    }
+    .col-chip {
+      font-size: 0.73rem;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 5px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #0a2472;
+    }
+    .col-chip-level {
+      background: #dcfce7;
+      border-color: #86efac;
+      color: #166534;
+    }
+    .col-chip-opt {
+      background: #f1f5f9;
+      border-style: dashed;
+      color: #64748b;
+    }
+    .import-mode-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 10px;
+      margin-top: 6px;
+    }
+    .import-mode-card {
+      text-align: left;
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 0.75rem 0.9rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+    .import-mode-card:hover {
+      border-color: #93c5fd;
+      background: #f8fafc;
+    }
+    .import-mode-card.active {
+      border-color: #2563eb;
+      background: #eff6ff;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+    }
+    .import-mode-card.mode-card-weekly.active {
+      border-color: #059669;
+      background: #ecfdf5;
+      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+    }
+    .import-mode-card.mode-card-replace.active {
+      border-color: #d97706;
+      background: #fffbeb;
+      box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.14);
+    }
+    .badge-weekly {
+      background: #d1fae5 !important;
+      color: #065f46 !important;
+      border: 1px solid #a7f3d0 !important;
+    }
+    .mode-card-top {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+    .mode-radio {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid #94a3b8;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .import-mode-card.active .mode-radio {
+      border-color: #2563eb;
+      background: #2563eb;
+      box-shadow: inset 0 0 0 3px #ffffff;
+    }
+    .import-mode-card.mode-card-weekly.active .mode-radio {
+      border-color: #059669;
+      background: #059669;
+      box-shadow: inset 0 0 0 3px #ffffff;
+    }
+    .import-mode-card.mode-card-replace.active .mode-radio {
+      border-color: #d97706;
+      background: #d97706;
+    }
+    .mode-title {
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .mode-rec-badge {
+      font-size: 0.64rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+    .mode-desc {
+      margin: 0;
+      font-size: 0.72rem;
+      color: #475569;
+      line-height: 1.35;
+    }
+    .file-drop-area {
+      border: 2px dashed #93c5fd;
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 1.35rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.45rem;
+      transition: all 0.18s ease;
+    }
+    .file-drop-area:hover, .file-drop-area.drag-active {
+      background: #eff6ff;
+      border-color: #2563eb;
+      transform: translateY(-1px);
+    }
+    .file-drop-area.has-file {
+      border-style: solid;
+      border-color: #93c5fd;
+      background: #eff6ff;
+      padding: 0.85rem 1rem;
+    }
+    .drop-icon-circle {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #dbeafe;
+      color: #1d4ed8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .drop-main-text {
+      font-size: 0.88rem;
+      color: #0f172a;
+    }
+    .selected-file-pill {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #ffffff;
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      padding: 0.65rem 0.85rem;
+      text-align: left;
+    }
+    .file-pill-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background: #16a34a;
+      color: #ffffff;
+      font-weight: 900;
+      font-size: 0.72rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .file-pill-meta {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .file-pill-name {
+      font-size: 0.86rem;
+      color: #0f172a;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .btn-remove-file {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      color: #64748b;
+      cursor: pointer;
+    }
+    .import-modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 0.9rem 1.4rem;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+    }
+    .import-success-body {
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      text-align: center;
+    }
+    .success-hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .success-check-circle {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: #dcfce7;
+      color: #16a34a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .success-title {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .success-subtitle {
+      margin: 0;
+      font-size: 0.85rem;
+      color: #64748b;
+      max-width: 550px;
+    }
+    .import-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    @media (max-width: 640px) {
+      .import-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    .imp-kpi-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 0.75rem 0.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .imp-kpi-val {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .imp-kpi-lbl {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+    .affected-shelves-bar {
+      text-align: left;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+    }
+    .affected-lbl {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #475569;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .affected-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .affected-chip {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-size: 0.74rem;
+      font-weight: 700;
+    }
+    .import-success-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 0.9rem 1.4rem;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+    }
+    .btn-done-exit {
+      padding: 8px 18px;
+      font-weight: 700;
     }
 
     .compact-kpi-strip {
@@ -4390,6 +5122,23 @@ export class CroquisComponent implements OnInit {
   draggedRack: ShelfAssignmentDto | null = null;
   inspectedShelf: ShelfAssignmentDto | null = null;
 
+  // Quick Inline Shelf Renaming State
+  inlineRenamingShelf = false;
+  renameShelfCode = '';
+  renameShelfDesc = '';
+  renameShelfZone = '';
+  savingInlineRename = signal<boolean>(false);
+
+  // Croquis Smart Import Modal State (Levantamiento Semanal SAE / Excel)
+  showImportExcelModal = false;
+  selectedExcelFile: File | null = null;
+  importTargetShelfId = signal<number>(0);
+  importMode = signal<'SMART_MERGE' | 'REPLACE_ALL' | 'WEEKLY_UPDATE'>('WEEKLY_UPDATE');
+  isDraggingFile = signal<boolean>(false);
+  downloadingTemplate = signal<boolean>(false);
+  importingExcel = signal<boolean>(false);
+  importResult: any = null;
+
   // Physical Rack Blueprint & Quick Section Assignment State (Niveles A-G)
   rackLevels: string[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
   inspectedMaterials = signal<CountRecordDto[]>([]);
@@ -5103,6 +5852,170 @@ export class CroquisComponent implements OnInit {
     });
   }
 
+  // Quick Inline Shelf Rename Methods
+  startInlineShelfRename() {
+    if (!this.inspectedShelf) return;
+    this.inlineRenamingShelf = true;
+    this.renameShelfCode = this.inspectedShelf.shelfCode;
+    this.renameShelfDesc = this.inspectedShelf.shelfDescription || '';
+    this.renameShelfZone = this.inspectedShelf.shelfZone || '';
+  }
+
+  cancelInlineShelfRename() {
+    this.inlineRenamingShelf = false;
+  }
+
+  saveInlineShelfRename() {
+    if (!this.inspectedShelf) return;
+    const target = this.inspectedShelf;
+    const code = this.renameShelfCode.trim().toUpperCase();
+    if (!code) {
+      this.toast.warning('El código de anaquel no puede estar vacío');
+      return;
+    }
+    this.savingInlineRename.set(true);
+    this.api.updateShelf(target.shelfId, {
+      code: code,
+      description: this.renameShelfDesc.trim(),
+      zone: this.renameShelfZone.trim(),
+      plant: target.plant || this.selectedPlant()
+    }).subscribe({
+      next: (updated) => {
+        this.savingInlineRename.set(false);
+        this.inlineRenamingShelf = false;
+        this.toast.success(`Anaquel ${updated.code} renombrado exitosamente.`);
+        target.shelfCode = updated.code;
+        target.shelfDescription = updated.description;
+        target.shelfZone = updated.zone;
+        this.allShelves.update(list => list.map(s => {
+          if (s.shelfId === target.shelfId) {
+            return {
+              ...s,
+              shelfCode: updated.code,
+              shelfDescription: updated.description,
+              shelfZone: updated.zone
+            };
+          }
+          return s;
+        }));
+      },
+      error: (err) => {
+        this.savingInlineRename.set(false);
+        this.toast.error(err.error?.message || 'Error al renombrar anaquel');
+      }
+    });
+  }
+
+  openEditShelfByCode(shelfCode: string) {
+    const target = this.allShelves().find(s => s.shelfCode.toUpperCase() === shelfCode.toUpperCase());
+    if (target) {
+      this.openEditShelf(target);
+    }
+  }
+
+  // Croquis Smart Import Methods (Levantamiento Semanal SAE / Excel)
+  openCroquisImportModal(shelfId?: number) {
+    if (this.sessions().length === 0 || this.activeSessionId() === 0) {
+      this.toast.warning('No hay inventario activo. Selecciona o inicia una sesión primero.');
+      return;
+    }
+    this.importTargetShelfId.set(shelfId || 0);
+    this.importMode.set('WEEKLY_UPDATE');
+    this.selectedExcelFile = null;
+    this.importResult = null;
+    this.showImportExcelModal = true;
+  }
+
+  closeCroquisImportModal() {
+    this.showImportExcelModal = false;
+    this.selectedExcelFile = null;
+    this.importResult = null;
+    this.isDraggingFile.set(false);
+  }
+
+  resetForAnotherImport() {
+    this.selectedExcelFile = null;
+    this.importResult = null;
+    this.isDraggingFile.set(false);
+  }
+
+  downloadExcelTemplate() {
+    this.downloadingTemplate.set(true);
+    this.api.downloadImportTemplate().subscribe({
+      next: (blob) => {
+        this.downloadingTemplate.set(false);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Plantilla_Interflu_Conteo_Por_Nivel.xlsx';
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.toast.success('Plantilla oficial descargada.');
+      },
+      error: (err) => {
+        this.downloadingTemplate.set(false);
+        this.toast.error('Error al descargar plantilla: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  onFileSelectedForImport(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.selectedExcelFile = input.files[0];
+    }
+  }
+
+  onDragOverImport(event: DragEvent) {
+    event.preventDefault();
+    this.isDraggingFile.set(true);
+  }
+
+  onDragLeaveImport(event: DragEvent) {
+    event.preventDefault();
+    this.isDraggingFile.set(false);
+  }
+
+  onDropImport(event: DragEvent) {
+    event.preventDefault();
+    this.isDraggingFile.set(false);
+    if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
+      this.selectedExcelFile = event.dataTransfer.files[0];
+    }
+  }
+
+  submitCroquisImport() {
+    if (!this.selectedExcelFile) {
+      this.toast.error('Selecciona un archivo Excel (.xlsx o .csv).');
+      return;
+    }
+    const sessionId = this.activeSessionId();
+    if (!sessionId || sessionId === 0) {
+      this.toast.error('No hay sesión de inventario activa.');
+      return;
+    }
+    const shelfParam = this.importTargetShelfId() > 0 ? this.importTargetShelfId() : undefined;
+    const mode = this.importMode();
+    this.importingExcel.set(true);
+    this.api.importExcelCounts(sessionId, this.selectedExcelFile, shelfParam, mode).subscribe({
+      next: (res) => {
+        this.importingExcel.set(false);
+        this.importResult = res;
+        this.toast.success(
+          `Importación exitosa: ${res.addedRecords ?? res.importedRecords} nuevos, ${res.updatedRecords ?? 0} actualizados (${res.totalPieces} pzas).`
+        );
+        this.loadShelves(sessionId);
+        if (this.inspectedShelf) {
+          this.loadInspectedShelfMaterials(this.inspectedShelf.shelfId);
+        }
+      },
+      error: (err) => {
+        this.importingExcel.set(false);
+        this.toast.error('Error al importar Excel: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
   openClearShelfCountsModal(shelf: ShelfAssignmentDto) {
     this.shelfToClearCounts = shelf;
   }
@@ -5223,6 +6136,7 @@ export class CroquisComponent implements OnInit {
 
   closeInspectedShelf() {
     this.inspectedShelf = null;
+    this.inlineRenamingShelf = false;
     this.inspectedMaterials.set([]);
     this.selectedLevelFilter.set('TODOS');
     this.shelfMaterialSearch.set('');
@@ -5363,6 +6277,44 @@ export class CroquisComponent implements OnInit {
 
   @HostListener('window:keydown', ['$event'])
   handleKeyDown(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      if (this.showImportExcelModal) {
+        this.closeCroquisImportModal();
+        event.preventDefault();
+        return;
+      }
+      if (this.selectedProductPlanning()) {
+        this.closeProductPlanning();
+        event.preventDefault();
+        return;
+      }
+      if (this.inlineRenamingShelf) {
+        this.cancelInlineShelfRename();
+        event.preventDefault();
+        return;
+      }
+      if (this.inspectedShelf) {
+        this.closeInspectedShelf();
+        event.preventDefault();
+        return;
+      }
+      if (this.activeFamilyExplorer()) {
+        this.closeFamilyExplorer();
+        event.preventDefault();
+        return;
+      }
+      if (this.editingShelf) {
+        this.editingShelf = null;
+        event.preventDefault();
+        return;
+      }
+      if (this.selectedRackForMove) {
+        this.selectedRackForMove = null;
+        event.preventDefault();
+        return;
+      }
+    }
+
     if (!this.editMode() || !this.selectedRackForMove) return;
     const target = event.target as HTMLElement;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) return;
@@ -5379,9 +6331,6 @@ export class CroquisComponent implements OnInit {
       event.preventDefault();
     } else if (event.key === 'ArrowRight') {
       this.nudgeSelected(step, 0);
-      event.preventDefault();
-    } else if (event.key === 'Escape') {
-      this.selectedRackForMove = null;
       event.preventDefault();
     }
   }

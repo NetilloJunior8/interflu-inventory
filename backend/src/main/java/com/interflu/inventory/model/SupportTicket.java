@@ -57,7 +57,8 @@ public class SupportTicket {
         BAJA,
         MEDIA,
         ALTA,
-        URGENTE
+        URGENTE,
+        CRITICA
     }
 
     public SupportTicket() {}

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, SupportTicketDto } from '../services/api.service';
@@ -17,6 +17,14 @@ import { ToastService } from '../services/toast.service';
           <p class="page-subtitle">Canal oficial de incidencias, solicitudes técnicas y requerimientos para el sistema Interflu Inventory</p>
         </div>
         <div class="header-actions">
+          <button class="btn btn-outline" (click)="loadTickets(true)" [disabled]="loading()" title="Recargar bitácora de tickets">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 4v6h-6"></path>
+              <path d="M1 20v-6h6"></path>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            {{ loading() ? 'Sincronizando...' : 'Actualizar' }}
+          </button>
           <button class="btn btn-primary" (click)="openNewTicketModal()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -98,7 +106,7 @@ import { ToastService } from '../services/toast.service';
                   </div>
                 </td>
                 <td>
-                  <span class="fw-600">{{ t.authorFullName }}</span>
+                  <span class="fw-600">{{ t.authorFullName || t.authorName || t.authorUsername }}</span>
                   <span class="sub-user">({{ t.authorUsername }})</span>
                 </td>
                 <td>
@@ -189,7 +197,7 @@ import { ToastService } from '../services/toast.service';
           </div>
           <div class="modal-body">
             <div class="ticket-meta-block">
-              <div><strong>Solicitante:</strong> {{ inspectingTicket.authorFullName }} ({{ inspectingTicket.authorUsername }})</div>
+              <div><strong>Solicitante:</strong> {{ inspectingTicket.authorFullName || inspectingTicket.authorName || inspectingTicket.authorUsername }} ({{ inspectingTicket.authorUsername }})</div>
               <div><strong>Fecha de Creación:</strong> {{ inspectingTicket.createdAt | slice:0:16 | date:'dd/MM/yyyy HH:mm' }}</div>
               <div><strong>Categoría:</strong> {{ inspectingTicket.category }}</div>
               <div><strong>Prioridad:</strong> {{ inspectingTicket.priority }}</div>
@@ -557,9 +565,11 @@ import { ToastService } from '../services/toast.service';
     }
   `]
 })
-export class SupportComponent implements OnInit {
+export class SupportComponent implements OnInit, OnDestroy {
   tickets = signal<SupportTicketDto[]>([]);
   filterStatus = 'TODOS';
+  loading = signal<boolean>(false);
+  private autoRefreshTimer: any = null;
 
   showNewModal = false;
   submitting = false;
@@ -582,13 +592,37 @@ export class SupportComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.loadTickets();
+    this.loadTickets(false);
+    if (typeof window !== 'undefined') {
+      this.autoRefreshTimer = setInterval(() => {
+        this.loadTickets(false);
+      }, 15000);
+    }
   }
 
-  loadTickets() {
+  ngOnDestroy() {
+    if (this.autoRefreshTimer) {
+      clearInterval(this.autoRefreshTimer);
+      this.autoRefreshTimer = null;
+    }
+  }
+
+  loadTickets(showToast = false) {
+    if (showToast) this.loading.set(true);
     this.api.getSupportTickets().subscribe({
-      next: (data) => this.tickets.set(data),
-      error: () => this.toast.error('No se pudieron cargar los tickets de soporte.')
+      next: (data) => {
+        this.loading.set(false);
+        this.tickets.set(data);
+        if (showToast) {
+          this.toast.info(`Bitácora sincronizada (${data.length} tickets)`);
+        }
+      },
+      error: () => {
+        this.loading.set(false);
+        if (showToast) {
+          this.toast.error('No se pudieron cargar los tickets de soporte.');
+        }
+      }
     });
   }
 

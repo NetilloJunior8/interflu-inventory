@@ -155,10 +155,10 @@ import { ToastService } from '../services/toast.service';
     <div class="modal-backdrop" *ngIf="editingShelf" (click)="editingShelf = null">
       <div class="modal-box" (click)="$event.stopPropagation()">
         <div class="modal-header-row" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 14px;">
-          <h3 class="modal-title" style="margin: 0;">Editar Anaquel</h3>
+          <h3 class="modal-title" style="margin: 0;">Renombrar y Editar Anaquel</h3>
           <button class="modal-close-icon-btn" (click)="editingShelf = null" title="Cerrar">✕</button>
         </div>
-        <p class="modal-desc" style="font-size: 13px; color: var(--text-muted); margin: 0 0 14px 0;">Modifica el código, zona o sector físico de este anaquel.</p>
+        <p class="modal-desc" style="font-size: 13px; color: var(--text-muted); margin: 0 0 14px 0;">Modifica el nombre oficial, código o zona física de este anaquel. El cambio se reflejará en todo el sistema.</p>
         <div class="form-stack">
           <div class="two-cols">
             <div>
@@ -174,12 +174,12 @@ import { ToastService } from '../services/toast.service';
             </div>
           </div>
           <div>
-            <label class="label">Zona / Sector</label>
-            <input class="input" [(ngModel)]="editingShelf.zone" placeholder="Ej. Acero (1-19), Kuriyama, Sellos" />
+            <label class="label">Nombre / Descripción Oficial</label>
+            <input class="input" [(ngModel)]="editingShelf.description" placeholder="Ej. ANAQUEL DE ACERO 05" />
           </div>
           <div>
-            <label class="label">Descripción Adicional</label>
-            <input class="input" [(ngModel)]="editingShelf.description" placeholder="Ej. Pasillo principal frente a comedor" />
+            <label class="label">Zona / Sector / Familia</label>
+            <input class="input" [(ngModel)]="editingShelf.zone" placeholder="Ej. Acero (1-19), Kuriyama, Sellos" />
           </div>
         </div>
         <div class="modal-footer" style="margin-top: 18px;">

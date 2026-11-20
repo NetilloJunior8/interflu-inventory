@@ -182,14 +182,16 @@ export interface SupportTicketDto {
   id: number;
   folio: string;
   authorUsername: string;
-  authorFullName: string;
+  authorFullName?: string;
+  authorName?: string;
   category: string;
   subject: string;
   description: string;
   status: 'PENDIENTE' | 'EN_ATENCION' | 'RESUELTO';
-  priority: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA';
+  priority: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | 'URGENTE';
   adminNotes?: string;
   assignedAdmin?: string;
+  assignedAdminName?: string;
   createdAt: string;
   resolvedAt?: string;
 }
@@ -334,7 +336,7 @@ export class ApiService {
     sessionId: number,
     file: File,
     shelfId?: number,
-    mode: 'SMART_MERGE' | 'REPLACE_ALL' = 'SMART_MERGE'
+    mode: 'SMART_MERGE' | 'REPLACE_ALL' | 'WEEKLY_UPDATE' | string = 'SMART_MERGE'
   ): Observable<{
     importedRecords: number;
     addedRecords?: number;
@@ -344,6 +346,7 @@ export class ApiService {
     shelvesUpdated: number;
     affectedShelves?: string[];
     importMode?: string;
+    message?: string;
   }> {
     const formData = new FormData();
     formData.append('sessionId', String(sessionId));
@@ -449,6 +452,10 @@ export class ApiService {
   }
 
   // Support Tickets
+  getPendingTicketsCount(): Observable<{ pendingCount: number; hasPending: boolean }> {
+    return this.http.get<{ pendingCount: number; hasPending: boolean }>(`${this.baseUrl}/support/tickets/pending-count`);
+  }
+
   getSupportTickets(status?: string): Observable<SupportTicketDto[]> {
     const params: any = {};
     if (status) params.status = status;

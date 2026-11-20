@@ -73,6 +73,7 @@ public class CountController {
             Map<String, Object> result = countService.importExcelCounts(sessionId, shelfId, mode, file, currentUser);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.badRequest().body(Map.of("message", "Error al importar Excel: " + e.getMessage()));
         }
     }

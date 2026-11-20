@@ -739,8 +739,24 @@ export interface SheetRow {
 
               <!-- Smart Import Mode Selector -->
               <div class="form-group">
-                <label class="field-label">Comportamiento si el anaquel ya tiene registros:</label>
+                <label class="field-label">Modalidad de Importación:</label>
                 <div class="import-mode-grid">
+                  <button
+                    type="button"
+                    class="import-mode-card mode-card-weekly"
+                    [class.active]="importMode() === 'WEEKLY_UPDATE'"
+                    (click)="importMode.set('WEEKLY_UPDATE')"
+                  >
+                    <div class="mode-card-top">
+                      <span class="mode-radio"></span>
+                      <span class="mode-title">Levantamiento Semanal SAE</span>
+                      <span class="mode-rec-badge badge-weekly">Solo Piezas</span>
+                    </div>
+                    <p class="mode-desc">
+                      Detecta códigos coincidentes del SAE y actualiza únicamente las piezas físicas. Conserva intactos anaqueles, niveles A-G, croquis y códigos de ubicación.
+                    </p>
+                  </button>
+
                   <button
                     type="button"
                     class="import-mode-card"
@@ -750,7 +766,7 @@ export interface SheetRow {
                     <div class="mode-card-top">
                       <span class="mode-radio"></span>
                       <span class="mode-title">Inteligente: Actualizar y Agregar</span>
-                      <span class="mode-rec-badge">Recomendado</span>
+                      <span class="mode-rec-badge">Con Nivel A-G</span>
                     </div>
                     <p class="mode-desc">
                       Sustituye piezas y nivel (A-G) de códigos repetidos, agrega los códigos nuevos y conserva los demás sin borrar nada.
@@ -817,7 +833,7 @@ export interface SheetRow {
                 (click)="submitImportExcel()"
               >
                 <span *ngIf="importingExcel()" class="btn-spinner"></span>
-                <span>{{ importingExcel() ? 'Procesando archivo...' : (importMode() === 'REPLACE_ALL' ? 'Sustituir e Importar Excel' : 'Importar con Modo Inteligente') }}</span>
+                <span>{{ importingExcel() ? 'Procesando archivo...' : (importMode() === 'WEEKLY_UPDATE' ? 'Actualizar Piezas (Levantamiento SAE)' : (importMode() === 'REPLACE_ALL' ? 'Sustituir e Importar Todo' : 'Importar con Modo Inteligente')) }}</span>
               </button>
             </div>
           </ng-container>
@@ -833,7 +849,7 @@ export interface SheetRow {
                 </div>
                 <h4 class="success-title">Importación Completada con Éxito</h4>
                 <p class="success-subtitle">
-                  {{ res.importMode === 'REPLACE_ALL' ? 'Se reemplazó el contenido completo del anaquel destino.' : 'Modo inteligente aplicado: códigos repetidos actualizados y nuevos agregados.' }}
+                  {{ res.importMode === 'WEEKLY_UPDATE' ? 'Levantamiento semanal completado: existencias físicas actualizadas manteniendo anaqueles, niveles A-G y ubicaciones intactas.' : (res.importMode === 'REPLACE_ALL' ? 'Se reemplazó el contenido completo del anaquel destino.' : 'Modo inteligente aplicado: códigos repetidos actualizados y nuevos agregados.') }}
                 </p>
               </div>
 
@@ -1883,12 +1899,9 @@ export interface SheetRow {
     /* Smart Import Mode Cards */
     .import-mode-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
       gap: 10px;
       margin-top: 6px;
-    }
-    @media (max-width: 600px) {
-      .import-mode-grid { grid-template-columns: 1fr; }
     }
     .import-mode-card {
       text-align: left;
@@ -1911,10 +1924,20 @@ export interface SheetRow {
       background: #eff6ff;
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
     }
+    .import-mode-card.mode-card-weekly.active {
+      border-color: #059669;
+      background: #ecfdf5;
+      box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
+    }
     .import-mode-card.mode-card-replace.active {
       border-color: #d97706;
       background: #fffbeb;
       box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.14);
+    }
+    .badge-weekly {
+      background: #d1fae5 !important;
+      color: #065f46 !important;
+      border: 1px solid #a7f3d0 !important;
     }
     .mode-card-top {
       display: flex;
@@ -2270,7 +2293,7 @@ export class CaptureComponent implements OnInit {
   showImportExcelModal = false;
   selectedExcelFile: File | null = null;
   importTargetShelfId = signal<number>(0);
-  importMode = signal<'SMART_MERGE' | 'REPLACE_ALL'>('SMART_MERGE');
+  importMode = signal<'SMART_MERGE' | 'REPLACE_ALL' | 'WEEKLY_UPDATE'>('WEEKLY_UPDATE');
   isDraggingFile = signal<boolean>(false);
   downloadingTemplate = signal<boolean>(false);
   importingExcel = signal<boolean>(false);

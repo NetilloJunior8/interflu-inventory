@@ -52,7 +52,15 @@ public class CountRecord {
     private LocalDateTime updatedAt = LocalDateTime.now();
 
     @Version
-    private Long version;
+    private Long version = 0L;
+
+    @PrePersist
+    @PreUpdate
+    public void ensureVersion() {
+        if (this.version == null) {
+            this.version = 0L;
+        }
+    }
 
     public enum ValidationStatus {
         VALIDO,

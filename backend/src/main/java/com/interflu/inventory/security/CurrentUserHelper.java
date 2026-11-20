@@ -21,7 +21,8 @@ public class CurrentUserHelper {
             throw new IllegalStateException("Usuario no autenticado");
         }
         String username = auth.getName();
-        return userRepository.findByUsername(username)
+        return userRepository.findByUsernameIgnoreCase(username)
+                .or(() -> userRepository.findByUsername(username))
                 .orElseThrow(() -> new IllegalStateException("Usuario " + username + " no encontrado"));
     }
 }

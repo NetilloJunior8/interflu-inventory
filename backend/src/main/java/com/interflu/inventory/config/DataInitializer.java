@@ -49,6 +49,7 @@ public class DataInitializer implements CommandLineRunner {
         // Configure SQLite WAL mode for fast concurrent operations
         try {
             jdbcTemplate.queryForObject("PRAGMA journal_mode=WAL;", String.class);
+            jdbcTemplate.update("UPDATE count_records SET version = 0 WHERE version IS NULL;");
         } catch (Exception ignored) {}
 
         // 1. Seed Authorized Users: Osiris (220704), Alexis (888888), and Sistemas (admin8888)

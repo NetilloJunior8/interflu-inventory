@@ -52,11 +52,19 @@ public class SupportTicketController {
         return ResponseEntity.ok(mapTicket(ticket));
     }
 
+    @GetMapping("/pending-count")
+    public ResponseEntity<?> getPendingCount() {
+        long count = ticketRepo.countByStatus(SupportTicket.Status.PENDIENTE);
+        return ResponseEntity.ok(Map.of(
+                "pendingCount", count,
+                "hasPending", count > 0
+        ));
+    }
+
     @GetMapping
     public ResponseEntity<?> listTickets() {
         User currentUser = userHelper.getCurrentUser();
-        boolean isSistemas = "SISTEMAS".equalsIgnoreCase(currentUser.getRole()) ||
-                             "sistemas".equalsIgnoreCase(currentUser.getUsername());
+        boolean isSistemas = isSistemasOrAdmin(currentUser);
 
         List<SupportTicket> list = isSistemas
                 ? ticketRepo.findAllByOrderByCreatedAtDesc()
@@ -68,10 +76,9 @@ public class SupportTicketController {
     @PutMapping("/{id}/status")
     public ResponseEntity<?> updateStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
         User admin = userHelper.getCurrentUser();
-        boolean isSistemas = "SISTEMAS".equalsIgnoreCase(admin.getRole()) ||
-                             "sistemas".equalsIgnoreCase(admin.getUsername());
+        boolean isSistemas = isSistemasOrAdmin(admin);
         if (!isSistemas) {
-            return ResponseEntity.status(403).body(Map.of("message", "Acceso denegado. Solo personal de Sistemas puede atender o actualizar el estado de tickets."));
+            return ResponseEntity.status(403).body(Map.of("message", "Acceso denegado. Solo personal de Sistemas o Administradores pueden atender o actualizar el estado de tickets."));
         }
 
         SupportTicket ticket = ticketRepo.findById(id)
@@ -97,6 +104,13 @@ public class SupportTicketController {
         return ResponseEntity.ok(mapTicket(ticket));
     }
 
+    private boolean isSistemasOrAdmin(User u) {
+        if (u == null) return false;
+        String r = u.getRole() != null ? u.getRole().toUpperCase().trim() : "";
+        String uname = u.getUsername() != null ? u.getUsername().toLowerCase().trim() : "";
+        return r.contains("SISTEMA") || r.contains("ADMIN") || uname.equals("sistemas") || uname.equals("admin") || uname.equals("aaron");
+    }
+
     private Map<String, Object> mapTicket(SupportTicket t) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", t.getId());
@@ -109,6 +123,7 @@ public class SupportTicketController {
         map.put("adminNotes", t.getAdminNotes());
         map.put("authorId", t.getAuthor().getId());
         map.put("authorName", t.getAuthor().getFullName());
+        map.put("authorFullName", t.getAuthor().getFullName());
         map.put("authorUsername", t.getAuthor().getUsername());
         map.put("assignedAdminName", t.getAssignedAdmin() != null ? t.getAssignedAdmin().getFullName() : null);
         map.put("createdAt", t.getCreatedAt());
