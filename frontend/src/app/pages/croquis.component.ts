@@ -89,6 +89,27 @@ export interface ProductPlanningData {
   demandHistory: DemandBarItem[];
 }
 
+export interface LocationAssignerRow {
+  id: number;
+  code: string;
+  description: string;
+  shelfId: number;
+  shelfCode: string;
+  plant: 'PB' | 'PA';
+  aisle: string;
+  shelfNum: string;
+  level: string;
+  position: string;
+  locationCode: string;
+  quantity: number;
+  minimoSeguridad: number;
+  puntoReorden: number;
+  maximoObjetivo: number;
+  cuantoPedir: number;
+  statusLabel: string;
+  isDirty?: boolean;
+}
+
 @Component({
   selector: 'app-croquis',
   standalone: true,
@@ -1266,6 +1287,47 @@ export interface ProductPlanningData {
               </div>
               <button
                 type="button"
+                class="btn btn-sm btn-outline-primary"
+                (click)="openImportSaeForFamily(fam)"
+                title="Importar catalogo o levantamiento de Aspel SAE para esta seccion"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="12" y1="18" x2="12" y2="12"></line>
+                  <polyline points="9 15 12 12 15 15"></polyline>
+                </svg>
+                Importar del SAE
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-primary"
+                (click)="openLocationAssignerForFamily(fam)"
+                title="Asignar anaquel, nivel A-G y pasillo a materiales de esta seccion con generacion automatica de ubicacion"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="3" y1="9" x2="21" y2="9"></line>
+                  <line x1="9" y1="21" x2="9" y2="9"></line>
+                </svg>
+                Asignar Ubicaciones
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-success"
+                (click)="exportFamilyPlanningExcel(fam)"
+                [disabled]="filteredFamilyCounts().length === 0"
+                title="Descargar archivo Excel con ubicaciones generadas, minimos, puntos de reorden y sugerencias de compra"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Exportar Min/Max
+              </button>
+              <button
+                type="button"
                 class="btn btn-sm btn-outline"
                 (click)="exportFamilyCsv(fam)"
                 [disabled]="filteredFamilyCounts().length === 0"
@@ -1565,6 +1627,328 @@ export interface ProductPlanningData {
         </div>
       </div>
 
+      <!-- MODAL: ASIGNADOR DE UBICACIONES FISICAS Y PLANIFICACION SAE -->
+      <div class="modal-backdrop location-assigner-backdrop" *ngIf="locationAssignerFamily() as fam" (click)="closeLocationAssigner()">
+        <div class="modal-box location-assigner-modal" (click)="$event.stopPropagation()">
+          
+          <!-- Assigner Header -->
+          <div class="assigner-modal-header">
+            <div class="assigner-header-left">
+              <div class="assigner-brand-crumbs">
+                <span class="planning-brand">INTERFLU INVENTORY</span>
+                <span class="crumb-sep">/</span>
+                <span class="crumb-cat">{{ fam.name }}</span>
+              </div>
+              <h2 class="assigner-title">Asignador de Ubicaciones Físicas y Planificación SAE</h2>
+              <p class="assigner-sub">
+                Asigna planta, pasillo, anaquel y nivel (A-G) para generar automáticamente el código arquitectónico (PB3-15A-1 / PA4-1B-3) y calcular mínimos y máximos.
+              </p>
+            </div>
+
+            <div class="assigner-header-right">
+              <div class="assigner-stats-strip">
+                <div class="a-stat">
+                  <span class="a-stat-lbl">Total Materiales</span>
+                  <span class="a-stat-val mono">{{ locationAssignerRows().length }}</span>
+                </div>
+                <div class="a-stat" [class.highlight-pending]="locationAssignerPendingCount() > 0">
+                  <span class="a-stat-lbl">Por Asignar</span>
+                  <span class="a-stat-val mono">{{ locationAssignerPendingCount() }}</span>
+                </div>
+                <div class="a-stat" *ngIf="locationAssignerDirtyCount() > 0">
+                  <span class="a-stat-lbl">Modificados</span>
+                  <span class="a-stat-val mono text-primary-brand">{{ locationAssignerDirtyCount() }}</span>
+                </div>
+              </div>
+              <button type="button" class="modal-close-icon-btn" (click)="closeLocationAssigner()" title="Cerrar ventana (Esc)">✕</button>
+            </div>
+          </div>
+
+          <!-- Quick Bulk Fill Ribbon (Asignacion Rapida en Bloque) -->
+          <div class="bulk-fill-ribbon">
+            <div class="bulk-fill-header">
+              <span class="bulk-fill-title">Herramienta de Asignación Rápida Masiva:</span>
+              <span class="bulk-fill-hint">Rellena anaquel, nivel y pasillo en lote para materiales importados de SAE</span>
+            </div>
+            <div class="bulk-fill-controls">
+              <div class="bulk-field">
+                <label>Planta:</label>
+                <select class="select select-sm mono" [ngModel]="bulkPlant()" (ngModelChange)="bulkPlant.set($event)">
+                  <option value="PB">PB (Planta Baja)</option>
+                  <option value="PA">PA (Planta Alta)</option>
+                </select>
+              </div>
+
+              <div class="bulk-field">
+                <label>Pasillo:</label>
+                <input
+                  type="text"
+                  class="input input-sm mono bulk-aisle-input"
+                  [ngModel]="bulkAisle()"
+                  (ngModelChange)="bulkAisle.set($event)"
+                  placeholder="3"
+                />
+              </div>
+
+              <div class="bulk-field">
+                <label>Anaquel Destino:</label>
+                <select class="select select-sm mono" [ngModel]="bulkShelfId()" (ngModelChange)="bulkShelfId.set($event)">
+                  <option [value]="0">Seleccionar Anaquel...</option>
+                  <option *ngFor="let s of familyShelves()" [value]="s.shelfId">
+                    {{ s.shelfCode }} &bull; {{ s.shelfDescription || s.shelfZone }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="bulk-field">
+                <label>Nivel:</label>
+                <div class="bulk-level-buttons">
+                  <button
+                    type="button"
+                    *ngFor="let lvl of rackLevels"
+                    class="btn-lvl-mini"
+                    [class.active]="bulkLevel() === lvl"
+                    (click)="bulkLevel.set(lvl)"
+                  >
+                    {{ lvl }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="bulk-field">
+                <label>Posición:</label>
+                <input
+                  type="text"
+                  class="input input-sm mono bulk-pos-input"
+                  [ngModel]="bulkPosition()"
+                  (ngModelChange)="bulkPosition.set($event)"
+                  placeholder="1"
+                />
+              </div>
+
+              <div class="bulk-preview-box">
+                <span class="preview-lbl">Código generado:</span>
+                <span class="preview-val mono">
+                  {{ buildLocationCode(bulkPlant(), bulkAisle(), getBulkShelfNum(), bulkLevel(), bulkPosition()) }}
+                </span>
+              </div>
+
+              <div class="bulk-actions">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-primary"
+                  (click)="applyBulkFill(true)"
+                  title="Aplicar valores a todos los materiales que todavía no tienen nivel o anaquel"
+                >
+                  Asignar a Pendientes
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline"
+                  (click)="applyBulkFill(false)"
+                  title="Aplicar a todos los materiales de la tabla"
+                >
+                  Asignar a Todos
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filter & Search Bar -->
+          <div class="assigner-toolbar">
+            <div class="assigner-search-wrap">
+              <input
+                type="text"
+                class="input input-sm mono"
+                [ngModel]="locationAssignerSearch()"
+                (ngModelChange)="locationAssignerSearch.set($event)"
+                placeholder="Filtrar por clave, descripción o código de ubicación..."
+              />
+              <button
+                *ngIf="locationAssignerSearch()"
+                type="button"
+                class="btn-clear-mat-search"
+                (click)="locationAssignerSearch.set('')"
+              >✕</button>
+            </div>
+
+            <div class="assigner-filter-tabs">
+              <button
+                type="button"
+                class="btn-filter-tab"
+                [class.active]="locationAssignerFilter() === 'TODOS'"
+                (click)="locationAssignerFilter.set('TODOS')"
+              >
+                Todos ({{ locationAssignerRows().length }})
+              </button>
+              <button
+                type="button"
+                class="btn-filter-tab"
+                [class.active]="locationAssignerFilter() === 'PENDIENTES'"
+                (click)="locationAssignerFilter.set('PENDIENTES')"
+              >
+                Solo Pendientes ({{ locationAssignerPendingCount() }})
+              </button>
+              <button
+                type="button"
+                class="btn-filter-tab"
+                [class.active]="locationAssignerFilter() === 'ASIGNADOS'"
+                (click)="locationAssignerFilter.set('ASIGNADOS')"
+              >
+                Con Ubicación ({{ locationAssignerRows().length - locationAssignerPendingCount() }})
+              </button>
+            </div>
+          </div>
+
+          <!-- Table Body -->
+          <div class="assigner-table-container">
+            <table class="assigner-table">
+              <thead>
+                <tr>
+                  <th style="width: 140px;">Clave SAE</th>
+                  <th>Descripción del Material</th>
+                  <th style="width: 70px;">Planta</th>
+                  <th style="width: 60px;">Pasillo</th>
+                  <th style="width: 150px;">Anaquel</th>
+                  <th style="width: 160px;">Nivel (A-G)</th>
+                  <th style="width: 60px;">Posición</th>
+                  <th style="width: 130px;">Ubicación FÍSICA</th>
+                  <th style="width: 80px;" class="text-right">Stock</th>
+                  <th style="width: 110px;" class="text-right">Mín / Reorden</th>
+                  <th style="width: 90px;" class="text-right">Cuánto Pedir</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of locationAssignerFilteredRows()" [class.row-dirty]="row.isDirty" [class.row-missing]="!row.locationCode || !row.level">
+                  <td class="td-code mono fw-700">{{ row.code }}</td>
+                  <td class="td-desc">
+                    <span class="desc-text">{{ row.description }}</span>
+                    <span *ngIf="row.isDirty" class="dirty-badge">Sin guardar</span>
+                  </td>
+                  <td>
+                    <select
+                      class="select select-xs mono"
+                      [(ngModel)]="row.plant"
+                      (ngModelChange)="onRowLocationFieldChange(row)"
+                    >
+                      <option value="PB">PB</option>
+                      <option value="PA">PA</option>
+                    </select>
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      class="input input-xs mono text-center"
+                      [(ngModel)]="row.aisle"
+                      (ngModelChange)="onRowLocationFieldChange(row)"
+                      placeholder="3"
+                    />
+                  </td>
+                  <td>
+                    <select
+                      class="select select-xs mono"
+                      [ngModel]="row.shelfId"
+                      (ngModelChange)="onRowShelfChange(row, $event)"
+                    >
+                      <option [value]="0">Sin Anaquel</option>
+                      <option *ngFor="let s of familyShelves()" [value]="s.shelfId">
+                        {{ s.shelfCode }} &bull; {{ s.shelfDescription || s.shelfZone }}
+                      </option>
+                    </select>
+                  </td>
+                  <td>
+                    <div class="row-level-pills">
+                      <button
+                        type="button"
+                        *ngFor="let lvl of rackLevels"
+                        class="btn-lvl-pill"
+                        [class.active]="row.level === lvl"
+                        (click)="onRowLevelSelect(row, lvl)"
+                      >
+                        {{ lvl }}
+                      </button>
+                    </div>
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      class="input input-xs mono text-center"
+                      [(ngModel)]="row.position"
+                      (ngModelChange)="onRowLocationFieldChange(row)"
+                      placeholder="1"
+                    />
+                  </td>
+                  <td>
+                    <span
+                      class="loc-code-badge mono"
+                      [class.badge-complete]="row.locationCode && row.level"
+                      [class.badge-incomplete]="!row.locationCode || !row.level"
+                      [title]="'Ubicación arquitectónica: ' + (row.locationCode || 'Incompleta')"
+                    >
+                      {{ row.locationCode || 'Sin Asignar' }}
+                    </span>
+                  </td>
+                  <td class="text-right mono fw-700">{{ row.quantity | number:'1.0-0' }}</td>
+                  <td class="text-right mono font-xs">
+                    <span class="text-muted">{{ row.minimoSeguridad }}</span> / <span class="fw-700">{{ row.puntoReorden }}</span>
+                  </td>
+                  <td class="text-right mono">
+                    <span [class.text-danger-brand]="row.cuantoPedir > 0" [class.fw-700]="row.cuantoPedir > 0">
+                      {{ row.cuantoPedir > 0 ? (row.cuantoPedir + ' pz') : '0' }}
+                    </span>
+                  </td>
+                </tr>
+
+                <tr *ngIf="locationAssignerFilteredRows().length === 0">
+                  <td colspan="11" class="text-center text-muted" style="padding: 2.5rem 1rem;">
+                    No se encontraron materiales con los filtros seleccionados.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Assigner Footer -->
+          <div class="modal-footer-advanced">
+            <div class="footer-left-group">
+              <span class="text-muted font-xs" *ngIf="locationAssignerDirtyCount() === 0">
+                Todas las ubicaciones están sincronizadas con la base de datos.
+              </span>
+              <span class="text-warning-brand font-xs fw-700" *ngIf="locationAssignerDirtyCount() > 0">
+                Tienes {{ locationAssignerDirtyCount() }} cambio(s) pendiente(s) por guardar en el servidor.
+              </span>
+            </div>
+
+            <div class="footer-right-group">
+              <button
+                type="button"
+                class="btn btn-outline-success"
+                (click)="exportLocationAssignerCsv()"
+                title="Descargar archivo Excel con claves SAE, ubicaciones generadas e indicadores de Mín/Máx"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Exportar Datos SAE (.csv)
+              </button>
+              <button
+                type="button"
+                class="btn btn-primary"
+                [disabled]="savingLocations() || locationAssignerDirtyCount() === 0"
+                (click)="saveLocationAssignerChanges()"
+                title="Guardar asignaciones de anaquel, nivel A-G y código de ubicación en la base de datos"
+              >
+                <span *ngIf="savingLocations()">Guardando...</span>
+                <span *ngIf="!savingLocations()">Guardar Ubicaciones ({{ locationAssignerDirtyCount() }})</span>
+              </button>
+              <button type="button" class="btn btn-secondary" (click)="closeLocationAssigner()">Cerrar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- MODAL: FICHA MAESTRA DE MATERIAL Y PLANIFICACIÓN DE REABASTECIMIENTO -->
       <div class="modal-backdrop modal-backdrop-planning" *ngIf="selectedProductPlanning() as plan" (click)="closeProductPlanning()">
         <div class="modal-box-planning" (click)="$event.stopPropagation()">
@@ -1587,6 +1971,19 @@ export interface ProductPlanningData {
             </div>
 
             <div class="planning-header-right">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-success"
+                (click)="exportProductPlanningCsv(plan)"
+                title="Exportar ficha técnica e indicadores de este producto a Excel (.csv)"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Exportar Ficha (.csv)
+              </button>
               <div class="planning-status-badge" [ngClass]="'status-' + plan.status.toLowerCase()">
                 <span class="status-dot-pulse"></span>
                 {{ plan.statusLabel }}
@@ -1843,9 +2240,24 @@ export interface ProductPlanningData {
               </button>
             </div>
             <div class="footer-right-group">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-success"
+                (click)="exportProductPlanningCsv(plan)"
+                title="Descargar reporte completo de planificación e inventario para Excel"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Exportar Ficha (.csv)
+              </button>
               <button type="button" class="btn btn-primary" (click)="closeProductPlanning()">Cerrar Ficha</button>
             </div>
           </div>
+        </div>
+      </div>
 
       <!-- Import Excel Counts File Modal in Croquis (Levantamiento Semanal SAE & Nivel A-G) -->
       <div class="modal-backdrop import-modal-backdrop" *ngIf="showImportExcelModal" (click)="closeCroquisImportModal()">
@@ -5083,6 +5495,339 @@ export interface ProductPlanningData {
     .mat-code-link:hover {
       color: #0369a1;
     }
+
+    /* Location Assigner Modal & Bulk Assignment */
+    .location-assigner-backdrop {
+      z-index: 1055;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(5px);
+    }
+    .location-assigner-modal {
+      max-width: 1240px !important;
+      width: 96vw !important;
+      max-height: 94vh !important;
+      display: flex;
+      flex-direction: column;
+      background: #0b1329 !important;
+      border: 1px solid #334155 !important;
+      border-radius: 12px !important;
+      color: #f8fafc !important;
+      padding: 1.25rem 1.5rem !important;
+      gap: 0.85rem !important;
+      overflow: hidden !important;
+    }
+    .assigner-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 0.75rem;
+    }
+    .assigner-brand-crumbs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+    .assigner-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #f8fafc;
+      margin: 0 0 4px 0;
+    }
+    .assigner-sub {
+      margin: 0;
+      font-size: 0.82rem;
+      color: #94a3b8;
+      line-height: 1.3;
+    }
+    .assigner-header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .assigner-stats-strip {
+      display: flex;
+      gap: 8px;
+    }
+    .a-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 4px 10px;
+      min-width: 70px;
+    }
+    .a-stat.highlight-pending {
+      border-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.12);
+    }
+    .a-stat-lbl {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #94a3b8;
+    }
+    .a-stat-val {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #f8fafc;
+    }
+    .location-assigner-modal .modal-close-icon-btn {
+      color: #94a3b8 !important;
+      font-size: 1.4rem !important;
+      background: transparent !important;
+      border: none !important;
+      cursor: pointer !important;
+      padding: 4px 8px !important;
+      border-radius: 6px !important;
+      line-height: 1 !important;
+      transition: color 0.15s, background-color 0.15s !important;
+    }
+    .location-assigner-modal .modal-close-icon-btn:hover {
+      color: #ffffff !important;
+      background: rgba(255, 255, 255, 0.12) !important;
+    }
+
+    /* Bulk Fill Ribbon */
+    .bulk-fill-ribbon {
+      background: #131e3a;
+      border: 1px solid #2d3d66;
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .bulk-fill-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .bulk-fill-title {
+      font-size: 0.8rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #38bdf8;
+    }
+    .bulk-fill-hint {
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+    .bulk-fill-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .bulk-field {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .bulk-field label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #cbd5e1;
+    }
+    .bulk-aisle-input, .bulk-pos-input {
+      width: 48px;
+      text-align: center;
+    }
+    .bulk-level-buttons {
+      display: flex;
+      gap: 2px;
+    }
+    .btn-lvl-mini {
+      padding: 3px 7px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      border-radius: 4px;
+      border: 1px solid #475569;
+      background: #1e293b;
+      color: #cbd5e1;
+      cursor: pointer;
+      line-height: 1;
+      transition: all 0.15s;
+    }
+    .btn-lvl-mini:hover {
+      background: #334155;
+      color: #ffffff;
+    }
+    .btn-lvl-mini.active {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #ffffff;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+    }
+    .bulk-preview-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #0f172a;
+      border: 1px dashed #38bdf8;
+      border-radius: 6px;
+      padding: 4px 10px;
+    }
+    .preview-lbl {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+    }
+    .preview-val {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #38bdf8;
+    }
+    .bulk-actions {
+      display: flex;
+      gap: 6px;
+      margin-left: auto;
+    }
+
+    /* Assigner Toolbar */
+    .assigner-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .assigner-search-wrap {
+      position: relative;
+      flex: 1;
+      max-width: 460px;
+    }
+    .assigner-filter-tabs {
+      display: flex;
+      gap: 4px;
+    }
+    .btn-filter-tab {
+      padding: 5px 12px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #94a3b8;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-filter-tab:hover {
+      color: #ffffff;
+      border-color: #475569;
+    }
+    .btn-filter-tab.active {
+      background: #0284c7;
+      border-color: #0284c7;
+      color: #ffffff;
+    }
+
+    /* Assigner Table */
+    .assigner-table-container {
+      flex: 1;
+      overflow-y: auto;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      background: #0f172a;
+      min-height: 250px;
+      max-height: calc(94vh - 360px);
+    }
+    .assigner-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+    }
+    .assigner-table thead th {
+      position: sticky;
+      top: 0;
+      background: #1e293b;
+      color: #cbd5e1;
+      font-weight: 700;
+      padding: 8px 10px;
+      border-bottom: 1px solid #334155;
+      z-index: 2;
+      text-align: left;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .assigner-table tbody td {
+      padding: 6px 10px;
+      border-bottom: 1px solid #1e293b;
+      vertical-align: middle;
+    }
+    .assigner-table tbody tr:hover {
+      background: rgba(30, 41, 59, 0.6);
+    }
+    .assigner-table tr.row-dirty {
+      background: rgba(14, 165, 233, 0.07);
+    }
+    .assigner-table tr.row-missing {
+      background: rgba(245, 158, 11, 0.05);
+    }
+    .dirty-badge {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 6px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      background: #0284c7;
+      color: #ffffff;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .row-level-pills {
+      display: flex;
+      gap: 2px;
+    }
+    .btn-lvl-pill {
+      padding: 2px 5px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      border-radius: 3px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #94a3b8;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .btn-lvl-pill:hover {
+      background: #475569;
+      color: #ffffff;
+    }
+    .btn-lvl-pill.active {
+      background: #10b981;
+      border-color: #34d399;
+      color: #ffffff;
+      font-weight: 800;
+    }
+    .loc-code-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 800;
+    }
+    .loc-code-badge.badge-complete {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid #10b981;
+      color: #34d399;
+    }
+    .loc-code-badge.badge-incomplete {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px dashed #f59e0b;
+      color: #fbbf24;
+    }
   `]
 })
 export class CroquisComponent implements OnInit {
@@ -5176,6 +5921,47 @@ export class CroquisComponent implements OnInit {
   familyLevelFilter = signal<string>('TODOS');
   familyViewMode = signal<'DETALLE' | 'CONSOLIDADO'>('DETALLE');
   familyDisplayLimit = signal<number>(150);
+
+  // Location Assigner & Planning SAE State
+  locationAssignerFamily = signal<SectionStat | null>(null);
+  locationAssignerRows = signal<LocationAssignerRow[]>([]);
+  locationAssignerSearch = signal<string>('');
+  locationAssignerFilter = signal<'TODOS' | 'PENDIENTES' | 'ASIGNADOS'>('TODOS');
+  savingLocations = signal<boolean>(false);
+
+  bulkPlant = signal<'PB' | 'PA'>('PB');
+  bulkAisle = signal<string>('3');
+  bulkShelfId = signal<number>(0);
+  bulkLevel = signal<string>('A');
+  bulkPosition = signal<string>('1');
+
+  locationAssignerFilteredRows = computed(() => {
+    let rows = this.locationAssignerRows();
+    const filter = this.locationAssignerFilter();
+    if (filter === 'PENDIENTES') {
+      rows = rows.filter(r => !r.level || !r.shelfNum || !r.aisle || r.shelfId === 0 || !r.locationCode);
+    } else if (filter === 'ASIGNADOS') {
+      rows = rows.filter(r => !!r.level && !!r.shelfNum && !!r.aisle && r.shelfId !== 0 && !!r.locationCode);
+    }
+    const q = this.locationAssignerSearch().trim().toLowerCase();
+    if (q) {
+      rows = rows.filter(r =>
+        (r.code || '').toLowerCase().includes(q) ||
+        (r.description || '').toLowerCase().includes(q) ||
+        (r.locationCode || '').toLowerCase().includes(q) ||
+        (r.shelfCode || '').toLowerCase().includes(q)
+      );
+    }
+    return rows;
+  });
+
+  locationAssignerPendingCount = computed(() => {
+    return this.locationAssignerRows().filter(r => !r.level || !r.shelfNum || !r.aisle || r.shelfId === 0 || !r.locationCode).length;
+  });
+
+  locationAssignerDirtyCount = computed(() => {
+    return this.locationAssignerRows().filter(r => r.isDirty).length;
+  });
 
   familyShelves = computed(() => {
     const fam = this.activeFamilyExplorer();
@@ -6278,6 +7064,11 @@ export class CroquisComponent implements OnInit {
   @HostListener('window:keydown', ['$event'])
   handleKeyDown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
+      if (this.locationAssignerFamily()) {
+        this.closeLocationAssigner();
+        event.preventDefault();
+        return;
+      }
       if (this.showImportExcelModal) {
         this.closeCroquisImportModal();
         event.preventDefault();
@@ -6907,5 +7698,413 @@ export class CroquisComponent implements OnInit {
 
   closeProductPlanning() {
     this.selectedProductPlanning.set(null);
+  }
+
+  // =========================================================================
+  // LOCATION ASSIGNER & PLANNING SAE (Generador de Ubicacion Fisica)
+  // =========================================================================
+  buildLocationCode(plant: string, aisle: string, shelfNum: string, level: string, position: string): string {
+    const p = (plant || 'PB').trim().toUpperCase();
+    const a = (aisle || '1').trim();
+    const s = (shelfNum || '1').trim();
+    const lvl = (level || 'A').trim().toUpperCase();
+    const pos = (position || '1').trim();
+    return `${p}${a}-${s}${lvl}-${pos}`;
+  }
+
+  getBulkShelfNum(): string {
+    const targetShelfId = Number(this.bulkShelfId());
+    const found = this.familyShelves().find(s => s.shelfId === targetShelfId);
+    return found ? (found.shelfCode.replace(/^[A-Za-z_-]+/, '') || found.shelfCode) : '1';
+  }
+
+  openLocationAssignerForFamily(fam: SectionStat) {
+    if (!fam) return;
+    this.locationAssignerFamily.set(fam);
+    this.locationAssignerSearch.set('');
+    this.locationAssignerFilter.set('TODOS');
+
+    this.bulkPlant.set('PB');
+    const defaultAisle = fam.id === 'ACERO' ? '3' : (fam.codePrefix || '1');
+    this.bulkAisle.set(defaultAisle);
+    const famShelves = this.familyShelves();
+    if (famShelves.length > 0) {
+      this.bulkShelfId.set(famShelves[0].shelfId);
+    } else {
+      this.bulkShelfId.set(0);
+    }
+    this.bulkLevel.set('A');
+    this.bulkPosition.set('1');
+
+    const counts = this.familyCounts();
+    const rows: LocationAssignerRow[] = counts.map(r => {
+      const code = (r.capturedCode || '').trim();
+      const desc = r.description || code;
+      const shelfCode = (r.shelfCode || '').trim();
+      const decoded = this.decodeLocation(r.notes || '', r.section, code, shelfCode);
+
+      const plant: 'PB' | 'PA' = decoded.plantCode === 'PA' ? 'PA' : 'PB';
+      const aisle = decoded.aisleCode || defaultAisle;
+      const shelfNum = decoded.shelfCode || (shelfCode ? shelfCode.replace(/^[A-Za-z_-]+/, '') : '1');
+      const level = r.section || decoded.levelCode || '';
+      const position = decoded.positionCode || '1';
+
+      const locationCode = (r.notes && r.notes.trim().length > 0)
+        ? r.notes.trim()
+        : (level ? this.buildLocationCode(plant, aisle, shelfNum, level, position) : '');
+
+      const stockActual = r.quantity || 0;
+      const monthlyDemandAvg = Math.max(12, Math.round((stockActual || 25) * 1.25));
+      const minimoSeguridad = Math.max(5, Math.round(monthlyDemandAvg * 0.5));
+      const puntoReorden = Math.max(10, Math.round(monthlyDemandAvg * 0.833));
+      const maximoObjetivo = Math.max(25, Math.round(monthlyDemandAvg * 1.833));
+      const packageSize = monthlyDemandAvg > 50 ? 10 : 5;
+      const cuantoPedir = stockActual <= puntoReorden ? Math.ceil((maximoObjetivo - stockActual) / packageSize) * packageSize : 0;
+      const statusLabel = stockActual <= puntoReorden ? 'Reordenar ahora' : 'Stock optimo';
+
+      return {
+        id: r.id,
+        code,
+        description: desc,
+        shelfId: r.shelfId,
+        shelfCode: r.shelfCode,
+        plant,
+        aisle,
+        shelfNum,
+        level,
+        position,
+        locationCode,
+        quantity: stockActual,
+        minimoSeguridad,
+        puntoReorden,
+        maximoObjetivo,
+        cuantoPedir,
+        statusLabel,
+        isDirty: false
+      };
+    });
+
+    this.locationAssignerRows.set(rows);
+  }
+
+  closeLocationAssigner() {
+    if (this.locationAssignerDirtyCount() > 0) {
+      if (!confirm(`Tienes ${this.locationAssignerDirtyCount()} cambios sin guardar. Deseas salir de todas formas?`)) {
+        return;
+      }
+    }
+    this.locationAssignerFamily.set(null);
+    this.locationAssignerRows.set([]);
+  }
+
+  onRowLocationFieldChange(row: LocationAssignerRow) {
+    if (row.level) {
+      row.locationCode = this.buildLocationCode(row.plant, row.aisle, row.shelfNum, row.level, row.position);
+    }
+    row.isDirty = true;
+  }
+
+  onRowShelfChange(row: LocationAssignerRow, targetShelfIdStr: any) {
+    const sId = Number(targetShelfIdStr);
+    const found = this.familyShelves().find(s => s.shelfId === sId);
+    if (found) {
+      row.shelfId = found.shelfId;
+      row.shelfCode = found.shelfCode;
+      row.shelfNum = found.shelfCode.replace(/^[A-Za-z_-]+/, '') || found.shelfCode;
+    } else {
+      row.shelfId = sId;
+    }
+    this.onRowLocationFieldChange(row);
+  }
+
+  onRowLevelSelect(row: LocationAssignerRow, lvl: string) {
+    row.level = lvl;
+    this.onRowLocationFieldChange(row);
+  }
+
+  applyBulkFill(onlyMissing: boolean) {
+    const fam = this.locationAssignerFamily();
+    if (!fam) return;
+    const p = this.bulkPlant();
+    const a = this.bulkAisle() || '1';
+    const targetShelfId = Number(this.bulkShelfId());
+    const foundShelf = this.familyShelves().find(s => s.shelfId === targetShelfId);
+    const sNum = foundShelf ? (foundShelf.shelfCode.replace(/^[A-Za-z_-]+/, '') || foundShelf.shelfCode) : '1';
+    const sCode = foundShelf ? foundShelf.shelfCode : '';
+    const lvl = this.bulkLevel();
+    const pos = this.bulkPosition() || '1';
+
+    let affected = 0;
+    const currentRows = [...this.locationAssignerRows()];
+    for (const row of currentRows) {
+      const isMissing = !row.level || !row.shelfNum || !row.aisle || row.shelfId === 0 || !row.locationCode;
+      if (onlyMissing && !isMissing) continue;
+
+      row.plant = p;
+      row.aisle = a;
+      if (foundShelf) {
+        row.shelfId = foundShelf.shelfId;
+        row.shelfCode = sCode;
+        row.shelfNum = sNum;
+      }
+      row.level = lvl;
+      row.position = pos;
+      row.locationCode = this.buildLocationCode(p, a, row.shelfNum, lvl, pos);
+      row.isDirty = true;
+      affected++;
+    }
+
+    this.locationAssignerRows.set(currentRows);
+    if (affected > 0) {
+      this.toast.info(`Se asignaron valores a ${affected} material(es). Haz clic en Guardar Ubicaciones para confirmar.`);
+    } else {
+      this.toast.info('No hubo materiales que coincidieran con el criterio de asignacion masiva.');
+    }
+  }
+
+  saveLocationAssignerChanges() {
+    const dirty = this.locationAssignerRows().filter(r => r.isDirty);
+    if (dirty.length === 0) {
+      this.toast.info('No hay cambios pendientes por guardar.');
+      return;
+    }
+
+    this.savingLocations.set(true);
+    const payload = dirty.map(r => ({
+      id: r.id,
+      shelfId: r.shelfId,
+      section: r.level,
+      locationCode: r.locationCode,
+      quantity: r.quantity
+    }));
+
+    this.api.batchUpdateCountLocations(payload).subscribe({
+      next: (updatedList) => {
+        this.savingLocations.set(false);
+        const currentAll = [...this.allSessionCounts()];
+        const updatedMap = new Map<number, CountRecordDto>(updatedList.map(item => [item.id, item]));
+
+        const newAll = currentAll.map(existing => {
+          const up = updatedMap.get(existing.id);
+          return up ? { ...existing, ...up } : existing;
+        });
+        this.allSessionCounts.set(newAll);
+
+        const updatedRows = this.locationAssignerRows().map(r => {
+          if (updatedMap.has(r.id)) {
+            return { ...r, isDirty: false };
+          }
+          return r;
+        });
+        this.locationAssignerRows.set(updatedRows);
+
+        this.toast.success(`${updatedList.length} ubicaciones guardadas y sincronizadas exitosamente.`);
+      },
+      error: (err) => {
+        this.savingLocations.set(false);
+        this.toast.error('Error al guardar ubicaciones: ' + (err.error?.message || err.message || 'Error del servidor'));
+      }
+    });
+  }
+
+  exportLocationAssignerCsv() {
+    const fam = this.locationAssignerFamily();
+    if (!fam) return;
+    const rows = this.locationAssignerRows();
+    if (rows.length === 0) {
+      this.toast.warning('No hay materiales para exportar.');
+      return;
+    }
+
+    const lines: string[] = [];
+    lines.push('CLAVE_SAE,DESCRIPCION,FAMILIA,UBICACION_FISICA,PLANTA,PASILLO,ANAQUEL,NIVEL,POSICION,STOCK_ACTUAL,MINIMO_SEGURIDAD,PUNTO_REORDEN,MAXIMO_OBJETIVO,CUANTO_PEDIR,ESTATUS_REPOSICION');
+
+    for (const r of rows) {
+      lines.push([
+        this.escapeCsv(r.code),
+        this.escapeCsv(r.description),
+        this.escapeCsv(fam.name),
+        this.escapeCsv(r.locationCode),
+        this.escapeCsv(r.plant),
+        this.escapeCsv(r.aisle),
+        this.escapeCsv(r.shelfCode || r.shelfNum),
+        this.escapeCsv(r.level),
+        this.escapeCsv(r.position),
+        r.quantity,
+        r.minimoSeguridad,
+        r.puntoReorden,
+        r.maximoObjetivo,
+        r.cuantoPedir,
+        this.escapeCsv(r.statusLabel)
+      ].join(','));
+    }
+
+    const csvContent = '\uFEFF' + lines.join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeFam = fam.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+    a.href = url;
+    a.download = `Interflu_Ubicaciones_SAE_${safeFam}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    this.toast.success(`Datos de ${fam.name} con ubicaciones y Min/Max exportados a Excel.`);
+  }
+
+  exportFamilyPlanningExcel(fam: SectionStat) {
+    if (!fam) return;
+    const items = this.familyCounts();
+    if (items.length === 0) {
+      this.toast.warning('No hay partidas registradas en esta familia.');
+      return;
+    }
+
+    const lines: string[] = [];
+    lines.push('CLAVE_SAE,DESCRIPCION,FAMILIA,UBICACION_FISICA,PLANTA,PASILLO,ANAQUEL,NIVEL,POSICION,STOCK_ACTUAL,MINIMO_SEGURIDAD,PUNTO_REORDEN,MAXIMO_OBJETIVO,CUANTO_PEDIR,ESTATUS_REPOSICION,PROVEEDOR,TIEMPO_ENTREGA_DIAS');
+
+    for (const r of items) {
+      const code = (r.capturedCode || '').trim();
+      const desc = r.description || code;
+      const shelfCode = (r.shelfCode || '').trim();
+      const decoded = this.decodeLocation(r.notes || '', r.section, code, shelfCode);
+
+      const plant = decoded.plantCode || 'PB';
+      const aisle = decoded.aisleCode || (fam.id === 'ACERO' ? '3' : '1');
+      const shelfNum = decoded.shelfCode || (shelfCode ? shelfCode.replace(/^[A-Za-z_-]+/, '') : '1');
+      const level = r.section || decoded.levelCode || 'A';
+      const position = decoded.positionCode || '1';
+
+      const locationCode = (r.notes && r.notes.trim().length > 0)
+        ? r.notes.trim()
+        : `${plant}${aisle}-${shelfNum}${level}-${position}`;
+
+      const stockActual = r.quantity || 0;
+      const monthlyDemandAvg = Math.max(12, Math.round((stockActual || 25) * 1.25));
+      const minimoSeguridad = Math.max(5, Math.round(monthlyDemandAvg * 0.5));
+      const puntoReorden = Math.max(10, Math.round(monthlyDemandAvg * 0.833));
+      const maximoObjetivo = Math.max(25, Math.round(monthlyDemandAvg * 1.833));
+      const packageSize = monthlyDemandAvg > 50 ? 10 : 5;
+      const cuantoPedir = stockActual <= puntoReorden ? Math.ceil((maximoObjetivo - stockActual) / packageSize) * packageSize : 0;
+      const statusLabel = stockActual <= puntoReorden ? 'Reordenar ahora' : 'Stock optimo';
+
+      lines.push([
+        this.escapeCsv(code),
+        this.escapeCsv(desc),
+        this.escapeCsv(fam.name),
+        this.escapeCsv(locationCode),
+        this.escapeCsv(plant),
+        this.escapeCsv(aisle),
+        this.escapeCsv(shelfCode),
+        this.escapeCsv(level),
+        this.escapeCsv(position),
+        stockActual,
+        minimoSeguridad,
+        puntoReorden,
+        maximoObjetivo,
+        cuantoPedir,
+        this.escapeCsv(statusLabel),
+        this.escapeCsv('YPC'),
+        10
+      ].join(','));
+    }
+
+    const csvContent = '\uFEFF' + lines.join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeFam = fam.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+    a.href = url;
+    a.download = `Interflu_Planificacion_MinMax_${safeFam}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    this.toast.success(`Planificacion y Min/Max de ${fam.name} exportado a Excel.`);
+  }
+
+  openImportSaeForFamily(fam: SectionStat) {
+    if (!fam) return;
+    const famShelves = this.familyShelves();
+    const firstShelfId = famShelves.length > 0 ? famShelves[0].shelfId : 0;
+    this.openCroquisImportModal(firstShelfId);
+    this.importMode.set('SMART_MERGE');
+    this.toast.info(`Importador SAE listo para la seccion ${fam.name}. Selecciona el archivo de Excel o CSV.`);
+  }
+
+  exportProductPlanningCsv(plan: ProductPlanningData) {
+    if (!plan) return;
+    const lines: string[] = [];
+    lines.push('FICHA MAESTRA DE MATERIAL Y PLANIFICACION DE REABASTECIMIENTO');
+    lines.push('PARAMETRO,VALOR');
+    lines.push(`Codigo,${this.escapeCsv(plan.code)}`);
+    lines.push(`Descripcion,${this.escapeCsv(plan.description)}`);
+    lines.push(`Familia,${this.escapeCsv(plan.category)}`);
+    lines.push(`Unidad,${this.escapeCsv(plan.unit)}`);
+    lines.push(`Fecha de Corte,${this.escapeCsv(plan.lastMovementDate)}`);
+    lines.push(`Codigo de Ubicacion Fisica,${this.escapeCsv(plan.locationCode)}`);
+    lines.push(`Planta,${this.escapeCsv(plan.decodedLocation.plant + ' (' + plan.decodedLocation.plantCode + ')')}`);
+    lines.push(`Pasillo,${this.escapeCsv(plan.decodedLocation.aisle)}`);
+    lines.push(`Estante/Anaquel,${this.escapeCsv(plan.decodedLocation.shelf)}`);
+    lines.push(`Nivel,${this.escapeCsv(plan.decodedLocation.level)}`);
+    lines.push(`Posicion,${this.escapeCsv(plan.decodedLocation.position)}`);
+    lines.push('');
+    lines.push('INDICADORES DE INVENTARIO Y REORDEN,VALOR');
+    lines.push(`Stock Actual (Existencia fisica),${plan.stockActual}`);
+    lines.push(`Minimo de Seguridad,${plan.minimoSeguridad}`);
+    lines.push(`Punto de Reorden,${plan.puntoReorden}`);
+    lines.push(`Maximo Objetivo,${plan.maximoObjetivo}`);
+    lines.push(`Piezas por Recibir,${plan.porRecibir}`);
+    lines.push(`Piezas Apartadas,${plan.apartadas}`);
+    lines.push(`Stock para Planear,${plan.stockParaPlanear}`);
+    lines.push(`Cuanto Pedir Hoy,${plan.cuantoPedir}`);
+    lines.push(`Estatus,${this.escapeCsv(plan.statusLabel)}`);
+    lines.push('');
+    lines.push('PARAMETROS DE COMPRA Y PROVEEDOR,VALOR');
+    lines.push(`Proveedor,${this.escapeCsv(plan.supplierName)}`);
+    lines.push(`Tiempo de Entrega (Dias),${plan.leadTimeDays}`);
+    lines.push(`Pedido Minimo,${plan.minOrder}`);
+    lines.push(`Tamano de Paquete,${plan.packageSize}`);
+    lines.push(`Ultimo Precio Cotizado MXN,${plan.lastQuotePrice}`);
+    lines.push(`Fecha Ultima Cotizacion,${this.escapeCsv(plan.lastQuoteDate)}`);
+    lines.push(`Demanda Mensual Promedio,${plan.monthlyDemandAvg}`);
+
+    if (plan.demandHistory && plan.demandHistory.length > 0) {
+      lines.push('');
+      lines.push('HISTORIAL Y PRONOSTICO DE DEMANDA');
+      lines.push('MES,CANTIDAD_PIEZAS,TIPO');
+      for (const d of plan.demandHistory) {
+        lines.push(`${this.escapeCsv(d.month)},${d.quantity},${this.escapeCsv(d.isEstimated ? 'Estimada' : 'Venta Registrada')}`);
+      }
+    }
+
+    if (plan.purchaseOrders && plan.purchaseOrders.length > 0) {
+      lines.push('');
+      lines.push('ORDENES DE COMPRA');
+      lines.push('NUM_OC,FECHA_PEDIDO,FECHA_ENTREGA,PEDIDAS,RECIBIDAS,CANCELADAS,PENDIENTES');
+      for (const po of plan.purchaseOrders) {
+        lines.push(`${this.escapeCsv(po.ocNumber)},${this.escapeCsv(po.orderDate)},${this.escapeCsv(po.expectedDate)},${po.orderedQty},${po.receivedQty},${po.cancelledQty},${po.pendingQty}`);
+      }
+    }
+
+    const csvContent = '\uFEFF' + lines.join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeCode = plan.code.replace(/[^a-zA-Z0-9_-]/g, '_');
+    a.href = url;
+    a.download = `Interflu_Ficha_Planificacion_${safeCode}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    this.toast.success(`Ficha tecnica y planificacion de ${plan.code} exportada.`);
+  }
+
+  escapeCsv(val: any): string {
+    if (val === undefined || val === null) return '""';
+    const s = String(val).replace(/"/g, '""');
+    return `"${s}"`;
   }
 }

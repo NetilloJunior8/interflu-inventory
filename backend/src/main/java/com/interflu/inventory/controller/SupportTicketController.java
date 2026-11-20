@@ -63,13 +63,7 @@ public class SupportTicketController {
 
     @GetMapping
     public ResponseEntity<?> listTickets() {
-        User currentUser = userHelper.getCurrentUser();
-        boolean isSistemas = isSistemasOrAdmin(currentUser);
-
-        List<SupportTicket> list = isSistemas
-                ? ticketRepo.findAllByOrderByCreatedAtDesc()
-                : ticketRepo.findByAuthorIdOrderByCreatedAtDesc(currentUser.getId());
-
+        List<SupportTicket> list = ticketRepo.findAllByOrderByCreatedAtDesc();
         return ResponseEntity.ok(list.stream().map(this::mapTicket).toList());
     }
 

@@ -980,6 +980,77 @@ public class CountService {
         return record;
     }
 
+    @Transactional
+    public CountRecord updateLocation(Long recordId, Long newShelfId, String section, String locationCode, Double quantity, User user) {
+        CountRecord rec = countRepo.findById(recordId)
+                .orElseThrow(() -> new IllegalArgumentException("Registro no encontrado."));
+
+        if (!rec.getSession().isEditable()) {
+            throw new IllegalStateException("No se puede editar un conteo de un inventario cerrado.");
+        }
+
+        if (rec.getVersion() == null) {
+            rec.setVersion(0L);
+        }
+
+        if (newShelfId != null && !newShelfId.equals(rec.getShelf().getId())) {
+            Shelf newShelf = shelfRepo.findById(newShelfId)
+                    .orElseThrow(() -> new IllegalArgumentException("Anaquel no encontrado."));
+            rec.setShelf(newShelf);
+
+            Optional<ShelfAssignment> optSa = assignmentRepo.findBySessionIdAndShelfId(rec.getSession().getId(), newShelf.getId());
+            ShelfAssignment sa = optSa.orElse(null);
+            if (sa == null) {
+                sa = assignmentRepo.save(new ShelfAssignment(rec.getSession(), newShelf, user));
+            }
+            sa.setStatus(ShelfAssignment.Status.COMPLETADO);
+            sa.setCompletedAt(LocalDateTime.now());
+            assignmentRepo.save(sa);
+        }
+
+        if (section != null) {
+            rec.setSection(CountRecord.normalizeSection(section));
+        }
+
+        if (locationCode != null && !locationCode.isBlank()) {
+            rec.setNotes(locationCode.trim());
+        }
+
+        if (quantity != null && quantity >= 0) {
+            rec.setPreviousQuantity(rec.getQuantity());
+            rec.setQuantity(quantity);
+        }
+
+        rec.setUpdatedAt(LocalDateTime.now());
+        rec = countRepo.save(rec);
+
+        auditService.log(rec.getSession().getId(), rec.getSession().getFolio(),
+                user.getUsername(), user.getFullName(),
+                "ACTUALIZAR_UBICACION_MATERIAL", "CountRecord", rec.getId(),
+                null, rec.getNotes(),
+                String.format("Ubicación actualizada para %s: Anaquel %s, Nivel %s, Código %s",
+                        rec.getCapturedCode(), rec.getShelf().getCode(), rec.getSection(), rec.getNotes()));
+
+        return rec;
+    }
+
+    @Transactional
+    public List<CountRecord> batchUpdateLocations(List<Map<String, Object>> items, User user) {
+        List<CountRecord> results = new ArrayList<>();
+        if (items == null) return results;
+        for (Map<String, Object> map : items) {
+            if (!map.containsKey("id") || map.get("id") == null) continue;
+            Long id = ((Number) map.get("id")).longValue();
+            Long shelfId = map.containsKey("shelfId") && map.get("shelfId") != null ? ((Number) map.get("shelfId")).longValue() : null;
+            String section = map.containsKey("section") && map.get("section") != null ? String.valueOf(map.get("section")) : null;
+            String locationCode = map.containsKey("locationCode") && map.get("locationCode") != null ? String.valueOf(map.get("locationCode")) : null;
+            Double quantity = map.containsKey("quantity") && map.get("quantity") != null ? ((Number) map.get("quantity")).doubleValue() : null;
+
+            results.add(updateLocation(id, shelfId, section, locationCode, quantity, user));
+        }
+        return results;
+    }
+
     public static String parseIndustrialDescription(String code) {
         if (code == null || code.trim().isEmpty()) {
             return "Refacción Industrial";

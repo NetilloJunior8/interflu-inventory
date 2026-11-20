@@ -134,6 +134,37 @@ public class CountController {
         }
     }
 
+    @PutMapping("/{id}/location")
+    public ResponseEntity<?> updateLocation(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        User currentUser = userHelper.getCurrentUser();
+        try {
+            Long shelfId = body.containsKey("shelfId") && body.get("shelfId") != null
+                    ? ((Number) body.get("shelfId")).longValue() : null;
+            String section = body.containsKey("section") && body.get("section") != null
+                    ? String.valueOf(body.get("section")) : null;
+            String locationCode = body.containsKey("locationCode") && body.get("locationCode") != null
+                    ? String.valueOf(body.get("locationCode")) : null;
+            Double quantity = body.containsKey("quantity") && body.get("quantity") != null
+                    ? ((Number) body.get("quantity")).doubleValue() : null;
+
+            CountRecord updated = countService.updateLocation(id, shelfId, section, locationCode, quantity, currentUser);
+            return ResponseEntity.ok(toDto(updated));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/batch-location")
+    public ResponseEntity<?> batchUpdateLocation(@RequestBody List<Map<String, Object>> items) {
+        User currentUser = userHelper.getCurrentUser();
+        try {
+            List<CountRecord> updated = countService.batchUpdateLocations(items, currentUser);
+            return ResponseEntity.ok(updated.stream().map(this::toDto).toList());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     private Map<String, Object> toDto(CountRecord r) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", r.getId());

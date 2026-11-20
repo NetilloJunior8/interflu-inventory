@@ -332,6 +332,14 @@ export class ApiService {
     return this.http.put<CountRecordDto>(`${this.baseUrl}/counts/${id}/section`, null, { params });
   }
 
+  updateCountLocation(id: number, payload: { shelfId?: number; section?: string; locationCode?: string; quantity?: number }): Observable<CountRecordDto> {
+    return this.http.put<CountRecordDto>(`${this.baseUrl}/counts/${id}/location`, payload);
+  }
+
+  batchUpdateCountLocations(items: Array<{ id: number; shelfId?: number; section?: string; locationCode?: string; quantity?: number }>): Observable<CountRecordDto[]> {
+    return this.http.put<CountRecordDto[]>(`${this.baseUrl}/counts/batch-location`, items);
+  }
+
   importExcelCounts(
     sessionId: number,
     file: File,
