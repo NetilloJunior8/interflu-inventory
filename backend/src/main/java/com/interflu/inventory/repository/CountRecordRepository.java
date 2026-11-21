@@ -17,7 +17,13 @@ public interface CountRecordRepository extends JpaRepository<CountRecord, Long> 
 
     List<CountRecord> findBySessionIdAndShelfId(Long sessionId, Long shelfId);
 
-    Optional<CountRecord> findBySessionIdAndShelfIdAndCapturedCodeIgnoreCase(Long sessionId, Long shelfId, String capturedCode);
+    @Query("SELECT c FROM CountRecord c WHERE c.session.id = :sessionId AND c.shelf.id = :shelfId AND UPPER(TRIM(c.capturedCode)) = UPPER(TRIM(:capturedCode)) ORDER BY c.id ASC")
+    List<CountRecord> findAllBySessionIdAndShelfIdAndCapturedCodeIgnoreCase(@Param("sessionId") Long sessionId, @Param("shelfId") Long shelfId, @Param("capturedCode") String capturedCode);
+
+    default Optional<CountRecord> findBySessionIdAndShelfIdAndCapturedCodeIgnoreCase(Long sessionId, Long shelfId, String capturedCode) {
+        List<CountRecord> list = findAllBySessionIdAndShelfIdAndCapturedCodeIgnoreCase(sessionId, shelfId, capturedCode);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+    }
 
     List<CountRecord> findBySessionIdAndCapturedCodeIgnoreCase(Long sessionId, String capturedCode);
 

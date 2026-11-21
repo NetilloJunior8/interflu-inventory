@@ -14,6 +14,16 @@ public interface ShelfAssignmentRepository extends JpaRepository<ShelfAssignment
     @Query("SELECT sa FROM ShelfAssignment sa JOIN FETCH sa.shelf s LEFT JOIN FETCH sa.assignedUser u WHERE sa.session.id = :sessionId AND sa.assignedUser.id = :userId AND s.active = true ORDER BY s.code ASC")
     List<ShelfAssignment> findBySessionIdAndAssignedUserIdOrderByShelfCodeAsc(@Param("sessionId") Long sessionId, @Param("userId") Long userId);
 
-    Optional<ShelfAssignment> findBySessionIdAndShelfId(Long sessionId, Long shelfId);
+    @Query("SELECT sa FROM ShelfAssignment sa WHERE sa.session.id = :sessionId AND sa.shelf.id = :shelfId ORDER BY sa.id ASC")
+    List<ShelfAssignment> findAllBySessionIdAndShelfId(@Param("sessionId") Long sessionId, @Param("shelfId") Long shelfId);
+
+    default Optional<ShelfAssignment> findBySessionIdAndShelfId(Long sessionId, Long shelfId) {
+        List<ShelfAssignment> list = findAllBySessionIdAndShelfId(sessionId, shelfId);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+    }
+
+    default Optional<ShelfAssignment> findFirstBySessionIdAndShelfId(Long sessionId, Long shelfId) {
+        return findBySessionIdAndShelfId(sessionId, shelfId);
+    }
 }
 

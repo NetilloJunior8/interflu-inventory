@@ -105,6 +105,10 @@ public class DataInitializer implements CommandLineRunner {
 
         // Guarantee that all sessions have assignments for all shelves without altering shelf data
         try {
+            // Clean up any duplicate shelf_assignments and enforce unique index
+            jdbcTemplate.update("DELETE FROM shelf_assignments WHERE id NOT IN (SELECT MIN(id) FROM shelf_assignments GROUP BY session_id, shelf_id);");
+            jdbcTemplate.execute("CREATE UNIQUE INDEX IF NOT EXISTS uq_shelf_assign_sess_shelf ON shelf_assignments(session_id, shelf_id);");
+
             List<Long> allSessionIds = jdbcTemplate.queryForList("SELECT id FROM inventory_sessions", Long.class);
             List<Long> allShelfIds = jdbcTemplate.queryForList("SELECT id FROM shelves", Long.class);
             for (Long sessId : allSessionIds) {

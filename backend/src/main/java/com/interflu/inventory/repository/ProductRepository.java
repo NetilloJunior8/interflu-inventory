@@ -10,7 +10,13 @@ import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
-    Optional<Product> findByCodeIgnoreCase(String code);
+    @Query("SELECT p FROM Product p WHERE UPPER(TRIM(p.code)) = UPPER(TRIM(:code)) ORDER BY p.id ASC")
+    List<Product> findAllByCodeIgnoreCase(@Param("code") String code);
+
+    default Optional<Product> findByCodeIgnoreCase(String code) {
+        List<Product> list = findAllByCodeIgnoreCase(code);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
+    }
 
     @Query("""
         SELECT p FROM Product p
