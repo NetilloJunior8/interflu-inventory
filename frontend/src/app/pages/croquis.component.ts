@@ -239,6 +239,36 @@ export interface LocationAssignerRow {
             {{ savingLayout() ? 'Guardando...' : 'Guardar Coordenadas' }}
           </button>
 
+          <!-- Add Shelf Button -->
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="openCreateShelfModal()"
+            title="Crear un nuevo anaquel con medidas estandarizadas y ubicarlo en el plano"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            + Agregar Anaquel
+          </button>
+
+          <!-- Bulk Shelf Editor Button -->
+          <button
+            type="button"
+            class="btn btn-outline"
+            (click)="openBulkShelfEditor()"
+            title="Renombrar en serie y modificar descripciones de múltiples anaqueles automáticamente"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            Editor Masivo
+          </button>
+
           <!-- Levantamiento Semanal SAE / Excel Import Button -->
           <button
             type="button"
@@ -383,6 +413,7 @@ export interface LocationAssignerRow {
             #viewportContainer 
             [class.is-panning]="isPanning"
             (mousedown)="onViewportMouseDown($event)"
+            (touchstart)="onViewportTouchStart($event)"
             (wheel)="onWheel($event)"
           >
             <div 
@@ -980,10 +1011,10 @@ export interface LocationAssignerRow {
 
           <!-- Interactive Rack Blueprint (Left) + Materials & Quick Level Assigner (Right) -->
           <div class="shelf-inspector-body">
-            <!-- Left Pane: Visual Physical Rack Blueprint (A to F) -->
+            <!-- Left Pane: Visual Physical Rack Blueprint (A to J) -->
             <div class="rack-blueprint-card">
               <div class="blueprint-card-header">
-                <span class="blueprint-kicker">CROQUIS DEL ANAQUEL (A-G)</span>
+                <span class="blueprint-kicker">CROQUIS DEL ANAQUEL ({{ isTenLevelShelf(inspectedShelf.shelfCode) ? 'A-J · 10 NIVELES' : 'A-G · 7 NIVELES' }})</span>
                 <span class="font-xs text-muted">Clic en nivel para filtrar</span>
               </div>
 
@@ -994,12 +1025,12 @@ export interface LocationAssignerRow {
                   {{ getRackShortHeader(inspectedShelf) }}
                 </div>
 
-                <!-- Main Frame: Mint Left Strip (A-G) + 6 Interactive Horizontal Shelf Tiers -->
+                <!-- Main Frame: Mint Left Strip + Interactive Horizontal Shelf Tiers -->
                 <div class="rack-graphic-main-frame">
                   <div class="rack-levels-sidebar">
                     <button
                       type="button"
-                      *ngFor="let lvl of rackLevels"
+                      *ngFor="let lvl of getRackLevelsForShelf(inspectedShelf)"
                       class="rack-level-tag mono"
                       [class.active-level]="selectedLevelFilter() === lvl"
                       (click)="toggleLevelFilter(lvl)"
@@ -1011,7 +1042,7 @@ export interface LocationAssignerRow {
 
                   <div class="rack-tiers-container">
                     <div
-                      *ngFor="let lvl of rackLevels"
+                      *ngFor="let lvl of getRackLevelsForShelf(inspectedShelf)"
                       class="rack-tier-row"
                       [class.tier-selected]="selectedLevelFilter() === lvl"
                       [class.tier-populated]="getLevelStats(lvl).count > 0"
@@ -1086,7 +1117,7 @@ export interface LocationAssignerRow {
                   </button>
                   <button
                     type="button"
-                    *ngFor="let lvl of rackLevels"
+                    *ngFor="let lvl of getRackLevelsForShelf(inspectedShelf)"
                     class="lvl-pill-btn mono"
                     [class.active]="selectedLevelFilter() === lvl"
                     [class.has-items]="getLevelStats(lvl).count > 0"
@@ -1173,7 +1204,7 @@ export interface LocationAssignerRow {
                       <td class="mat-td-assign text-center">
                         <div class="quick-level-buttons">
                           <button
-                            *ngFor="let btnLvl of rackLevels"
+                            *ngFor="let btnLvl of getRackLevelsForShelf(inspectedShelf)"
                             type="button"
                             class="quick-lvl-btn mono"
                             [class.btn-active-lvl]="item.section === btnLvl"
@@ -1243,6 +1274,13 @@ export interface LocationAssignerRow {
               </button>
               <button class="btn btn-secondary" (click)="toggleShelfStatus(inspectedShelf)">
                 {{ isCompleted(inspectedShelf) ? 'Reabrir Anaquel' : 'Marcar Contabilizado' }}
+              </button>
+              <button class="btn btn-outline-danger" (click)="confirmDeleteShelf(inspectedShelf)" title="Eliminar este anaquel del almacén">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                Quitar Anaquel
               </button>
               <button class="btn btn-primary" (click)="goToCapture(inspectedShelf)">
                 Abrir Cédula &rarr;
@@ -2536,6 +2574,230 @@ export interface LocationAssignerRow {
             <button class="btn btn-secondary" (click)="shelfToClearCounts = null" [disabled]="clearingShelfCounts()">Cancelar</button>
             <button class="btn btn-danger" (click)="executeClearShelfCounts()" [disabled]="clearingShelfCounts()">
               {{ clearingShelfCounts() ? 'Limpiando...' : 'Sí, Limpiar Este Anaquel' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Crear Nuevo Anaquel Profesional -->
+      <div class="modal-backdrop" *ngIf="showCreateShelfModal()" (click)="showCreateShelfModal.set(false)">
+        <div class="modal-box shelf-creator-modal" (click)="$event.stopPropagation()">
+          <div class="modal-header-row">
+            <div>
+              <span class="blueprint-kicker">CONTROL ESPACIAL &bull; NUEVO ESPACIO FÍSICO</span>
+              <h3 class="modal-title">+ Agregar Anaquel al Almacén</h3>
+            </div>
+            <button class="btn-close-modal" (click)="showCreateShelfModal.set(false)">✕</button>
+          </div>
+          <div class="shelf-creator-body">
+            <p class="modal-desc">
+              Define la identificación y medidas del nuevo anaquel. Al crearlo se incorporará automáticamente al plano y a los conteos del inventario activo.
+            </p>
+            <div class="form-grid-2col">
+              <div class="form-group">
+                <label class="form-lbl">Código del Anaquel *</label>
+                <input type="text" class="input mono font-bold" [(ngModel)]="newShelfCode" placeholder="ej. PB-YPC-22" />
+                <span class="form-hint">Prefijo de planta y zona (PB = Planta Baja, PA = Planta Alta)</span>
+              </div>
+              <div class="form-group">
+                <label class="form-lbl">Zona / Pasillo *</label>
+                <input type="text" class="input" [(ngModel)]="newShelfZone" placeholder="ej. YPC, Acero, Kuriyama..." />
+              </div>
+              <div class="form-group">
+                <label class="form-lbl">Descripción / Rótulo</label>
+                <input type="text" class="input" [(ngModel)]="newShelfDesc" placeholder="ej. Estantería YPC D1 - Fondo" />
+              </div>
+              <div class="form-group">
+                <label class="form-lbl">Planta</label>
+                <select class="select" [(ngModel)]="newShelfPlant">
+                  <option value="Planta Baja">Planta Baja</option>
+                  <option value="Planta Alta">Planta Alta</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Dimension Preset Buttons -->
+            <div class="preset-section">
+              <label class="form-lbl">Plantillas de Medidas Estándar:</label>
+              <div class="preset-buttons-row">
+                <button type="button" class="btn btn-sm btn-outline-primary" (click)="applyShelfDimPreset(95.4, 34)">
+                  Horizontal Estándar (95.4 x 34)
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" (click)="applyShelfDimPreset(76, 34)">
+                  Horizontal Compacto (76 x 34)
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" (click)="applyShelfDimPreset(25, 54)">
+                  Vertical Estándar (25 x 54)
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" (click)="applyShelfDimPreset(54, 48)">
+                  Gabinete / Cuadrado (54 x 48)
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" (click)="applyShelfDimPreset(54, 60)">
+                  Muro Este (54 x 60)
+                </button>
+              </div>
+            </div>
+
+            <div class="form-grid-4col">
+              <div class="form-group">
+                <label class="form-lbl">Ancho (W px)</label>
+                <input type="number" class="input mono" [(ngModel)]="newShelfWidth" />
+              </div>
+              <div class="form-group">
+                <label class="form-lbl">Alto (H px)</label>
+                <input type="number" class="input mono" [(ngModel)]="newShelfHeight" />
+              </div>
+              <div class="form-group">
+                <label class="form-lbl">Posición X (px)</label>
+                <input type="number" class="input mono" [(ngModel)]="newShelfPosX" />
+              </div>
+              <div class="form-group">
+                <label class="form-lbl">Posición Y (px)</label>
+                <input type="number" class="input mono" [(ngModel)]="newShelfPosY" />
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="showCreateShelfModal.set(false)" [disabled]="creatingShelf()">Cancelar</button>
+            <button class="btn btn-primary" (click)="submitCreateShelf()" [disabled]="creatingShelf()">
+              {{ creatingShelf() ? 'Guardando...' : 'Crear Anaquel y Ubicar en Croquis' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Confirm Delete Shelf -->
+      <div class="modal-backdrop" *ngIf="shelfToDelete" (click)="shelfToDelete = null">
+        <div class="modal-box" (click)="$event.stopPropagation()">
+          <h3 class="modal-title text-danger">Eliminar Anaquel Físico</h3>
+          <p class="modal-desc">
+            ¿Confirmas que deseas eliminar permanentemente el anaquel <strong class="mono">{{ shelfToDelete.shelfCode }}</strong> ({{ shelfToDelete.shelfDescription || shelfToDelete.shelfZone }}) del croquis y catálogo?
+          </p>
+          <div class="delete-warning-box">
+            <strong>Condición de Seguridad:</strong>
+            <ul style="margin: 6px 0 0 16px; padding: 0;">
+              <li>Si el anaquel contiene partidas contadas, la eliminación será bloqueada para evitar pérdida de datos.</li>
+              <li>Al eliminarse, se retira de la cuadrícula visual de Planta Baja / Planta Alta.</li>
+            </ul>
+          </div>
+          <div class="modal-footer" style="margin-top: 18px;">
+            <button class="btn btn-secondary" (click)="shelfToDelete = null" [disabled]="deletingShelf()">Cancelar</button>
+            <button class="btn btn-danger" (click)="executeDeleteShelf()" [disabled]="deletingShelf()">
+              {{ deletingShelf() ? 'Eliminando...' : 'Sí, Eliminar Anaquel' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Editor Masivo y Renombrador en Serie -->
+      <div class="modal-backdrop" *ngIf="showBulkShelfEditorModal()" (click)="showBulkShelfEditorModal.set(false)">
+        <div class="modal-box bulk-shelf-editor-modal" (click)="$event.stopPropagation()">
+          <div class="modal-header-row">
+            <div>
+              <span class="blueprint-kicker">GESTIÓN MASIVA &bull; AUTOMATIZACIÓN DE ANAQUELES</span>
+              <h3 class="modal-title">Editor Masivo de Anaqueles y Renombrado en Serie</h3>
+            </div>
+            <button class="btn-close-modal" (click)="showBulkShelfEditorModal.set(false)">✕</button>
+          </div>
+          <div class="bulk-editor-body">
+            <p class="modal-desc">
+              Modifica códigos, nombres y coordenadas de anaqueles en lote sin tener que abrir cada uno manualmente. Aplica numeración corrida automática por zona.
+            </p>
+
+            <!-- Filter Bar for Bulk Editor -->
+            <div class="bulk-filter-strip">
+              <div class="bulk-filter-group">
+                <label class="form-lbl">Zona a Administrar:</label>
+                <select class="select select-sm" [ngModel]="bulkEditorZone()" (ngModelChange)="onBulkEditorZoneChange($event)">
+                  <option *ngFor="let z of uniqueZonesList()" [value]="z">{{ z }}</option>
+                </select>
+              </div>
+              <div class="bulk-filter-group">
+                <label class="form-lbl">Planta:</label>
+                <select class="select select-sm" [ngModel]="bulkEditorPlant()" (ngModelChange)="onBulkEditorPlantChange($event)">
+                  <option value="Planta Baja">Planta Baja</option>
+                  <option value="Planta Alta">Planta Alta</option>
+                </select>
+              </div>
+              <div class="bulk-count-pill mono">
+                {{ bulkEditorShelves.length }} anaqueles en {{ bulkEditorZone() }}
+              </div>
+            </div>
+
+            <!-- Series Renumber Automation Section -->
+            <div class="series-automation-box">
+              <div class="series-header">
+                <strong>Automatización de Renombrado en Serie Corrida</strong>
+                <span class="font-xs text-muted">Ejemplo: {{ seriesPrefix }}{{ formatSeriesNum(seriesStartNumber) }} ... {{ seriesPrefix }}{{ formatSeriesNum(seriesStartNumber + bulkEditorShelves.length - 1) }}</span>
+              </div>
+              <div class="series-inputs-row">
+                <div class="series-input-wrap">
+                  <label>Prefijo:</label>
+                  <input type="text" class="input input-sm mono" [(ngModel)]="seriesPrefix" placeholder="ej. PB-YPC-" />
+                </div>
+                <div class="series-input-wrap">
+                  <label>Número Inicial:</label>
+                  <input type="number" class="input input-sm mono" [(ngModel)]="seriesStartNumber" min="1" />
+                </div>
+                <div class="series-input-wrap">
+                  <label>Dígitos (Ceros):</label>
+                  <select class="select select-sm" [(ngModel)]="seriesDigits">
+                    <option [ngValue]="2">2 dígitos (01, 02.. 10, 21)</option>
+                    <option [ngValue]="1">1 dígito (1, 2.. 10, 21)</option>
+                  </select>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary" (click)="applySeriesRenumberToTable()">
+                  Aplicar Serie a la Tabla
+                </button>
+              </div>
+            </div>
+
+            <!-- Editable Table -->
+            <div class="bulk-shelves-table-wrap">
+              <table class="table bulk-shelves-table">
+                <thead>
+                  <tr>
+                    <th style="width: 45px;">#</th>
+                    <th style="width: 140px;">Código Actual</th>
+                    <th style="width: 170px;">Nuevo Código</th>
+                    <th>Descripción / Rótulo</th>
+                    <th style="width: 90px;">Pos X</th>
+                    <th style="width: 90px;">Pos Y</th>
+                    <th style="width: 80px;">Ancho</th>
+                    <th style="width: 80px;">Alto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let sh of bulkEditorShelves; let idx = index">
+                    <td class="text-center font-xs text-muted">{{ idx + 1 }}</td>
+                    <td class="mono font-xs text-muted">{{ sh.originalCode }}</td>
+                    <td>
+                      <input type="text" class="input input-xs mono font-bold" [(ngModel)]="sh.code" />
+                    </td>
+                    <td>
+                      <input type="text" class="input input-xs" [(ngModel)]="sh.description" />
+                    </td>
+                    <td>
+                      <input type="number" class="input input-xs mono" [(ngModel)]="sh.posX" />
+                    </td>
+                    <td>
+                      <input type="number" class="input input-xs mono" [(ngModel)]="sh.posY" />
+                    </td>
+                    <td>
+                      <input type="number" class="input input-xs mono" [(ngModel)]="sh.width" />
+                    </td>
+                    <td>
+                      <input type="number" class="input input-xs mono" [(ngModel)]="sh.height" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="showBulkShelfEditorModal.set(false)" [disabled]="savingBulkShelves()">Cancelar</button>
+            <button class="btn btn-success" (click)="submitBulkShelvesSave()" [disabled]="savingBulkShelves()">
+              {{ savingBulkShelves() ? 'Guardando en Base de Datos...' : 'Guardar Todos los Cambios (' + bulkEditorShelves.length + ' Anaqueles)' }}
             </button>
           </div>
         </div>
@@ -5828,6 +6090,207 @@ export interface LocationAssignerRow {
       border: 1px dashed #f59e0b;
       color: #fbbf24;
     }
+
+    /* Shelf Creator & Bulk Editor Modals */
+    .shelf-creator-modal {
+      max-width: 680px;
+      width: 100%;
+    }
+    .shelf-creator-body {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 10px 0;
+    }
+    .form-grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .form-grid-4col {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .preset-section {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .preset-buttons-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .bulk-shelf-editor-modal {
+      max-width: 980px;
+      width: 95vw;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .bulk-editor-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+      max-height: calc(90vh - 160px);
+      padding: 6px 0;
+    }
+    .bulk-filter-strip {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #f8fafc;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      flex-wrap: wrap;
+    }
+    .bulk-filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .bulk-count-pill {
+      margin-left: auto;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      font-weight: 700;
+    }
+    .series-automation-box {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .series-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      color: #166534;
+      font-size: 0.82rem;
+    }
+    .series-inputs-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .series-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #374151;
+    }
+    .bulk-shelves-table-wrap {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      overflow: auto;
+      max-height: 380px;
+    }
+    .bulk-shelves-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    .bulk-shelves-table th {
+      background: #f8fafc;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      padding: 6px 10px;
+      border-bottom: 2px solid #cbd5e1;
+      font-weight: 700;
+      color: #475569;
+      text-align: left;
+    }
+    .bulk-shelves-table td {
+      padding: 4px 6px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    .input-xs {
+      padding: 3px 6px;
+      font-size: 0.78rem;
+      height: 28px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Levels H, I, J Badges */
+    .level-chip-h { background: #fef08a !important; color: #854d0e !important; }
+    .level-chip-i { background: #fed7aa !important; color: #9a3412 !important; }
+    .level-chip-j { background: #fbcfe8 !important; color: #9d174d !important; }
+
+    /* Mobile Responsive Optimizations (iOS / iPhone / Tablets) */
+    @media (max-width: 900px) {
+      .croquis-container {
+        padding: 0.25rem !important;
+        overflow-x: hidden !important;
+        width: 100% !important;
+      }
+      .croquis-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+      }
+      .croquis-top-actions {
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+        justify-content: flex-start !important;
+      }
+      .croquis-main-layout {
+        flex-direction: column !important;
+        gap: 12px !important;
+        width: 100% !important;
+      }
+      .croquis-canvas-col {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 1 1 100% !important;
+      }
+      .sections-progress-sidebar {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        flex: 1 1 auto !important;
+        position: static !important;
+      }
+      .blueprint-canvas-wrap {
+        padding: 0.25rem !important;
+        touch-action: pan-x pan-y pinch-zoom;
+        -webkit-overflow-scrolling: touch;
+      }
+      .shelf-inspector-body {
+        grid-template-columns: 1fr !important;
+      }
+      .form-grid-2col, .form-grid-4col {
+        grid-template-columns: 1fr !important;
+      }
+      .bulk-filter-strip {
+        flex-direction: column !important;
+        align-items: stretch !important;
+      }
+      .series-inputs-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+      }
+    }
   `]
 })
 export class CroquisComponent implements OnInit {
@@ -5884,13 +6347,50 @@ export class CroquisComponent implements OnInit {
   importingExcel = signal<boolean>(false);
   importResult: any = null;
 
-  // Physical Rack Blueprint & Quick Section Assignment State (Niveles A-G)
-  rackLevels: string[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+  // Physical Rack Blueprint & Quick Section Assignment State (Niveles A-J)
+  rackLevels: string[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
   inspectedMaterials = signal<CountRecordDto[]>([]);
   loadingMaterials = signal<boolean>(false);
   selectedLevelFilter = signal<string>('TODOS');
   shelfMaterialSearch = signal<string>('');
   updatingRecordId = signal<number | null>(null);
+
+  // Shelf Creation State
+  showCreateShelfModal = signal<boolean>(false);
+  newShelfCode = '';
+  newShelfDesc = '';
+  newShelfZone = 'YPC';
+  newShelfPlant = 'Planta Baja';
+  newShelfPosX = 948;
+  newShelfPosY = 104;
+  newShelfWidth = 76;
+  newShelfHeight = 34;
+  creatingShelf = signal<boolean>(false);
+
+  // Shelf Deletion State
+  shelfToDelete: ShelfAssignmentDto | null = null;
+  deletingShelf = signal<boolean>(false);
+
+  // Bulk Shelf Editor & Series Renumber State
+  showBulkShelfEditorModal = signal<boolean>(false);
+  bulkEditorZone = signal<string>('YPC');
+  bulkEditorPlant = signal<string>('Planta Baja');
+  bulkEditorShelves: Array<{
+    id: number;
+    code: string;
+    originalCode: string;
+    description: string;
+    posX: number;
+    posY: number;
+    width: number;
+    height: number;
+    zone: string;
+    plant: string;
+  }> = [];
+  seriesPrefix = 'PB-YPC-';
+  seriesStartNumber = 10;
+  seriesDigits = 2;
+  savingBulkShelves = signal<boolean>(false);
 
   filteredMaterials = computed(() => {
     let list = this.inspectedMaterials();
@@ -5909,6 +6409,21 @@ export class CroquisComponent implements OnInit {
       );
     }
     return list;
+  });
+
+  uniqueZonesList = computed(() => {
+    const zones = new Set<string>();
+    for (const s of this.allShelves()) {
+      if (s.shelfZone && s.shelfZone.trim()) {
+        zones.add(s.shelfZone.trim());
+      }
+    }
+    if (zones.size === 0) {
+      zones.add('YPC');
+      zones.add('Acero');
+      zones.add('Kuriyama');
+    }
+    return Array.from(zones).sort();
   });
 
   // Tabbed Family Codes Explorer State (Ver todos los códigos por familia: Acero, Kuriyama, YPC, etc.)
@@ -6274,6 +6789,11 @@ export class CroquisComponent implements OnInit {
       } else {
         this.zoomLevel.set(68);
       }
+      if (typeof window !== 'undefined' && window.innerWidth < 850) {
+        this.showSidebar.set(false);
+        const targetPercent = Math.floor(((window.innerWidth - 32) / 1440) * 100);
+        this.zoomLevel.set(Math.max(22, Math.min(68, targetPercent)));
+      }
     } catch (e) {}
 
     this.api.getSessions().subscribe({
@@ -6528,7 +7048,7 @@ export class CroquisComponent implements OnInit {
     const clientW = this.viewportRef.nativeElement.clientWidth - 28;
     if (clientW > 0) {
       const targetPercent = Math.floor((clientW / 1440) * 100);
-      const clamped = Math.max(50, Math.min(130, targetPercent));
+      const clamped = Math.max(22, Math.min(130, targetPercent));
       this.zoomLevel.set(clamped);
       try { localStorage.setItem('interflu_croquis_zoom', String(clamped)); } catch (e) {}
       this.toast.info(`Ajustado automáticamente al ancho de la pantalla (${clamped}%)`);
@@ -6562,6 +7082,38 @@ export class CroquisComponent implements OnInit {
 
   @HostListener('window:mouseup')
   onGlobalMouseUp() {
+    this.isPanning = false;
+  }
+
+  onViewportTouchStart(event: TouchEvent) {
+    if (this.editMode()) return;
+    if (event.touches && event.touches.length === 1) {
+      const touch = event.touches[0];
+      const target = event.target as HTMLElement;
+      if (target && (target.closest('.rack-element') || target.closest('button') || target.closest('input') || target.closest('.modal-backdrop'))) return;
+      this.isPanning = true;
+      this.panStartX = touch.clientX;
+      this.panStartY = touch.clientY;
+      if (this.viewportRef) {
+        this.scrollStartX = this.viewportRef.nativeElement.scrollLeft;
+        this.scrollStartY = this.viewportRef.nativeElement.scrollTop;
+      }
+    }
+  }
+
+  @HostListener('window:touchmove', ['$event'])
+  onGlobalTouchMove(event: TouchEvent) {
+    if (this.isPanning && this.viewportRef && event.touches && event.touches.length === 1) {
+      const touch = event.touches[0];
+      const dx = touch.clientX - this.panStartX;
+      const dy = touch.clientY - this.panStartY;
+      this.viewportRef.nativeElement.scrollLeft = this.scrollStartX - dx;
+      this.viewportRef.nativeElement.scrollTop = this.scrollStartY - dy;
+    }
+  }
+
+  @HostListener('window:touchend')
+  onGlobalTouchEnd() {
     this.isPanning = false;
   }
 
@@ -6697,6 +7249,206 @@ export class CroquisComponent implements OnInit {
     if (target) {
       this.openEditShelf(target);
     }
+  }
+
+  // Shelf Creation Methods
+  openCreateShelfModal() {
+    this.newShelfCode = '';
+    this.newShelfDesc = '';
+    this.newShelfZone = this.selectedSectionFilter() || 'YPC';
+    this.newShelfPlant = this.selectedPlant();
+    this.newShelfPosX = 948;
+    this.newShelfPosY = 104;
+    this.newShelfWidth = 76;
+    this.newShelfHeight = 34;
+    this.showCreateShelfModal.set(true);
+  }
+
+  applyShelfDimPreset(w: number, h: number) {
+    this.newShelfWidth = w;
+    this.newShelfHeight = h;
+  }
+
+  submitCreateShelf() {
+    if (!this.newShelfCode.trim()) {
+      this.toast.warning('Ingresa el código del nuevo anaquel (ej. PB-YPC-22)');
+      return;
+    }
+    if (!this.newShelfZone.trim()) {
+      this.toast.warning('Ingresa la zona del anaquel');
+      return;
+    }
+    this.creatingShelf.set(true);
+    this.api.createShelf({
+      code: this.newShelfCode.trim().toUpperCase(),
+      description: this.newShelfDesc.trim(),
+      zone: this.newShelfZone.trim(),
+      plant: this.newShelfPlant,
+      posX: Number(this.newShelfPosX) || 0,
+      posY: Number(this.newShelfPosY) || 0,
+      width: Number(this.newShelfWidth) || 76,
+      height: Number(this.newShelfHeight) || 34
+    }).subscribe({
+      next: (created) => {
+        this.creatingShelf.set(false);
+        this.showCreateShelfModal.set(false);
+        this.toast.success(`Anaquel ${created.code} creado exitosamente e integrado al croquis.`);
+        if (this.activeSessionId() > 0) {
+          this.loadShelves(this.activeSessionId());
+        } else {
+          this.loadRawShelvesPreview();
+        }
+      },
+      error: (err) => {
+        this.creatingShelf.set(false);
+        this.toast.error('Error al crear anaquel: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  // Shelf Deletion Methods
+  confirmDeleteShelf(shelf: ShelfAssignmentDto | null) {
+    if (!shelf) return;
+    this.shelfToDelete = shelf;
+  }
+
+  executeDeleteShelf() {
+    if (!this.shelfToDelete) return;
+    const target = this.shelfToDelete;
+    this.deletingShelf.set(true);
+    this.api.deleteShelf(target.shelfId).subscribe({
+      next: (resp: any) => {
+        this.deletingShelf.set(false);
+        this.toast.success(resp?.message || `Anaquel ${target.shelfCode} eliminado correctamente.`);
+        this.shelfToDelete = null;
+        if (this.inspectedShelf?.shelfId === target.shelfId) {
+          this.inspectedShelf = null;
+        }
+        if (this.activeSessionId() > 0) {
+          this.loadShelves(this.activeSessionId());
+        } else {
+          this.loadRawShelvesPreview();
+        }
+      },
+      error: (err) => {
+        this.deletingShelf.set(false);
+        this.toast.error('No se pudo eliminar el anaquel: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  // Bulk Shelf Editor & Series Renumber Methods
+  openBulkShelfEditor() {
+    const currentZone = this.selectedSectionFilter() || 'YPC';
+    this.bulkEditorZone.set(currentZone);
+    this.bulkEditorPlant.set(this.selectedPlant());
+    this.seriesPrefix = this.selectedPlant() === 'Planta Baja' ? `PB-${currentZone}-` : `PA-${currentZone}-`;
+    this.seriesStartNumber = 10;
+    this.seriesDigits = 2;
+    this.refreshBulkEditorShelves();
+    this.showBulkShelfEditorModal.set(true);
+  }
+
+  onBulkEditorZoneChange(zone: string) {
+    this.bulkEditorZone.set(zone);
+    this.seriesPrefix = this.bulkEditorPlant() === 'Planta Baja' ? `PB-${zone}-` : `PA-${zone}-`;
+    this.refreshBulkEditorShelves();
+  }
+
+  onBulkEditorPlantChange(plant: string) {
+    this.bulkEditorPlant.set(plant);
+    this.seriesPrefix = plant === 'Planta Baja' ? `PB-${this.bulkEditorZone()}-` : `PA-${this.bulkEditorZone()}-`;
+    this.refreshBulkEditorShelves();
+  }
+
+  refreshBulkEditorShelves() {
+    const zone = this.bulkEditorZone().trim().toLowerCase();
+    const plant = this.bulkEditorPlant();
+    const list = this.allShelves()
+      .filter(s => {
+        const matchesPlant = !plant || (s.plant || 'Planta Baja') === plant;
+        const matchesZone = !zone || (s.shelfZone || '').trim().toLowerCase() === zone;
+        return matchesPlant && matchesZone;
+      })
+      .sort((a, b) => {
+        return a.shelfCode.localeCompare(b.shelfCode, undefined, { numeric: true });
+      });
+
+    this.bulkEditorShelves = list.map(s => ({
+      id: s.shelfId,
+      code: s.shelfCode,
+      originalCode: s.shelfCode,
+      description: s.shelfDescription || '',
+      posX: s.posX,
+      posY: s.posY,
+      width: s.width,
+      height: s.height,
+      zone: s.shelfZone || this.bulkEditorZone(),
+      plant: s.plant || this.bulkEditorPlant()
+    }));
+  }
+
+  formatSeriesNum(num: number): string {
+    if (this.seriesDigits === 2 && num < 10) {
+      return `0${num}`;
+    }
+    return String(num);
+  }
+
+  applySeriesRenumberToTable() {
+    if (!this.bulkEditorShelves || this.bulkEditorShelves.length === 0) {
+      this.toast.warning('No hay anaqueles en la tabla para renumerar.');
+      return;
+    }
+    let currentNum = Number(this.seriesStartNumber) || 1;
+    for (let i = 0; i < this.bulkEditorShelves.length; i++) {
+      const sh = this.bulkEditorShelves[i];
+      sh.code = `${this.seriesPrefix}${this.formatSeriesNum(currentNum)}`;
+      currentNum++;
+    }
+    this.toast.info(`Serie aplicada a ${this.bulkEditorShelves.length} anaqueles en la vista previa. Revisa los códigos y presiona Guardar.`);
+  }
+
+  submitBulkShelvesSave() {
+    if (!this.bulkEditorShelves || this.bulkEditorShelves.length === 0) {
+      this.toast.warning('No hay datos para guardar.');
+      return;
+    }
+    for (const sh of this.bulkEditorShelves) {
+      if (!sh.code || !sh.code.trim()) {
+        this.toast.error('Todos los anaqueles deben tener un código válido.');
+        return;
+      }
+    }
+    this.savingBulkShelves.set(true);
+    const payload = this.bulkEditorShelves.map(sh => ({
+      id: sh.id,
+      code: sh.code.trim().toUpperCase(),
+      description: (sh.description || '').trim(),
+      zone: sh.zone,
+      plant: sh.plant,
+      posX: Number(sh.posX) || 0,
+      posY: Number(sh.posY) || 0,
+      width: Number(sh.width) || 76,
+      height: Number(sh.height) || 34
+    }));
+
+    this.api.batchUpdateShelves(payload).subscribe({
+      next: (resp: any) => {
+        this.savingBulkShelves.set(false);
+        this.showBulkShelfEditorModal.set(false);
+        this.toast.success(resp?.message || `${payload.length} anaqueles actualizados correctamente.`);
+        if (this.activeSessionId() > 0) {
+          this.loadShelves(this.activeSessionId());
+        } else {
+          this.loadRawShelvesPreview();
+        }
+      },
+      error: (err) => {
+        this.savingBulkShelves.set(false);
+        this.toast.error('Error al actualizar anaqueles masivamente: ' + (err.error?.message || err.message));
+      }
+    });
   }
 
   // Croquis Smart Import Methods (Levantamiento Semanal SAE / Excel)
@@ -6944,9 +7696,23 @@ export class CroquisComponent implements OnInit {
     });
   }
 
+  isTenLevelShelf(shelfCode?: string | null): boolean {
+    if (!shelfCode) return false;
+    const code = shelfCode.trim().toUpperCase();
+    return code === 'PB-YPC-13' || code === 'PB-YPC-14' || code === 'PB-YPC-15';
+  }
+
+  getRackLevelsForShelf(shelf?: ShelfAssignmentDto | null): string[] {
+    if (!shelf) return ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    if (this.isTenLevelShelf(shelf.shelfCode)) {
+      return ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+    }
+    return ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+  }
+
   assignSectionToMaterial(item: CountRecordDto, section: string) {
     const cleanSec = section.trim().toUpperCase();
-    if (cleanSec && !/^[A-G]$/.test(cleanSec)) return;
+    if (cleanSec && !/^[A-J]$/.test(cleanSec)) return;
 
     this.updatingRecordId.set(item.id);
     this.api.updateCountSection(item.id, cleanSec).subscribe({
@@ -7259,7 +8025,7 @@ export class CroquisComponent implements OnInit {
 
   assignSectionFromFamilyExplorer(item: CountRecordDto, section: string) {
     const cleanSec = section.trim().toUpperCase();
-    if (cleanSec && !/^[A-G]$/.test(cleanSec)) return;
+    if (cleanSec && !/^[A-J]$/.test(cleanSec)) return;
 
     this.updatingRecordId.set(item.id);
     this.api.updateCountSection(item.id, cleanSec).subscribe({

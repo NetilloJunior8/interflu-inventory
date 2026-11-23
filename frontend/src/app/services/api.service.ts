@@ -252,6 +252,63 @@ export class ApiService {
     return this.http.post(`${this.baseUrl}/sessions/${sessionId}/shelves/${shelfId}/reset`, { clearRecords });
   }
 
+  // Shelf CRUD & Management
+  getShelves(plant?: string): Observable<ShelfDto[]> {
+    const params: any = {};
+    if (plant) params.plant = plant;
+    return this.http.get<ShelfDto[]>(`${this.baseUrl}/shelves`, { params });
+  }
+
+  createShelf(payload: {
+    code: string;
+    description?: string;
+    zone: string;
+    plant?: string;
+    posX?: number;
+    posY?: number;
+    width?: number;
+    height?: number;
+    warehouseCode?: string;
+  }): Observable<any> {
+    return this.http.post(`${this.baseUrl}/shelves`, payload);
+  }
+
+  updateShelf(id: number, payload: {
+    code?: string;
+    description?: string;
+    zone?: string;
+    plant?: string;
+    warehouseCode?: string;
+  }): Observable<any> {
+    return this.http.put(`${this.baseUrl}/shelves/${id}`, payload);
+  }
+
+  deleteShelf(id: number): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/shelves/${id}`);
+  }
+
+  updateShelfLayout(id: number, payload: { posX?: number; posY?: number; width?: number; height?: number; plant?: string }): Observable<any> {
+    return this.http.put(`${this.baseUrl}/shelves/${id}/layout`, payload);
+  }
+
+  batchUpdateShelves(items: Array<{
+    id: number;
+    code?: string;
+    description?: string;
+    zone?: string;
+    plant?: string;
+    posX?: number;
+    posY?: number;
+    width?: number;
+    height?: number;
+  }>): Observable<any> {
+    return this.http.put(`${this.baseUrl}/shelves/batch-update`, items);
+  }
+
+  batchUpdateShelfLayout(items: Array<{ id: number; posX?: number; posY?: number; width?: number; height?: number; plant?: string }>): Observable<any> {
+    return this.http.put(`${this.baseUrl}/shelves/batch-layout`, items);
+  }
+
   // Products
   searchProducts(query: string): Observable<ProductDto[]> {
     return this.http.get<ProductDto[]>(`${this.baseUrl}/products/search`, { params: { q: query } });
@@ -265,29 +322,8 @@ export class ApiService {
     return this.http.get<{ total: number }>(`${this.baseUrl}/products/count`);
   }
 
-  // Shelves & Croquis
-  getShelves(plant?: string): Observable<ShelfDto[]> {
-    const params: any = {};
-    if (plant) params.plant = plant;
-    return this.http.get<ShelfDto[]>(`${this.baseUrl}/shelves`, { params });
-  }
 
-  createShelf(shelf: { code: string; zone: string; description?: string; warehouseCode?: string; plant?: string; posX?: number; posY?: number }): Observable<ShelfDto> {
-    return this.http.post<ShelfDto>(`${this.baseUrl}/shelves`, shelf);
-  }
-
-  updateShelf(shelfId: number, data: { code?: string; zone?: string; description?: string; plant?: string; warehouseCode?: string }): Observable<ShelfDto> {
-    return this.http.put<ShelfDto>(`${this.baseUrl}/shelves/${shelfId}`, data);
-  }
-
-  updateShelfLayout(shelfId: number, layout: { posX?: number; posY?: number; width?: number; height?: number; plant?: string }): Observable<any> {
-    return this.http.put(`${this.baseUrl}/shelves/${shelfId}/layout`, layout);
-  }
-
-  batchUpdateShelfLayout(items: Array<{ id: number; posX?: number; posY?: number; width?: number; height?: number; plant?: string }>): Observable<any> {
-    return this.http.put(`${this.baseUrl}/shelves/batch-layout`, items);
-  }
-
+  // Save layout helper
   saveCroquisLayout(payload: { positions: Array<{ shelfId: number; posX?: number; posY?: number; width?: number; height?: number }> }): Observable<any> {
     const items = payload.positions.map(p => ({
       id: p.shelfId,

@@ -396,6 +396,9 @@ export interface SheetRow {
                       [class.sec-badge-e]="row.section === 'E'"
                       [class.sec-badge-f]="row.section === 'F'"
                       [class.sec-badge-g]="row.section === 'G'"
+                      [class.sec-badge-h]="row.section === 'H'"
+                      [class.sec-badge-i]="row.section === 'I'"
+                      [class.sec-badge-j]="row.section === 'J'"
                       [(ngModel)]="row.section"
                       (focus)="onCellFocus(i, 'sec')"
                       (blur)="onCellBlur(i)"
@@ -403,7 +406,7 @@ export interface SheetRow {
                       (keydown)="onSectionKeyDown($event, i)"
                       [disabled]="!isEditable()"
                       placeholder="-"
-                      title="Nivel de anaquel (solo letras A a G)"
+                      title="Nivel de anaquel (letras A a J)"
                       autocomplete="off"
                     />
                   </div>
@@ -1419,6 +1422,9 @@ export interface SheetRow {
     .sec-cell-input.sec-badge-e { background: #fff7ed; color: #c2410c; border-color: #fdba74; }
     .sec-cell-input.sec-badge-f { background: #fdf2f8; color: #be185d; border-color: #f9a8d4; }
     .sec-cell-input.sec-badge-g { background: #f3e8ff; color: #6b21a8; border-color: #d8b4fe; }
+    .sec-cell-input.sec-badge-h { background: #fef9c3; color: #854d0e; border-color: #fde047; }
+    .sec-cell-input.sec-badge-i { background: #ffedd5; color: #9a3412; border-color: #fed7aa; }
+    .sec-cell-input.sec-badge-j { background: #fce7f3; color: #9d174d; border-color: #fbcfe8; }
 
     .th-code { width: 280px; }
     .th-desc { width: 340px; }
@@ -2807,8 +2813,8 @@ export class CaptureComponent implements OnInit {
     const rawVal = inputEl?.value || '';
     const cleaned = rawVal.trim().toUpperCase();
 
-    // Strict validation: Only letters A to G allowed
-    if (/^[A-G]$/.test(cleaned)) {
+    // Strict validation: Letters A to J allowed
+    if (/^[A-J]$/.test(cleaned)) {
       this.rows()[index].section = cleaned;
       if (inputEl) inputEl.value = cleaned;
       // Auto-advance to material code input in the same row
@@ -2823,11 +2829,11 @@ export class CaptureComponent implements OnInit {
       this.rows()[index].section = '';
       if (inputEl) inputEl.value = '';
     } else {
-      // Reject any non A-G character
-      const validChar = cleaned.split('').find(c => /^[A-G]$/.test(c)) || '';
+      // Reject any non A-J character
+      const validChar = cleaned.split('').find(c => /^[A-J]$/.test(c)) || '';
       this.rows()[index].section = validChar;
       if (inputEl) inputEl.value = validChar;
-      this.toast.warning('Nivel inválido. Solo se admiten niveles de la A a la G.');
+      this.toast.warning('Nivel inválido. Solo se admiten niveles de la A a la J.');
     }
   }
 

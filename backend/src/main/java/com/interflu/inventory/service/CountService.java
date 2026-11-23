@@ -235,16 +235,18 @@ public class CountService {
         return cu.equals("CLAVE") || cu.equals("CVE") || cu.equals("CVE_ART") || cu.equals("CODIGO")
                 || cu.equals("CÓDIGO") || cu.equals("ARTICULO") || cu.equals("ARTÍCULO") || cu.equals("COD")
                 || cu.startsWith("CLAVE ") || cu.startsWith("CODIGO ") || cu.startsWith("CÓDIGO ")
-                || cu.equals("CVE PROD") || cu.equals("CLAVE PROD") || cu.equals("NUMERO DE PARTE") || cu.equals("NO. PARTE");
+                || cu.equals("CVE PROD") || cu.equals("CLAVE PROD") || cu.equals("NUMERO DE PARTE") || cu.equals("NO. PARTE")
+                || cu.equals("MATERIAL") || cu.equals("PRODUCTO") || cu.equals("SKU");
     }
 
     private boolean isHeaderQty(String cu) {
         if (cu == null) return false;
         cu = cu.trim().toUpperCase();
-        return cu.equals("CANTIDAD") || cu.equals("CANT") || cu.equals("PIEZAS") || cu.equals("PIEZA")
-                || cu.equals("QTY") || cu.equals("TOTAL") || cu.equals("EXISTENCIA")
+        return cu.equals("EXISTENCIAS") || cu.equals("EXISTENCIA") || cu.equals("CANTIDAD") || cu.equals("CANT")
+                || cu.equals("PIEZAS") || cu.equals("PIEZA") || cu.equals("PZAS") || cu.equals("PZA")
+                || cu.equals("QTY") || cu.equals("TOTAL")
                 || cu.equals("EXISTENCIA FÍSICA") || cu.equals("EXISTENCIA FISICA") || cu.equals("FÍSICO") || cu.equals("FISICO")
-                || cu.startsWith("CANTIDAD ") || cu.startsWith("EXISTENCIA ");
+                || cu.equals("STOCK") || cu.startsWith("EXISTENCIA") || cu.startsWith("CANTIDAD ") || cu.startsWith("PIEZAS ");
     }
 
     private boolean isHeaderSection(String cu) {
@@ -273,7 +275,8 @@ public class CountService {
         if (cu == null) return false;
         cu = cu.trim().toUpperCase();
         return cu.equals("DESCRIPCION") || cu.equals("DESCRIPCIÓN") || cu.equals("DESC") || cu.equals("NOMBRE")
-                || cu.startsWith("DESCRIPCION ") || cu.startsWith("DESCRIPCIÓN ");
+                || cu.equals("DESCR") || cu.startsWith("DESCRIPCION") || cu.startsWith("DESCRIPCIÓN")
+                || cu.equals("DETALLE") || cu.equals("CONCEPTO");
     }
 
     private void parseSheetRowsIntoItems(List<String[]> rows, Shelf sheetShelf, List<ImportedItem> result) {
@@ -323,8 +326,8 @@ public class CountService {
                 // Aspel SAE 5-column format: ESTATUS, TIPO, CLAVE, ESQ, EXISTENCIA [, NIVEL]
                 codeCol = 2;
                 qtyCol = 4;
-                if (firstRow.length >= 6 && firstRow[5].trim().matches("(?i)^[A-G]$")) secCol = 5;
-            } else if (firstRow.length >= 3 && firstRow[0].trim().matches("(?i)^[A-G]$")) {
+                if (firstRow.length >= 6 && firstRow[5].trim().matches("(?i)^[A-J]$")) secCol = 5;
+            } else if (firstRow.length >= 3 && firstRow[0].trim().matches("(?i)^[A-J]$")) {
                 secCol = 0;
                 codeCol = 1;
                 qtyCol = 2;
@@ -731,8 +734,8 @@ public class CountService {
             // Header row
             Row header = sheet.createRow(0);
             header.setHeightInPoints(24);
-            String[] cols = {"NIVEL", "CLAVE", "EXISTENCIA FÍSICA", "ANAQUEL"};
-            int[] widths = {14 * 256, 28 * 256, 20 * 256, 18 * 256};
+            String[] cols = {"CLAVE", "EXISTENCIAS", "DESCRIPCIÓN", "NIVEL", "ANAQUEL"};
+            int[] widths = {26 * 256, 18 * 256, 36 * 256, 14 * 256, 18 * 256};
             for (int c = 0; c < cols.length; c++) {
                 Cell cell = header.createCell(c);
                 cell.setCellValue(cols[c]);
@@ -742,41 +745,42 @@ public class CountService {
 
             // Example rows to guide operators
             Object[][] samples = {
-                {"A", "EJEMPLO-REF-01", 15, "PB-ACE-01"},
-                {"B", "EJEMPLO-REF-02", 8, "PB-ACE-01"},
-                {"G", "EJEMPLO-REF-03", 24, "PB-ACE-01"}
+                {"EJEMPLO-REF-01", 15.0, "Refacción Industrial Ejemplo 1", "A", "PB-ACE-01"},
+                {"EJEMPLO-REF-02", 8.0, "Refacción Industrial Ejemplo 2", "B", "PB-ACE-01"},
+                {"EJEMPLO-REF-03", 24.0, "Refacción Industrial Ejemplo 3", "J", "PB-YPC-13"}
             };
             for (int r = 0; r < samples.length; r++) {
                 Row row = sheet.createRow(r + 1);
-                Cell c0 = row.createCell(0);
-                c0.setCellValue((String) samples[r][0]);
-                c0.setCellStyle(levelStyle);
-                row.createCell(1).setCellValue((String) samples[r][1]);
-                row.createCell(2).setCellValue(((Integer) samples[r][2]).doubleValue());
-                row.createCell(3).setCellValue((String) samples[r][3]);
+                row.createCell(0).setCellValue((String) samples[r][0]);
+                row.createCell(1).setCellValue(((Double) samples[r][1]));
+                row.createCell(2).setCellValue((String) samples[r][2]);
+                Cell c3 = row.createCell(3);
+                c3.setCellValue((String) samples[r][3]);
+                c3.setCellStyle(levelStyle);
+                row.createCell(4).setCellValue((String) samples[r][4]);
             }
 
-            // Excel Dropdown Validation for NIVEL column (A-G) on rows 2..500
+            // Excel Dropdown Validation for NIVEL column (A-J) on rows 2..500
             DataValidationHelper dvHelper = sheet.getDataValidationHelper();
-            DataValidationConstraint dvConstraint = dvHelper.createExplicitListConstraint(new String[]{"A", "B", "C", "D", "E", "F", "G"});
-            CellRangeAddressList addressList = new CellRangeAddressList(1, 500, 0, 0);
+            DataValidationConstraint dvConstraint = dvHelper.createExplicitListConstraint(new String[]{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"});
+            CellRangeAddressList addressList = new CellRangeAddressList(1, 500, 3, 3);
             DataValidation validation = dvHelper.createValidation(dvConstraint, addressList);
             validation.setShowErrorBox(true);
-            validation.createErrorBox("Nivel no válido", "Solo se permiten letras de nivel A, B, C, D, E, F o G.");
+            validation.createErrorBox("Nivel no válido", "Solo se permiten letras de nivel A a J.");
             sheet.addValidationData(validation);
 
             // Instructions Sheet
             Sheet info = wb.createSheet("Instrucciones");
             info.setColumnWidth(0, 95 * 256);
             String[] tips = {
-                "PLANTILLA OFICIAL INTERFLU INVENTORY - IMPORTACION POR NIVEL (A-G)",
+                "PLANTILLA OFICIAL INTERFLU INVENTORY - COMPATIBLE CON ASPEL SAE",
                 "",
-                "1. Columna NIVEL: Escribe o selecciona una letra de la A (nivel superior) a la G (nivel base). Las minusculas se convierten automaticamente a mayusculas.",
-                "2. Columna CLAVE: Escribe el codigo/SKU exacto del material.",
-                "3. Columna EXISTENCIA FISICA: Escribe la cantidad fisica contada.",
-                "4. Columna ANAQUEL (Opcional): Si importas varios anaqueles en un mismo archivo, escribe el codigo (ej. PB-ACE-09). Si seleccionas el anaquel destino en pantalla, puedes dejar esta columna vacia.",
-                "5. Reemplaza las 3 filas de ejemplo antes de importar tu archivo real.",
-                "6. En la app puedes elegir Modo Inteligente (actualiza codigos repetidos y agrega los nuevos sin borrar los demas) o Modo Reemplazar Todo el Anaquel."
+                "1. Columna CLAVE: Clave o código del producto/refacción (idéntico al SAE).",
+                "2. Columna EXISTENCIAS: Cantidad o número de piezas (idéntico al SAE).",
+                "3. Columna DESCRIPCIÓN: Nombre del producto o descripción (idéntico al SAE).",
+                "4. Columna NIVEL (Opcional): Letra de nivel de la A a la J (los anaqueles 13, 14 y 15 cuentan con niveles H, I, J).",
+                "5. Columna ANAQUEL (Opcional): Código de anaquel (ej. PB-ACE-01, PB-YPC-10). Si seleccionas el anaquel en pantalla, se llena automáticamente.",
+                "6. Al importar archivos exportados directamente desde SAE, la app extrae automáticamente Clave, Existencias y Descripción e ignora las columnas sobrantes.",
             };
             for (int i = 0; i < tips.length; i++) {
                 Row r = info.createRow(i);

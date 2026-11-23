@@ -25,5 +25,8 @@ public interface ShelfAssignmentRepository extends JpaRepository<ShelfAssignment
     default Optional<ShelfAssignment> findFirstBySessionIdAndShelfId(Long sessionId, Long shelfId) {
         return findBySessionIdAndShelfId(sessionId, shelfId);
     }
+
+    @Query("SELECT sa FROM ShelfAssignment sa WHERE sa.shelf.id = :shelfId")
+    List<ShelfAssignment> findByShelfId(@Param("shelfId") Long shelfId);
 }
 

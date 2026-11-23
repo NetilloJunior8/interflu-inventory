@@ -1,26 +1,45 @@
 package com.interflu.inventory.controller;
 
+import com.interflu.inventory.model.InventorySession;
 import com.interflu.inventory.model.Shelf;
+import com.interflu.inventory.model.ShelfAssignment;
 import com.interflu.inventory.model.User;
+import com.interflu.inventory.repository.CountRecordRepository;
+import com.interflu.inventory.repository.InventorySessionRepository;
+import com.interflu.inventory.repository.ShelfAssignmentRepository;
 import com.interflu.inventory.repository.ShelfRepository;
 import com.interflu.inventory.security.CurrentUserHelper;
 import com.interflu.inventory.service.AuditService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/shelves")
 public class ShelfController {
 
     private final ShelfRepository shelfRepo;
+    private final ShelfAssignmentRepository assignmentRepo;
+    private final InventorySessionRepository sessionRepo;
+    private final CountRecordRepository countRepo;
     private final CurrentUserHelper userHelper;
     private final AuditService auditService;
 
-    public ShelfController(ShelfRepository shelfRepo, CurrentUserHelper userHelper, AuditService auditService) {
+    public ShelfController(ShelfRepository shelfRepo,
+                           ShelfAssignmentRepository assignmentRepo,
+                           InventorySessionRepository sessionRepo,
+                           CountRecordRepository countRepo,
+                           CurrentUserHelper userHelper,
+                           AuditService auditService) {
         this.shelfRepo = shelfRepo;
+        this.assignmentRepo = assignmentRepo;
+        this.sessionRepo = sessionRepo;
+        this.countRepo = countRepo;
         this.userHelper = userHelper;
         this.auditService = auditService;
     }
@@ -34,6 +53,7 @@ public class ShelfController {
     }
 
     @PostMapping
+    @Transactional
     public ResponseEntity<?> createShelf(@RequestBody Shelf shelf) {
         User currentUser = userHelper.getCurrentUser();
         if (shelf.getCode() == null || shelf.getCode().isBlank()) {
@@ -44,9 +64,35 @@ public class ShelfController {
             return ResponseEntity.badRequest().body(Map.of("message", "Ya existe un anaquel con el código " + shelf.getCode()));
         }
         if (shelf.getPlant() == null || shelf.getPlant().isBlank()) {
-            shelf.setPlant("Planta 1");
+            shelf.setPlant("Planta Baja");
         }
+        if (shelf.getWarehouseCode() == null || shelf.getWarehouseCode().isBlank()) {
+            shelf.setWarehouseCode("1");
+        }
+        if (shelf.getWidth() == null || shelf.getWidth() <= 0) {
+            shelf.setWidth(25.0);
+        }
+        if (shelf.getHeight() == null || shelf.getHeight() <= 0) {
+            shelf.setHeight(54.0);
+        }
+        if (shelf.getPosX() == null) shelf.setPosX(900.0);
+        if (shelf.getPosY() == null) shelf.setPosY(200.0);
+        shelf.setActive(true);
+
         Shelf saved = shelfRepo.save(shelf);
+
+        // Automatically assign this new shelf to any active / non-closed inventory sessions
+        List<InventorySession> openSessions = sessionRepo.findAll().stream()
+                .filter(s -> s.getStatus() != InventorySession.Status.CERRADO_EXITO && s.getStatus() != InventorySession.Status.CERRADO_NO_EXITO)
+                .collect(Collectors.toList());
+        for (InventorySession s : openSessions) {
+            if (assignmentRepo.findBySessionIdAndShelfId(s.getId(), saved.getId()).isEmpty()) {
+                ShelfAssignment sa = new ShelfAssignment(s, saved, currentUser);
+                sa.setStatus(ShelfAssignment.Status.PENDIENTE);
+                assignmentRepo.save(sa);
+            }
+        }
+
         auditService.log(null, null, currentUser.getUsername(), currentUser.getFullName(),
                 "CREAR_ANAQUEL", "Shelf", saved.getId(), null, saved.getCode(),
                 "Creado anaquel " + saved.getCode() + " en " + saved.getPlant() + " (" + saved.getZone() + ")");
@@ -54,6 +100,7 @@ public class ShelfController {
     }
 
     @PutMapping("/{id}")
+    @Transactional
     public ResponseEntity<?> updateShelf(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         User currentUser = userHelper.getCurrentUser();
         Shelf s = shelfRepo.findById(id)
@@ -93,6 +140,89 @@ public class ShelfController {
                         oldCode, saved.getCode(), saved.getZone(), saved.getPlant()));
 
         return ResponseEntity.ok(saved);
+    }
+
+    @DeleteMapping("/{id}")
+    @Transactional
+    public ResponseEntity<?> deleteShelf(@PathVariable Long id) {
+        User currentUser = userHelper.getCurrentUser();
+        Shelf s = shelfRepo.findById(id).orElseThrow(() -> new IllegalArgumentException("Anaquel no encontrado"));
+
+        long countRecords = countRepo.findByShelfId(id).size();
+        if (countRecords > 0) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", "No se puede eliminar el anaquel " + s.getCode() + " porque tiene " + countRecords + " partidas contadas registradas en el inventario. Desaloje o reasigne los materiales primero."
+            ));
+        }
+
+        List<ShelfAssignment> assignments = assignmentRepo.findByShelfId(id);
+        assignmentRepo.deleteAll(assignments);
+
+        s.setActive(false);
+        shelfRepo.delete(s);
+
+        auditService.log(null, null, currentUser.getUsername(), currentUser.getFullName(),
+                "ELIMINAR_ANAQUEL", "Shelf", id, s.getCode(), null,
+                "Anaquel eliminado: " + s.getCode());
+        return ResponseEntity.ok(Map.of("status", "ok", "message", "Anaquel " + s.getCode() + " eliminado exitosamente."));
+    }
+
+    @PutMapping("/batch-update")
+    @Transactional
+    public ResponseEntity<?> batchUpdateShelves(@RequestBody List<Map<String, Object>> items) {
+        User currentUser = userHelper.getCurrentUser();
+        if (items == null || items.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Lista vacía"));
+        }
+
+        List<Shelf> updatedList = new ArrayList<>();
+        // Phase 1: temporary codes to avoid unique constraint collisions during batch swap
+        for (Map<String, Object> map : items) {
+            if (!map.containsKey("id") || map.get("id") == null) continue;
+            Long id = ((Number) map.get("id")).longValue();
+            Shelf s = shelfRepo.findById(id).orElse(null);
+            if (s != null && map.containsKey("code")) {
+                String targetCode = String.valueOf(map.get("code")).trim().toUpperCase();
+                if (!targetCode.equalsIgnoreCase(s.getCode())) {
+                    s.setCode("TMP_" + id + "_" + targetCode);
+                    shelfRepo.save(s);
+                }
+            }
+        }
+
+        // Phase 2: apply final codes and fields
+        for (Map<String, Object> map : items) {
+            if (!map.containsKey("id") || map.get("id") == null) continue;
+            Long id = ((Number) map.get("id")).longValue();
+            Shelf s = shelfRepo.findById(id).orElse(null);
+            if (s == null) continue;
+
+            if (map.containsKey("code")) {
+                String targetCode = String.valueOf(map.get("code")).trim().toUpperCase();
+                if (!targetCode.isBlank()) s.setCode(targetCode);
+            }
+            if (map.containsKey("description")) {
+                s.setDescription(map.get("description") != null ? String.valueOf(map.get("description")).trim() : "");
+            }
+            if (map.containsKey("zone") && map.get("zone") != null) {
+                s.setZone(String.valueOf(map.get("zone")).trim());
+            }
+            if (map.containsKey("plant") && map.get("plant") != null) {
+                s.setPlant(String.valueOf(map.get("plant")).trim());
+            }
+            if (map.containsKey("posX")) s.setPosX(((Number) map.get("posX")).doubleValue());
+            if (map.containsKey("posY")) s.setPosY(((Number) map.get("posY")).doubleValue());
+            if (map.containsKey("width")) s.setWidth(((Number) map.get("width")).doubleValue());
+            if (map.containsKey("height")) s.setHeight(((Number) map.get("height")).doubleValue());
+
+            updatedList.add(shelfRepo.save(s));
+        }
+
+        auditService.log(null, null, currentUser.getUsername(), currentUser.getFullName(),
+                "ACTUALIZACION_MASIVA_ANAQUELES", "Shelf", null, null, String.valueOf(updatedList.size()),
+                "Actualización masiva de nombres/propiedades de " + updatedList.size() + " anaqueles.");
+
+        return ResponseEntity.ok(Map.of("status", "ok", "updated", updatedList.size()));
     }
 
     @PutMapping("/{id}/layout")

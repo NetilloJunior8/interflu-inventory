@@ -114,7 +114,7 @@ public class CountRecord {
     public static String normalizeSection(String sec) {
         if (sec == null) return null;
         String clean = sec.trim().toUpperCase();
-        if (clean.matches("^[A-G]$")) {
+        if (clean.matches("^[A-J]$")) {
             return clean;
         }
         return null;
