@@ -427,6 +427,12 @@ export class ApiService {
     return this.http.delete<{ deletedCount: number; deletedPieces: number; message: string }>(`${this.baseUrl}/counts/session/${sessionId}`);
   }
 
+  getStockAlerts(sessionId?: number): Observable<any> {
+    const params: any = {};
+    if (sessionId && sessionId > 0) params.sessionId = sessionId;
+    return this.http.get<any>(`${this.baseUrl}/counts/stock-alerts`, { params });
+  }
+
   // Material QR Downloads
   downloadMaterialQrBlob(code: string): Observable<Blob> {
     return this.http.get(`${this.baseUrl}/qr/material/${encodeURIComponent(code)}`, {

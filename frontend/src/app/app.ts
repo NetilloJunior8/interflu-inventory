@@ -14,6 +14,7 @@ import { ApiService } from './services/api.service';
 })
 export class App implements OnInit, OnDestroy {
   pendingTicketsCount = signal<number>(0);
+  criticalStockCount = signal<number>(0);
   private ticketPollTimer: any = null;
 
   constructor(
@@ -38,6 +39,20 @@ export class App implements OnInit, OnDestroy {
     });
   }
 
+  pollStockAlerts() {
+    if (!this.auth.isLoggedIn()) {
+      this.criticalStockCount.set(0);
+      return;
+    }
+    this.api.getStockAlerts().subscribe({
+      next: (res) => {
+        const count = (res?.criticalCount || 0) + (res?.reorderCount || 0);
+        this.criticalStockCount.set(count);
+      },
+      error: () => {}
+    });
+  }
+
   ngOnInit() {
     if (typeof document !== 'undefined') {
       document.documentElement.classList.remove('dark');
@@ -49,9 +64,11 @@ export class App implements OnInit, OnDestroy {
     } catch (e) {}
 
     this.pollPendingTickets();
+    this.pollStockAlerts();
     if (typeof window !== 'undefined') {
       this.ticketPollTimer = setInterval(() => {
         this.pollPendingTickets();
+        this.pollStockAlerts();
       }, 15000);
     }
   }
@@ -66,6 +83,7 @@ export class App implements OnInit, OnDestroy {
   logout() {
     this.auth.logout();
     this.pendingTicketsCount.set(0);
+    this.criticalStockCount.set(0);
     this.toast.info('Sesión finalizada');
     this.router.navigate(['/login']);
   }

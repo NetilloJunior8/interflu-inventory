@@ -165,6 +165,11 @@ public class CountController {
         }
     }
 
+    @GetMapping("/stock-alerts")
+    public ResponseEntity<?> getStockAlerts(@RequestParam(required = false) Long sessionId) {
+        return ResponseEntity.ok(countService.getStockAlerts(sessionId));
+    }
+
     private Map<String, Object> toDto(CountRecord r) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", r.getId());

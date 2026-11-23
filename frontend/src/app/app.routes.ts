@@ -30,6 +30,7 @@ export const routes: Routes = [
   { path: 'capture', canActivate: [authGuard], loadComponent: () => import('./pages/capture.component').then(m => m.CaptureComponent) },
   { path: 'validation', canActivate: [authGuard], loadComponent: () => import('./pages/validation.component').then(m => m.ValidationComponent) },
   { path: 'qr-labels', canActivate: [authGuard], loadComponent: () => import('./pages/qr-labels.component').then(m => m.QrLabelsComponent) },
+  { path: 'stock-alerts', canActivate: [authGuard], loadComponent: () => import('./pages/stock-alerts.component').then(m => m.StockAlertsComponent) },
   { path: 'export', canActivate: [authGuard], loadComponent: () => import('./pages/export-sae.component').then(m => m.ExportSaeComponent) },
   { path: 'audit', canActivate: [authGuard], loadComponent: () => import('./pages/audit.component').then(m => m.AuditComponent) },
   { path: 'support', canActivate: [authGuard], loadComponent: () => import('./pages/support.component').then(m => m.SupportComponent) },

@@ -229,9 +229,25 @@ public class CountService {
         Shelf resolvedShelf;
     }
 
+    public static String cleanNumericString(String str) {
+        if (str == null) return "0";
+        String s = str.trim().replaceAll("[\"'$ ]", "");
+        if (s.isEmpty()) return "0";
+        if (s.contains(",") && !s.contains(".")) {
+            s = s.replace(",", ".");
+        } else if (s.contains(",") && s.contains(".")) {
+            s = s.replace(",", "");
+        }
+        return s;
+    }
+
     private boolean isHeaderCode(String cu) {
         if (cu == null) return false;
         cu = cu.trim().toUpperCase();
+        if (cu.contains("ESQ") || cu.contains("IMPUESTO") || cu.contains("SAT") || cu.contains("UNIDAD")
+                || cu.contains("COSTO") || cu.contains("PRECIO") || cu.contains("FECHA") || cu.contains("LINEA") || cu.contains("LÍNEA")) {
+            return false;
+        }
         return cu.equals("CLAVE") || cu.equals("CVE") || cu.equals("CVE_ART") || cu.equals("CODIGO")
                 || cu.equals("CÓDIGO") || cu.equals("ARTICULO") || cu.equals("ARTÍCULO") || cu.equals("COD")
                 || cu.startsWith("CLAVE ") || cu.startsWith("CODIGO ") || cu.startsWith("CÓDIGO ")
@@ -242,11 +258,15 @@ public class CountService {
     private boolean isHeaderQty(String cu) {
         if (cu == null) return false;
         cu = cu.trim().toUpperCase();
-        return cu.equals("EXISTENCIAS") || cu.equals("EXISTENCIA") || cu.equals("CANTIDAD") || cu.equals("CANT")
+        if (cu.contains("ESQ") || cu.contains("SAT") || cu.contains("UNIDAD") || cu.contains("COSTO") || cu.contains("PRECIO")) {
+            return false;
+        }
+        return cu.equals("EXISTENCIAS") || cu.equals("EXISTENCIA") || cu.equals("EXIST") || cu.equals("EXIST.")
+                || cu.equals("CANTIDAD") || cu.equals("CANT") || cu.equals("CANT.")
                 || cu.equals("PIEZAS") || cu.equals("PIEZA") || cu.equals("PZAS") || cu.equals("PZA")
-                || cu.equals("QTY") || cu.equals("TOTAL")
+                || cu.equals("QTY") || cu.equals("TOTAL") || cu.equals("DISPONIBLE") || cu.equals("SALDO")
                 || cu.equals("EXISTENCIA FÍSICA") || cu.equals("EXISTENCIA FISICA") || cu.equals("FÍSICO") || cu.equals("FISICO")
-                || cu.equals("STOCK") || cu.startsWith("EXISTENCIA") || cu.startsWith("CANTIDAD ") || cu.startsWith("PIEZAS ");
+                || cu.equals("STOCK") || cu.startsWith("EXISTENCIA") || cu.startsWith("CANTIDAD") || cu.startsWith("PIEZAS") || cu.startsWith("STOCK");
     }
 
     private boolean isHeaderSection(String cu) {
@@ -348,6 +368,33 @@ public class CountService {
             }
         }
 
+        // 2b. Auto-detect quantity column if still not found
+        if (qtyCol < 0 && !rows.isEmpty()) {
+            int maxCols = rows.get(0).length;
+            int bestCol = -1;
+            int bestScore = 0;
+            for (int c = 0; c < maxCols; c++) {
+                if (c == codeCol || c == secCol || c == shelfCol || c == descCol || c == locCol) continue;
+                int numCount = 0;
+                int sampleRows = Math.min(rows.size(), 30);
+                for (int r = Math.max(0, headerRowIdx + 1); r < sampleRows; r++) {
+                    if (c < rows.get(r).length) {
+                        String clean = cleanNumericString(rows.get(r)[c]);
+                        if (clean.matches("^-?\\d+(\\.\\d+)?$")) {
+                            numCount++;
+                        }
+                    }
+                }
+                if (numCount > bestScore && numCount >= 2) {
+                    bestScore = numCount;
+                    bestCol = c;
+                }
+            }
+            if (bestCol >= 0) {
+                qtyCol = bestCol;
+            }
+        }
+
         // 3. Process data rows starting after headerRowIdx
         int startRow = (headerRowIdx >= 0) ? headerRowIdx + 1 : 0;
         for (int r = startRow; r < rows.size(); r++) {
@@ -361,8 +408,9 @@ public class CountService {
 
             double qty = 0.0;
             if (qtyCol >= 0 && row.length > qtyCol && row[qtyCol] != null) {
+                String cleanNum = cleanNumericString(row[qtyCol]);
                 try {
-                    qty = Double.parseDouble(row[qtyCol].replace("\"", "").replace(",", "").trim());
+                    qty = Double.parseDouble(cleanNum);
                 } catch (NumberFormatException ignored) {}
             }
             if (qty < 0) qty = 0;
@@ -481,7 +529,17 @@ public class CountService {
                         boolean hasText = false;
                         for (int c = 0; c < maxCols; c++) {
                             Cell cell = row.getCell(c, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-                            String val = formatter.formatCellValue(cell).trim();
+                            String val;
+                            if (cell.getCellType() == org.apache.poi.ss.usermodel.CellType.NUMERIC) {
+                                double numVal = cell.getNumericCellValue();
+                                if (numVal == Math.floor(numVal) && !Double.isInfinite(numVal)) {
+                                    val = String.valueOf((long) numVal);
+                                } else {
+                                    val = String.valueOf(numVal);
+                                }
+                            } else {
+                                val = formatter.formatCellValue(cell).trim();
+                            }
                             cells.add(val);
                             if (!val.isBlank()) hasText = true;
                         }
@@ -527,6 +585,37 @@ public class CountService {
         Set<Long> clearedShelves = new HashSet<>();
         Set<String> seenInThisFile = new HashSet<>();
 
+        // PRELOAD CACHE FOR ULTRA-FAST IMPORT (Eliminates thousands of individual SQL queries)
+        Map<String, Shelf> shelfCache = new HashMap<>();
+        for (Shelf s : shelfRepo.findAll()) {
+            shelfCache.put(s.getCode().toUpperCase(), s);
+        }
+
+        Map<String, Product> productCache = new HashMap<>();
+        for (Product p : productRepo.findAll()) {
+            productCache.put(p.getCode().toUpperCase(), p);
+        }
+
+        List<CountRecord> sessionRecordsAll = countRepo.findBySessionIdOrderByUpdatedAtDesc(session.getId());
+        Map<String, List<CountRecord>> recordsByCode = new HashMap<>();
+        Map<String, CountRecord> recordsByShelfAndCode = new HashMap<>();
+        for (CountRecord r : sessionRecordsAll) {
+            String cu = r.getCapturedCode().toUpperCase();
+            recordsByCode.computeIfAbsent(cu, k -> new ArrayList<>()).add(r);
+            if (r.getShelf() != null) {
+                recordsByShelfAndCode.put(r.getShelf().getId() + "::" + cu, r);
+            }
+        }
+
+        Map<Long, ShelfAssignment> assignmentMap = new HashMap<>();
+        for (ShelfAssignment sa : assignmentRepo.findBySessionIdOrderByShelfCodeAsc(session.getId())) {
+            assignmentMap.put(sa.getShelf().getId(), sa);
+        }
+
+        List<Product> newProductsToSave = new ArrayList<>();
+        List<CountRecord> recordsToSave = new ArrayList<>();
+        Map<Long, ShelfAssignment> assignmentsToSave = new HashMap<>();
+
         for (ImportedItem item : itemsToProcess) {
             String code = item.code;
             double qty = item.quantity;
@@ -541,12 +630,13 @@ public class CountService {
                         sn = String.format("PB-ACE-%02d", num);
                     }
                 }
-                Optional<Shelf> found = shelfRepo.findByCodeIgnoreCase(sn);
-                if (found.isPresent()) {
-                    targetShelf = found.get();
+                Shelf found = shelfCache.get(sn.toUpperCase());
+                if (found != null) {
+                    targetShelf = found;
                 } else if (defaultShelf == null) {
                     Shelf newShelf = new Shelf(sn, "Área General", "Importado de Excel", "1", "Planta Baja", 10.0, 10.0, 12.0, 8.0);
                     targetShelf = shelfRepo.save(newShelf);
+                    shelfCache.put(sn.toUpperCase(), targetShelf);
                 }
             } else if (targetShelf == null) {
                 targetShelf = defaultShelf;
@@ -564,21 +654,26 @@ public class CountService {
                 }
             }
 
-            // Ensure assignment exists for this session
-            ShelfAssignment sa = assignmentRepo.findBySessionIdAndShelfId(session.getId(), finalShelf.getId())
-                    .orElseGet(() -> assignmentRepo.save(new ShelfAssignment(session, finalShelf, user)));
+            // Ensure assignment exists for this session in cache
+            ShelfAssignment sa = assignmentMap.get(finalShelf.getId());
+            if (sa == null) {
+                sa = new ShelfAssignment(session, finalShelf, user);
+                assignmentMap.put(finalShelf.getId(), sa);
+            }
 
-            // Product check/create
-            Product product = productRepo.findByCodeIgnoreCase(code).orElseGet(() -> {
-                String desc = (item.description != null && !item.description.isBlank()) ? item.description : code + " (Refacción Industrial)";
-                Product p = new Product(code, desc, "PZA", "GENERAL", finalShelf.getCode(), 0.0);
-                return productRepo.save(p);
-            });
+            // Product check/create in cache
+            Product product = productCache.get(code);
+            if (product == null) {
+                String desc = (item.description != null && !item.description.isBlank()) ? item.description : parseIndustrialDescription(code);
+                product = new Product(code, desc, "PZA", "GENERAL", finalShelf.getCode(), 0.0);
+                productCache.put(code, product);
+                newProductsToSave.add(product);
+            }
 
-            // 1. WEEKLY_UPDATE MODE: Detect matching codes across the entire session and update ONLY pieces, preserving shelf, level A-G, and location notes
+            // 1. WEEKLY_UPDATE MODE: Detect matching codes across the entire session and update ONLY pieces
             if ("WEEKLY_UPDATE".equals(mode)) {
-                List<CountRecord> sessionRecords = countRepo.findBySessionIdAndCapturedCodeIgnoreCase(session.getId(), code);
-                if (!sessionRecords.isEmpty()) {
+                List<CountRecord> sessionRecords = recordsByCode.get(code);
+                if (sessionRecords != null && !sessionRecords.isEmpty()) {
                     for (CountRecord rec : sessionRecords) {
                         if (rec.getVersion() == null) {
                             rec.setVersion(0L);
@@ -589,18 +684,20 @@ public class CountService {
                             rec.setSection(normalizedSec);
                             withSectionCount++;
                         }
-                        // PRESERVE rec.getShelf() and rec.getNotes() (location code PB3-*) untouched!
                         rec.setUpdatedAt(LocalDateTime.now());
                         rec.setValidationStatus(CountRecord.ValidationStatus.VALIDO);
-                        countRepo.save(rec);
+                        recordsToSave.add(rec);
                         updatedRecords++;
                         affectedShelves.add(rec.getShelf().getId());
 
-                        ShelfAssignment saRec = assignmentRepo.findBySessionIdAndShelfId(session.getId(), rec.getShelf().getId())
-                                .orElseGet(() -> assignmentRepo.save(new ShelfAssignment(session, rec.getShelf(), user)));
+                        ShelfAssignment saRec = assignmentMap.get(rec.getShelf().getId());
+                        if (saRec == null) {
+                            saRec = new ShelfAssignment(session, rec.getShelf(), user);
+                            assignmentMap.put(rec.getShelf().getId(), saRec);
+                        }
                         saRec.setStatus(ShelfAssignment.Status.COMPLETADO);
                         saRec.setCompletedAt(LocalDateTime.now());
-                        assignmentRepo.save(saRec);
+                        assignmentsToSave.put(saRec.getShelf().getId(), saRec);
                     }
                     importedCount++;
                     totalPiecesImported += qty;
@@ -612,23 +709,20 @@ public class CountService {
             String fileKey = finalShelf.getId() + "::" + code;
             boolean alreadySeenInThisFile = !seenInThisFile.add(fileKey);
 
-            Optional<CountRecord> existingOpt = countRepo.findBySessionIdAndShelfIdAndCapturedCodeIgnoreCase(
-                    session.getId(), finalShelf.getId(), code);
-
-            if (!existingOpt.isPresent() && (targetShelfId == null || targetShelfId <= 0)) {
-                List<CountRecord> matchesInSession = countRepo.findBySessionIdAndCapturedCodeIgnoreCase(session.getId(), code);
-                if (!matchesInSession.isEmpty()) {
-                    existingOpt = Optional.of(matchesInSession.get(0));
+            CountRecord rec = recordsByShelfAndCode.get(fileKey);
+            if (rec == null && (targetShelfId == null || targetShelfId <= 0)) {
+                List<CountRecord> matchesInSession = recordsByCode.get(code);
+                if (matchesInSession != null && !matchesInSession.isEmpty()) {
+                    rec = matchesInSession.get(0);
                 }
             }
 
-            if (existingOpt.isPresent()) {
-                CountRecord rec = existingOpt.get();
+            if (rec != null) {
                 if (rec.getVersion() == null) {
                     rec.setVersion(0L);
                 }
                 if (alreadySeenInThisFile) {
-                    rec.setQuantity(rec.getQuantity() + qty);
+                    rec.setQuantity((rec.getQuantity() != null ? rec.getQuantity() : 0.0) + qty);
                     if (normalizedSec != null && (rec.getSection() == null || rec.getSection().isBlank())) {
                         rec.setSection(normalizedSec);
                     }
@@ -644,13 +738,13 @@ public class CountService {
                 }
                 rec.setUpdatedAt(LocalDateTime.now());
                 rec.setValidationStatus(CountRecord.ValidationStatus.VALIDO);
-                countRepo.save(rec);
+                recordsToSave.add(rec);
                 updatedRecords++;
                 if (rec.getSection() != null && !rec.getSection().isBlank()) {
                     withSectionCount++;
                 }
             } else {
-                CountRecord rec = new CountRecord();
+                rec = new CountRecord();
                 rec.setSession(session);
                 rec.setShelf(finalShelf);
                 rec.setProduct(product);
@@ -666,17 +760,30 @@ public class CountService {
                 rec.setCountedAt(LocalDateTime.now());
                 rec.setUpdatedAt(LocalDateTime.now());
                 rec.setValidationStatus(CountRecord.ValidationStatus.VALIDO);
-                countRepo.save(rec);
+                recordsToSave.add(rec);
+                recordsByShelfAndCode.put(fileKey, rec);
+                recordsByCode.computeIfAbsent(code, k -> new ArrayList<>()).add(rec);
                 addedRecords++;
             }
 
             sa.setStatus(ShelfAssignment.Status.COMPLETADO);
             sa.setCompletedAt(LocalDateTime.now());
-            assignmentRepo.save(sa);
+            assignmentsToSave.put(finalShelf.getId(), sa);
 
             affectedShelves.add(finalShelf.getId());
             importedCount++;
             totalPiecesImported += qty;
+        }
+
+        // Commit cached batches in bulk
+        if (!newProductsToSave.isEmpty()) {
+            productRepo.saveAll(newProductsToSave);
+        }
+        if (!recordsToSave.isEmpty()) {
+            countRepo.saveAll(recordsToSave);
+        }
+        if (!assignmentsToSave.isEmpty()) {
+            assignmentRepo.saveAll(assignmentsToSave.values());
         }
 
         List<String> affectedCodes = new ArrayList<>();
@@ -1119,4 +1226,152 @@ public class CountService {
 
         return "Conexión Industrial " + c;
     }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getStockAlerts(Long sessionId) {
+        InventorySession session = null;
+        if (sessionId != null && sessionId > 0) {
+            session = sessionRepo.findById(sessionId).orElse(null);
+        }
+        if (session == null) {
+            session = sessionRepo.findAll().stream()
+                    .filter(s -> s.getStatus() != InventorySession.Status.CERRADO_EXITO && s.getStatus() != InventorySession.Status.CERRADO_NO_EXITO)
+                    .findFirst().orElse(null);
+        }
+        if (session == null) {
+            List<InventorySession> all = sessionRepo.findAll();
+            if (!all.isEmpty()) session = all.get(0);
+        }
+
+        if (session == null) {
+            return Map.of("totalAlerts", 0, "criticalCount", 0, "reorderCount", 0, "overstockCount", 0, "optimalCount", 0, "items", List.of());
+        }
+
+        List<CountRecord> allCounts = countRepo.findBySessionIdOrderByUpdatedAtDesc(session.getId());
+        Map<String, List<CountRecord>> byCode = new LinkedHashMap<>();
+        for (CountRecord cr : allCounts) {
+            if (cr.getCapturedCode() == null || cr.getCapturedCode().isBlank()) continue;
+            byCode.computeIfAbsent(cr.getCapturedCode().trim().toUpperCase(), k -> new ArrayList<>()).add(cr);
+        }
+
+        List<Map<String, Object>> alertItems = new ArrayList<>();
+        int criticalCount = 0;
+        int reorderCount = 0;
+        int overstockCount = 0;
+        int optimalCount = 0;
+
+        for (Map.Entry<String, List<CountRecord>> entry : byCode.entrySet()) {
+            String code = entry.getKey();
+            List<CountRecord> records = entry.getValue();
+
+            double totalQty = 0.0;
+            String desc = null;
+            Set<String> shelves = new LinkedHashSet<>();
+            Set<String> locations = new LinkedHashSet<>();
+            String mainZone = "General";
+            String mainPlant = "Planta Baja";
+            Long firstShelfId = null;
+
+            for (CountRecord r : records) {
+                totalQty += (r.getQuantity() != null ? r.getQuantity() : 0.0);
+                if (desc == null && r.getProduct() != null && r.getProduct().getDescription() != null && !r.getProduct().getDescription().isBlank()) {
+                    desc = r.getProduct().getDescription();
+                }
+                if (r.getShelf() != null) {
+                    shelves.add(r.getShelf().getCode());
+                    if (firstShelfId == null) firstShelfId = r.getShelf().getId();
+                    if (r.getShelf().getZone() != null) mainZone = r.getShelf().getZone();
+                    if (r.getShelf().getPlant() != null) mainPlant = r.getShelf().getPlant();
+                }
+                String loc = r.getNotes() != null && !r.getNotes().isBlank() ? r.getNotes() :
+                        (r.getShelf() != null ? r.getShelf().getCode() + (r.getSection() != null ? " · " + r.getSection() : "") : "");
+                if (!loc.isBlank()) locations.add(loc);
+            }
+
+            if (desc == null) desc = parseIndustrialDescription(code);
+
+            long monthlyDemandAvg = Math.max(12, Math.round((totalQty > 0 ? totalQty : 25) * 1.25));
+            long minimoSeguridad = Math.max(5, Math.round(monthlyDemandAvg * 0.5));
+            long puntoReorden = Math.max(10, Math.round(monthlyDemandAvg * 0.833));
+            long maximoObjetivo = Math.max(25, Math.round(monthlyDemandAvg * 1.833));
+            long packageSize = monthlyDemandAvg > 50 ? 10 : 5;
+
+            String status;
+            String statusLabel;
+            String severity;
+            long cuantoPedir = 0;
+
+            if (totalQty <= minimoSeguridad) {
+                status = "CRITICO";
+                statusLabel = "Stock Mínimo / Crítico";
+                severity = "danger";
+                criticalCount++;
+                cuantoPedir = Math.max(packageSize, (long) Math.ceil((double) (maximoObjetivo - totalQty) / packageSize) * packageSize);
+            } else if (totalQty <= puntoReorden) {
+                status = "POR_REORDENAR";
+                statusLabel = "Punto de Reorden";
+                severity = "warning";
+                reorderCount++;
+                cuantoPedir = Math.max(packageSize, (long) Math.ceil((double) (maximoObjetivo - totalQty) / packageSize) * packageSize);
+            } else if (totalQty > maximoObjetivo) {
+                status = "SOBRESTOCK";
+                statusLabel = "Sobrestock / Excedente";
+                severity = "info";
+                overstockCount++;
+            } else {
+                status = "OPTIMO";
+                statusLabel = "Stock Óptimo";
+                severity = "success";
+                optimalCount++;
+            }
+
+            Map<String, Object> itemMap = new HashMap<>();
+            itemMap.put("code", code);
+            itemMap.put("description", desc);
+            itemMap.put("stockActual", totalQty);
+            itemMap.put("minimoSeguridad", minimoSeguridad);
+            itemMap.put("puntoReorden", puntoReorden);
+            itemMap.put("maximoObjetivo", maximoObjetivo);
+            itemMap.put("cuantoPedir", cuantoPedir);
+            itemMap.put("status", status);
+            itemMap.put("statusLabel", statusLabel);
+            itemMap.put("severity", severity);
+            itemMap.put("zone", mainZone);
+            itemMap.put("plant", mainPlant);
+            itemMap.put("shelfCode", String.join(", ", shelves));
+            itemMap.put("shelfId", firstShelfId);
+            itemMap.put("locationCode", String.join(", ", locations));
+            itemMap.put("unit", "PZA");
+            itemMap.put("recordCount", records.size());
+
+            alertItems.add(itemMap);
+        }
+
+        alertItems.sort((a, b) -> {
+            int rankA = getStatusRank((String) a.get("status"));
+            int rankB = getStatusRank((String) b.get("status"));
+            if (rankA != rankB) return Integer.compare(rankA, rankB);
+            return ((String) a.get("code")).compareTo((String) b.get("code"));
+        });
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("sessionId", session.getId());
+        resp.put("sessionFolio", session.getFolio());
+        resp.put("totalAlerts", criticalCount + reorderCount + overstockCount);
+        resp.put("totalProducts", alertItems.size());
+        resp.put("criticalCount", criticalCount);
+        resp.put("reorderCount", reorderCount);
+        resp.put("overstockCount", overstockCount);
+        resp.put("optimalCount", optimalCount);
+        resp.put("items", alertItems);
+        return resp;
+    }
+
+    private int getStatusRank(String status) {
+        if ("CRITICO".equals(status)) return 1;
+        if ("POR_REORDENAR".equals(status)) return 2;
+        if ("SOBRESTOCK".equals(status)) return 3;
+        return 4;
+    }
 }
+
