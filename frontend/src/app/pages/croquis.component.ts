@@ -951,24 +951,25 @@ export interface LocationAssignerRow {
               </div>
             </div>
 
-            <div class="cad-actions-strip">
-              <button class="btn btn-sm btn-outline-white" (click)="rotateSelectedRack()" title="Rotar dimensiones 90°">
+            <div class="cad-buttons-row">
+              <button type="button" class="btn btn-sm btn-outline-white cad-btn" (click)="rotateSelectedRack()" title="Rotar dimensiones 90°">
                 ↻ Rotar 90°
               </button>
-              <button class="btn btn-sm btn-outline-white" (click)="openResizeShelfModal(selectedRackForMove)" title="Abrir plantillas de dimensiones estándar">
+              <button type="button" class="btn btn-sm btn-outline-white cad-btn" (click)="openResizeShelfModal(selectedRackForMove)" title="Abrir plantillas de dimensiones estándar">
                 Plantillas WxH
               </button>
-              <div class="cad-nudge-pad">
-                <button class="nudge-btn" (click)="nudgeSelected(0, -1)" title="Subir 1px (Shift: 10px)">▲</button>
-                <div class="nudge-mid">
-                  <button class="nudge-btn" (click)="nudgeSelected(-1, 0)" title="Izquierda 1px (Shift: 10px)">◀</button>
-                  <button class="nudge-btn" (click)="nudgeSelected(1, 0)" title="Derecha 1px (Shift: 10px)">▶</button>
-                </div>
-                <button class="nudge-btn" (click)="nudgeSelected(0, 1)" title="Bajar 1px (Shift: 10px)">▼</button>
-              </div>
             </div>
-            <div class="cad-footer-hint font-xs">
-              Arrastra con el mouse o usa flechas (Shift = 10px). Minimiza con '—' si te estorba.
+
+            <div class="cad-nudge-section">
+              <div class="cad-nudge-pad">
+                <button type="button" class="nudge-btn" (click)="nudgeSelected(0, -1)" title="Subir 1px (Shift: 10px)">▲</button>
+                <div class="nudge-mid">
+                  <button type="button" class="nudge-btn" (click)="nudgeSelected(-1, 0)" title="Izquierda 1px (Shift: 10px)">◀</button>
+                  <button type="button" class="nudge-btn" (click)="nudgeSelected(1, 0)" title="Derecha 1px (Shift: 10px)">▶</button>
+                </div>
+                <button type="button" class="nudge-btn" (click)="nudgeSelected(0, 1)" title="Bajar 1px (Shift: 10px)">▼</button>
+              </div>
+              <span class="cad-nudge-hint font-xs">Flechas de teclado o pad (Shift = 10px)</span>
             </div>
           </div>
         </ng-container>
@@ -1515,7 +1516,7 @@ export interface LocationAssignerRow {
             </button>
             <button
               type="button"
-              *ngFor="let lvl of rackLevels"
+              *ngFor="let lvl of getFamilyFilterLevels(fam)"
               class="lvl-pill-btn mono"
               [class.active]="familyLevelFilter() === lvl"
               [class.has-items]="getFamilyLevelCount(lvl) > 0"
@@ -1556,7 +1557,7 @@ export interface LocationAssignerRow {
                     <th class="fam-th-shelf">Ubicación</th>
                     <th class="fam-th-code">Código / Clave Material</th>
                     <th class="fam-th-qty text-right">Piezas</th>
-                    <th class="fam-th-assign text-center">Asignar Nivel (A-G)</th>
+                    <th class="fam-th-assign text-center">Asignar Nivel</th>
                     <th class="fam-th-act text-center">Ir</th>
                   </tr>
                 </thead>
@@ -1590,7 +1591,7 @@ export interface LocationAssignerRow {
                     <td class="text-center">
                       <div class="quick-level-buttons">
                         <button
-                          *ngFor="let btnLvl of rackLevels"
+                          *ngFor="let btnLvl of getRackLevelsForShelfCode(item.shelfCode)"
                           type="button"
                           class="quick-lvl-btn mono"
                           [class.btn-active-lvl]="item.section === btnLvl"
@@ -1784,7 +1785,7 @@ export interface LocationAssignerRow {
                 <div class="bulk-level-buttons">
                   <button
                     type="button"
-                    *ngFor="let lvl of rackLevels"
+                    *ngFor="let lvl of getBulkFillLevels()"
                     class="btn-lvl-mini"
                     [class.active]="bulkLevel() === lvl"
                     (click)="bulkLevel.set(lvl)"
@@ -1889,7 +1890,7 @@ export interface LocationAssignerRow {
                   <th style="width: 70px;">Planta</th>
                   <th style="width: 60px;">Pasillo</th>
                   <th style="width: 150px;">Anaquel</th>
-                  <th style="width: 160px;">Nivel (A-G)</th>
+                  <th style="width: 160px;">Nivel</th>
                   <th style="width: 60px;">Posición</th>
                   <th style="width: 130px;">Ubicación FÍSICA</th>
                   <th style="width: 80px;" class="text-right">Stock</th>
@@ -1939,7 +1940,7 @@ export interface LocationAssignerRow {
                     <div class="row-level-pills">
                       <button
                         type="button"
-                        *ngFor="let lvl of rackLevels"
+                        *ngFor="let lvl of getLevelsForRow(row)"
                         class="btn-lvl-pill"
                         [class.active]="row.level === lvl"
                         (click)="onRowLevelSelect(row, lvl)"
@@ -2733,107 +2734,145 @@ export interface LocationAssignerRow {
       <!-- Modal: Modificar Tamaño / Dimensionar Anaqueles -->
       <div class="modal-backdrop" *ngIf="showResizeShelfModal()" (click)="closeResizeShelfModal()">
         <div class="modal-box resize-shelf-modal" (click)="$event.stopPropagation()">
-          <div class="modal-header-row">
+          <div class="resize-modal-header">
             <div>
               <div class="font-xs text-muted uppercase">Herramienta de Dimensionamiento Preciso</div>
-              <h2 class="modal-title font-mono">Modificar Tamaño de Anaqueles</h2>
+              <h2 class="modal-title font-mono" style="margin: 2px 0 0 0;">Modificar Tamaño de Anaqueles</h2>
             </div>
             <button class="btn-close-modal" (click)="closeResizeShelfModal()">✕</button>
           </div>
 
-          <p class="modal-desc">
-            Ajusta las medidas de ancho (W) y alto (H) en píxeles con medidas estandarizadas a 1 clic, o personaliza dimensiones numéricas exactas para el croquis visual.
-          </p>
+          <div class="resize-modal-body">
+            <p class="modal-desc" style="margin: 0;">
+              Ajusta las medidas de ancho (W) y alto (H) en píxeles con medidas estandarizadas a 1 clic, o personaliza dimensiones numéricas exactas para el croquis visual.
+            </p>
 
-          <!-- Shelf Selector -->
-          <div class="form-group" style="margin-bottom: 16px;">
-            <label class="form-lbl">Anaquel a Modificar:</label>
-            <select class="select" [ngModel]="resizingShelfTarget()?.shelfId" (ngModelChange)="onResizeShelfSelectionChange($event)">
-              <option *ngFor="let s of plantShelves()" [value]="s.shelfId">
-                {{ s.shelfCode }} &bull; {{ s.shelfZone }} (Actual: {{ s.width || 54 }}x{{ s.height || 54 }} px)
-              </option>
-            </select>
-          </div>
-
-          <!-- Standard Dimensions Quick Presets -->
-          <div class="presets-section" style="margin-bottom: 18px;">
-            <label class="form-lbl">Plantillas de Medidas Estándar:</label>
-            <div class="presets-buttons-grid">
-              <button type="button" class="btn btn-sm btn-outline-primary" (click)="setResizeDimensions(95.4, 34)" [class.active-preset]="resizeTargetWidth() === 95.4 && resizeTargetHeight() === 34">
-                Horizontal Pasillo (95.4 x 34 px)
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-primary" (click)="setResizeDimensions(76, 34)" [class.active-preset]="resizeTargetWidth() === 76 && resizeTargetHeight() === 34">
-                Compacto Estándar (76 x 34 px)
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-primary" (click)="setResizeDimensions(25, 54)" [class.active-preset]="resizeTargetWidth() === 25 && resizeTargetHeight() === 54">
-                Vertical Pasillo (25 x 54 px)
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-primary" (click)="setResizeDimensions(54, 48)" [class.active-preset]="resizeTargetWidth() === 54 && resizeTargetHeight() === 48">
-                Gabinete / Cuadrado (54 x 48 px)
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-primary" (click)="setResizeDimensions(54, 60)" [class.active-preset]="resizeTargetWidth() === 54 && resizeTargetHeight() === 60">
-                Gran Capacidad Muro (54 x 60 px)
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-primary" (click)="setResizeDimensions(36, 28)" [class.active-preset]="resizeTargetWidth() === 36 && resizeTargetHeight() === 28">
-                Mini Gaveta (36 x 28 px)
-              </button>
+            <!-- Shelf Selector -->
+            <div class="form-group">
+              <label class="form-lbl">Anaquel a Modificar:</label>
+              <select class="select" [ngModel]="resizingShelfTarget()?.shelfId" (ngModelChange)="onResizeShelfSelectionChange($event)">
+                <option *ngFor="let s of plantShelves()" [value]="s.shelfId">
+                  {{ s.shelfCode }} &bull; {{ s.shelfZone }} (Actual: {{ s.width || 54 }}x{{ s.height || 54 }} px)
+                </option>
+              </select>
             </div>
-          </div>
 
-          <!-- Dimension Inputs with Steppers -->
-          <div class="resize-inputs-row">
-            <div class="resize-input-card">
-              <label class="form-lbl">Ancho (W px)</label>
-              <div class="stepper-wrap">
-                <button type="button" class="btn-step" (click)="adjustResizeWidth(-5)">-5</button>
-                <button type="button" class="btn-step" (click)="adjustResizeWidth(-1)">-1</button>
-                <input type="number" class="input input-stepper mono" [ngModel]="resizeTargetWidth()" (ngModelChange)="resizeTargetWidth.set($event)" min="10" max="600" step="0.5" />
-                <button type="button" class="btn-step" (click)="adjustResizeWidth(1)">+1</button>
-                <button type="button" class="btn-step" (click)="adjustResizeWidth(5)">+5</button>
+            <!-- Standard Dimensions Quick Presets -->
+            <div class="presets-section">
+              <label class="form-lbl">Plantillas de Medidas Frecuentes:</label>
+              <div class="presets-cards-grid">
+                <div
+                  class="preset-card"
+                  (click)="setResizeDimensions(95.4, 34)"
+                  [class.active-preset-card]="resizeTargetWidth() === 95.4 && resizeTargetHeight() === 34"
+                  title="Horizontal Estándar de Pasillo (95.4 x 34 px)"
+                >
+                  <span class="preset-card-title">Horizontal Pasillo</span>
+                  <span class="preset-card-badge mono">95.4 &times; 34 px</span>
+                </div>
+                <div
+                  class="preset-card"
+                  (click)="setResizeDimensions(76, 34)"
+                  [class.active-preset-card]="resizeTargetWidth() === 76 && resizeTargetHeight() === 34"
+                  title="Compacto Estándar de Pasillo (76 x 34 px)"
+                >
+                  <span class="preset-card-title">Compacto Pasillo</span>
+                  <span class="preset-card-badge mono">76 &times; 34 px</span>
+                </div>
+                <div
+                  class="preset-card"
+                  (click)="setResizeDimensions(25, 54)"
+                  [class.active-preset-card]="resizeTargetWidth() === 25 && resizeTargetHeight() === 54"
+                  title="Vertical Angosto de Pasillo (25 x 54 px)"
+                >
+                  <span class="preset-card-title">Vertical Pasillo</span>
+                  <span class="preset-card-badge mono">25 &times; 54 px</span>
+                </div>
+                <div
+                  class="preset-card"
+                  (click)="setResizeDimensions(54, 48)"
+                  [class.active-preset-card]="resizeTargetWidth() === 54 && resizeTargetHeight() === 48"
+                  title="Gabinete o Cuadrado (54 x 48 px)"
+                >
+                  <span class="preset-card-title">Gabinete / Cuadrado</span>
+                  <span class="preset-card-badge mono">54 &times; 48 px</span>
+                </div>
+                <div
+                  class="preset-card"
+                  (click)="setResizeDimensions(54, 60)"
+                  [class.active-preset-card]="resizeTargetWidth() === 54 && resizeTargetHeight() === 60"
+                  title="Muro Este / Gran Capacidad (54 x 60 px)"
+                >
+                  <span class="preset-card-title">Muro Este / Grande</span>
+                  <span class="preset-card-badge mono">54 &times; 60 px</span>
+                </div>
+                <div
+                  class="preset-card"
+                  (click)="setResizeDimensions(36, 28)"
+                  [class.active-preset-card]="resizeTargetWidth() === 36 && resizeTargetHeight() === 28"
+                  title="Mini Gaveta (36 x 28 px)"
+                >
+                  <span class="preset-card-title">Mini Gaveta</span>
+                  <span class="preset-card-badge mono">36 &times; 28 px</span>
+                </div>
               </div>
             </div>
 
-            <div class="resize-input-card">
-              <label class="form-lbl">Alto (H px)</label>
-              <div class="stepper-wrap">
-                <button type="button" class="btn-step" (click)="adjustResizeHeight(-5)">-5</button>
-                <button type="button" class="btn-step" (click)="adjustResizeHeight(-1)">-1</button>
-                <input type="number" class="input input-stepper mono" [ngModel]="resizeTargetHeight()" (ngModelChange)="resizeTargetHeight.set($event)" min="10" max="600" step="0.5" />
-                <button type="button" class="btn-step" (click)="adjustResizeHeight(1)">+1</button>
-                <button type="button" class="btn-step" (click)="adjustResizeHeight(5)">+5</button>
+            <!-- Dimension Inputs with Steppers -->
+            <div class="resize-inputs-row">
+              <div class="resize-input-card">
+                <label class="form-lbl">Ancho (W px)</label>
+                <div class="stepper-wrap">
+                  <button type="button" class="btn-step" (click)="adjustResizeWidth(-5)">-5</button>
+                  <button type="button" class="btn-step" (click)="adjustResizeWidth(-1)">-1</button>
+                  <input type="number" class="input input-stepper mono" [ngModel]="resizeTargetWidth()" (ngModelChange)="resizeTargetWidth.set($event)" min="10" max="600" step="0.5" />
+                  <button type="button" class="btn-step" (click)="adjustResizeWidth(1)">+1</button>
+                  <button type="button" class="btn-step" (click)="adjustResizeWidth(5)">+5</button>
+                </div>
+              </div>
+
+              <div class="resize-input-card">
+                <label class="form-lbl">Alto (H px)</label>
+                <div class="stepper-wrap">
+                  <button type="button" class="btn-step" (click)="adjustResizeHeight(-5)">-5</button>
+                  <button type="button" class="btn-step" (click)="adjustResizeHeight(-1)">-1</button>
+                  <input type="number" class="input input-stepper mono" [ngModel]="resizeTargetHeight()" (ngModelChange)="resizeTargetHeight.set($event)" min="10" max="600" step="0.5" />
+                  <button type="button" class="btn-step" (click)="adjustResizeHeight(1)">+1</button>
+                  <button type="button" class="btn-step" (click)="adjustResizeHeight(5)">+5</button>
+                </div>
+              </div>
+
+              <div class="resize-actions-card">
+                <label class="form-lbl">Rotación</label>
+                <button type="button" class="btn btn-outline" (click)="swapResizeDimensions()" title="Intercambiar ancho y alto para rotar 90 grados">
+                  ↻ Rotar 90°
+                </button>
               </div>
             </div>
 
-            <div class="resize-actions-card">
-              <label class="form-lbl">Rotación</label>
-              <button type="button" class="btn btn-outline" (click)="swapResizeDimensions()" title="Intercambiar ancho y alto para rotar 90 grados">
-                ↻ Rotar 90°
-              </button>
-            </div>
-          </div>
-
-          <!-- Visual Scale Preview -->
-          <div class="dimension-preview-box">
-            <div class="preview-label">Vista Previa a Escala del Anaquel:</div>
-            <div class="preview-canvas-area">
-              <div class="preview-shelf-rect" [style.width.px]="resizeTargetWidth()" [style.height.px]="resizeTargetHeight()">
-                <span class="preview-code">{{ resizingShelfTarget()?.shelfCode || 'ANAQUEL' }}</span>
-                <span class="preview-dims font-mono">{{ resizeTargetWidth() }} × {{ resizeTargetHeight() }} px</span>
+            <!-- Visual Scale Preview -->
+            <div class="dimension-preview-box">
+              <div class="preview-label">Vista Previa a Escala del Anaquel:</div>
+              <div class="preview-canvas-area">
+                <div class="preview-shelf-rect" [style.width.px]="resizeTargetWidth()" [style.height.px]="resizeTargetHeight()">
+                  <span class="preview-code">{{ resizingShelfTarget()?.shelfCode || 'ANAQUEL' }}</span>
+                  <span class="preview-dims font-mono">{{ resizeTargetWidth() }} × {{ resizeTargetHeight() }} px</span>
+                </div>
               </div>
             </div>
+
+            <!-- Apply to all in zone checkbox -->
+            <div class="zone-apply-checkbox-wrap" *ngIf="resizingShelfTarget()?.shelfZone">
+              <label class="checkbox-label">
+                <input type="checkbox" [ngModel]="resizeApplyToAllInZone()" (ngModelChange)="resizeApplyToAllInZone.set($event)" />
+                <span>Aplicar estas dimensiones a todos los anaqueles de la zona <strong>{{ resizingShelfTarget()?.shelfZone }}</strong></span>
+              </label>
+            </div>
           </div>
 
-          <!-- Apply to all in zone checkbox -->
-          <div class="zone-apply-checkbox-wrap" *ngIf="resizingShelfTarget()?.shelfZone">
-            <label class="checkbox-label">
-              <input type="checkbox" [ngModel]="resizeApplyToAllInZone()" (ngModelChange)="resizeApplyToAllInZone.set($event)" />
-              <span>Aplicar estas dimensiones a todos los anaqueles de la zona <strong>{{ resizingShelfTarget()?.shelfZone }}</strong></span>
-            </label>
-          </div>
-
-          <div class="modal-footer" style="margin-top: 20px;">
-            <button class="btn btn-secondary" (click)="closeResizeShelfModal()" [disabled]="savingShelfResize()">Cancelar</button>
-            <button class="btn btn-primary" (click)="submitShelfResize()" [disabled]="savingShelfResize() || !resizingShelfTarget()">
+          <div class="resize-modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeResizeShelfModal()" [disabled]="savingShelfResize()">Cancelar</button>
+            <button type="button" class="btn btn-primary" (click)="submitShelfResize()" [disabled]="savingShelfResize() || !resizingShelfTarget()">
               {{ savingShelfResize() ? 'Guardando Medidas...' : 'Aplicar y Guardar Tamaño' }}
             </button>
           </div>
@@ -4134,13 +4173,18 @@ export interface LocationAssignerRow {
     }
     .cad-fields-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: 1fr 1fr;
       gap: 0.5rem;
+      width: 100%;
+      box-sizing: border-box;
     }
     .cad-input-wrap {
       display: flex;
       flex-direction: column;
       gap: 0.15rem;
+      min-width: 0;
+      width: 100%;
+      box-sizing: border-box;
     }
     .cad-input-wrap label {
       font-size: 0.65rem;
@@ -4149,6 +4193,10 @@ export interface LocationAssignerRow {
       text-transform: uppercase;
     }
     .cad-input-wrap input {
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+      display: block;
       background: #1e293b;
       border: 1px solid #334155;
       color: #38bdf8;
@@ -4158,12 +4206,26 @@ export interface LocationAssignerRow {
       padding: 5px 8px;
       border-radius: 6px;
     }
-    .cad-actions-strip {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .cad-buttons-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 0.5rem;
-      padding-top: 0.25rem;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .cad-btn {
+      width: 100%;
+      text-align: center;
+      padding: 5px 6px;
+      font-size: 0.74rem;
+    }
+    .cad-nudge-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      width: 100%;
+      padding-top: 2px;
     }
     .cad-nudge-pad {
       display: flex;
@@ -4180,8 +4242,8 @@ export interface LocationAssignerRow {
       border: 1px solid #334155;
       color: #f8fafc;
       font-size: 0.7rem;
-      width: 26px;
-      height: 22px;
+      width: 28px;
+      height: 24px;
       border-radius: 4px;
       cursor: pointer;
       display: flex;
@@ -4193,9 +4255,10 @@ export interface LocationAssignerRow {
       background: #38bdf8;
       color: #0f172a;
     }
-    .cad-footer-hint {
+    .cad-nudge-hint {
       color: #94a3b8;
-      font-size: 0.72rem;
+      font-size: 0.68rem;
+      text-align: center;
     }
     .rack-dragging {
       opacity: 0.85;
@@ -4257,19 +4320,99 @@ export interface LocationAssignerRow {
     }
 
     .resize-shelf-modal {
-      max-width: 620px !important;
-      width: 100%;
+      max-width: 660px !important;
+      width: 95vw !important;
+      max-height: 90vh !important;
+      display: flex !important;
+      flex-direction: column !important;
+      padding: 0 !important;
+      border-radius: 14px !important;
+      overflow: hidden !important;
+      background: #ffffff !important;
+      box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35) !important;
     }
-    .presets-buttons-grid {
+    .resize-modal-header {
+      padding: 1.15rem 1.4rem;
+      border-bottom: 1px solid #e2e8f0;
+      background: #ffffff;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .resize-modal-body {
+      padding: 1.25rem 1.4rem;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .resize-modal-footer {
+      padding: 0.95rem 1.4rem;
+      border-top: 1px solid #e2e8f0;
+      background: #f8fafc;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .presets-cards-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: 8px;
     }
-    .active-preset {
-      background: #0a2472 !important;
-      color: #ffffff !important;
+    @media (max-width: 640px) {
+      .presets-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    .preset-card {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+      white-space: normal;
+    }
+    .preset-card:hover {
+      border-color: #2563eb;
+      background: #f0f7ff;
+      transform: translateY(-1px);
+    }
+    .preset-card.active-preset-card {
       border-color: #0a2472 !important;
-      font-weight: 800 !important;
+      background: #eff6ff !important;
+      box-shadow: 0 0 0 2px #0a2472 !important;
+    }
+    .preset-card-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.2;
+    }
+    .preset-card.active-preset-card .preset-card-title {
+      color: #0a2472;
+    }
+    .preset-card-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #2563eb;
+      background: #dbeafe;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .preset-card.active-preset-card .preset-card-badge {
+      background: #0a2472;
+      color: #ffffff;
     }
     .resize-inputs-row {
       display: grid;
@@ -7432,7 +7575,7 @@ export class CroquisComponent implements OnInit {
     }
   }
 
-  // Smooth Viewport Panning (Arrastrar para mover vista cuando hay zoom)
+  // Smooth Viewport Panning (Arrastrar para mover vista cuando hay zoom sin sobrecargar Zone.js)
   onViewportMouseDown(event: MouseEvent) {
     if (this.editMode()) return;
     const target = event.target as HTMLElement;
@@ -7445,21 +7588,23 @@ export class CroquisComponent implements OnInit {
       this.scrollStartX = this.viewportRef.nativeElement.scrollLeft;
       this.scrollStartY = this.viewportRef.nativeElement.scrollTop;
     }
-  }
 
-  @HostListener('window:mousemove', ['$event'])
-  onGlobalMouseMove(event: MouseEvent) {
-    if (this.isPanning && this.viewportRef) {
-      const dx = event.clientX - this.panStartX;
-      const dy = event.clientY - this.panStartY;
+    const onMove = (e: MouseEvent) => {
+      if (!this.isPanning || !this.viewportRef) return;
+      const dx = e.clientX - this.panStartX;
+      const dy = e.clientY - this.panStartY;
       this.viewportRef.nativeElement.scrollLeft = this.scrollStartX - dx;
       this.viewportRef.nativeElement.scrollTop = this.scrollStartY - dy;
-    }
-  }
+    };
 
-  @HostListener('window:mouseup')
-  onGlobalMouseUp() {
-    this.isPanning = false;
+    const onUp = () => {
+      this.isPanning = false;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+
+    window.addEventListener('mousemove', onMove, { passive: true });
+    window.addEventListener('mouseup', onUp);
   }
 
   onViewportTouchStart(event: TouchEvent) {
@@ -7475,23 +7620,25 @@ export class CroquisComponent implements OnInit {
         this.scrollStartX = this.viewportRef.nativeElement.scrollLeft;
         this.scrollStartY = this.viewportRef.nativeElement.scrollTop;
       }
-    }
-  }
 
-  @HostListener('window:touchmove', ['$event'])
-  onGlobalTouchMove(event: TouchEvent) {
-    if (this.isPanning && this.viewportRef && event.touches && event.touches.length === 1) {
-      const touch = event.touches[0];
-      const dx = touch.clientX - this.panStartX;
-      const dy = touch.clientY - this.panStartY;
-      this.viewportRef.nativeElement.scrollLeft = this.scrollStartX - dx;
-      this.viewportRef.nativeElement.scrollTop = this.scrollStartY - dy;
-    }
-  }
+      const onTouchMove = (e: TouchEvent) => {
+        if (!this.isPanning || !this.viewportRef || !e.touches || e.touches.length !== 1) return;
+        const curTouch = e.touches[0];
+        const dx = curTouch.clientX - this.panStartX;
+        const dy = curTouch.clientY - this.panStartY;
+        this.viewportRef.nativeElement.scrollLeft = this.scrollStartX - dx;
+        this.viewportRef.nativeElement.scrollTop = this.scrollStartY - dy;
+      };
 
-  @HostListener('window:touchend')
-  onGlobalTouchEnd() {
-    this.isPanning = false;
+      const onTouchEnd = () => {
+        this.isPanning = false;
+        window.removeEventListener('touchmove', onTouchMove);
+        window.removeEventListener('touchend', onTouchEnd);
+      };
+
+      window.addEventListener('touchmove', onTouchMove, { passive: true });
+      window.addEventListener('touchend', onTouchEnd);
+    }
   }
 
   onWheel(event: WheelEvent) {
@@ -8085,6 +8232,32 @@ export class CroquisComponent implements OnInit {
       return ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
     }
     return ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+  }
+
+  getRackLevelsForShelfCode(shelfCode?: string | null): string[] {
+    if (this.isTenLevelShelf(shelfCode)) {
+      return ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+    }
+    return ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+  }
+
+  getFamilyFilterLevels(fam?: SectionStat | null): string[] {
+    if (!fam) return ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    if (fam.id === 'ypc') {
+      return ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+    }
+    return ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+  }
+
+  getLevelsForRow(row: LocationAssignerRow): string[] {
+    return this.getRackLevelsForShelfCode(row.shelfCode);
+  }
+
+  getBulkFillLevels(): string[] {
+    const sId = this.bulkShelfId();
+    if (!sId) return ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    const shelf = this.allShelves().find(s => s.shelfId === sId);
+    return this.getRackLevelsForShelf(shelf);
   }
 
   assignSectionToMaterial(item: CountRecordDto, section: string) {

@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -238,24 +239,59 @@ public class ShelfController {
     }
 
     @PutMapping("/batch-layout")
+    @Transactional
     public ResponseEntity<?> batchUpdateLayout(@RequestBody List<Map<String, Object>> items) {
         User currentUser = userHelper.getCurrentUser();
+        if (items == null || items.isEmpty()) {
+            return ResponseEntity.ok(Map.of("status", "ok", "updated", 0));
+        }
+
+        Map<Long, Shelf> shelfMap = new HashMap<>();
+        for (Shelf s : shelfRepo.findAll()) {
+            shelfMap.put(s.getId(), s);
+        }
+
+        List<Shelf> toSave = new ArrayList<>();
         for (Map<String, Object> body : items) {
-            if (body.containsKey("id")) {
+            if (body.containsKey("id") && body.get("id") != null) {
                 Long id = ((Number) body.get("id")).longValue();
-                shelfRepo.findById(id).ifPresent(s -> {
-                    if (body.containsKey("posX")) s.setPosX(((Number) body.get("posX")).doubleValue());
-                    if (body.containsKey("posY")) s.setPosY(((Number) body.get("posY")).doubleValue());
-                    if (body.containsKey("width")) s.setWidth(((Number) body.get("width")).doubleValue());
-                    if (body.containsKey("height")) s.setHeight(((Number) body.get("height")).doubleValue());
-                    if (body.containsKey("plant")) s.setPlant(String.valueOf(body.get("plant")));
-                    shelfRepo.save(s);
-                });
+                Shelf s = shelfMap.get(id);
+                if (s != null) {
+                    boolean changed = false;
+                    if (body.containsKey("posX") && body.get("posX") != null) {
+                        s.setPosX(((Number) body.get("posX")).doubleValue());
+                        changed = true;
+                    }
+                    if (body.containsKey("posY") && body.get("posY") != null) {
+                        s.setPosY(((Number) body.get("posY")).doubleValue());
+                        changed = true;
+                    }
+                    if (body.containsKey("width") && body.get("width") != null) {
+                        s.setWidth(((Number) body.get("width")).doubleValue());
+                        changed = true;
+                    }
+                    if (body.containsKey("height") && body.get("height") != null) {
+                        s.setHeight(((Number) body.get("height")).doubleValue());
+                        changed = true;
+                    }
+                    if (body.containsKey("plant") && body.get("plant") != null) {
+                        s.setPlant(String.valueOf(body.get("plant")));
+                        changed = true;
+                    }
+                    if (changed) {
+                        toSave.add(s);
+                    }
+                }
             }
         }
+
+        if (!toSave.isEmpty()) {
+            shelfRepo.saveAll(toSave);
+        }
+
         auditService.log(null, null, currentUser.getUsername(), currentUser.getFullName(),
-                "AJUSTE_PLANO_CROQUIS", "Shelf", null, null, String.valueOf(items.size()),
-                "Ajuste manual de coordenadas de " + items.size() + " anaqueles en croquis.");
-        return ResponseEntity.ok(Map.of("status", "ok", "updated", items.size()));
+                "AJUSTE_PLANO_CROQUIS", "Shelf", null, null, String.valueOf(toSave.size()),
+                "Ajuste rápido de coordenadas y dimensiones de " + toSave.size() + " anaqueles en croquis.");
+        return ResponseEntity.ok(Map.of("status", "ok", "updated", toSave.size()));
     }
 }

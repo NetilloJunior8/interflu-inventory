@@ -363,7 +363,7 @@ export interface SheetRow {
             <thead>
               <tr>
                 <th class="th-row-num">#</th>
-                <th class="th-sec" title="Nivel o Sección del Anaquel (A = Superior, B, C, D, E, F, G = Base)">Nivel (A-G)</th>
+                <th class="th-sec" [title]="isTenLevelShelf() ? 'Nivel o Sección del Anaquel (A a J - 10 Niveles)' : 'Nivel o Sección del Anaquel (A a G - 7 Niveles)'">{{ isTenLevelShelf() ? 'Nivel (A-J)' : 'Nivel (A-G)' }}</th>
                 <th class="th-code">Código / Clave Material</th>
                 <th class="th-desc">Descripción</th>
                 <th class="th-qty">Piezas (Físico)</th>
@@ -381,7 +381,7 @@ export interface SheetRow {
                 <!-- Row Number -->
                 <td class="td-row-num mono">{{ i + 1 }}</td>
 
-                <!-- Section / Level Input Cell (A - G) -->
+                <!-- Section / Level Input Cell (A - G / A - J) -->
                 <td class="td-sec">
                   <div class="sec-input-wrap">
                     <input
@@ -406,7 +406,7 @@ export interface SheetRow {
                       (keydown)="onSectionKeyDown($event, i)"
                       [disabled]="!isEditable()"
                       placeholder="-"
-                      title="Nivel de anaquel (letras A a J)"
+                      [title]="isTenLevelShelf() ? 'Nivel de anaquel (letras A a J)' : 'Nivel de anaquel (letras A a G)'"
                       autocomplete="off"
                     />
                   </div>
@@ -2331,6 +2331,13 @@ export class CaptureComponent implements OnInit {
   currentSession = computed(() => this.sessions().find(s => s.id === this.selectedSessionId()));
   currentShelf = computed(() => this.shelves().find(sh => sh.shelfId === this.selectedShelfId()));
 
+  isTenLevelShelf = computed(() => {
+    const sh = this.currentShelf();
+    if (!sh || !sh.shelfCode) return false;
+    const code = sh.shelfCode.trim().toUpperCase();
+    return code === 'PB-YPC-13' || code === 'PB-YPC-14' || code === 'PB-YPC-15';
+  });
+
   isEditable = computed(() => {
     const s = this.currentSession();
     if (!s) return false;
@@ -2812,9 +2819,10 @@ export class CaptureComponent implements OnInit {
     const inputEl = event.target as HTMLInputElement;
     const rawVal = inputEl?.value || '';
     const cleaned = rawVal.trim().toUpperCase();
+    const allowTen = this.isTenLevelShelf();
+    const regex = allowTen ? /^[A-J]$/ : /^[A-G]$/;
 
-    // Strict validation: Letters A to J allowed
-    if (/^[A-J]$/.test(cleaned)) {
+    if (regex.test(cleaned)) {
       this.rows()[index].section = cleaned;
       if (inputEl) inputEl.value = cleaned;
       // Auto-advance to material code input in the same row
@@ -2829,11 +2837,14 @@ export class CaptureComponent implements OnInit {
       this.rows()[index].section = '';
       if (inputEl) inputEl.value = '';
     } else {
-      // Reject any non A-J character
-      const validChar = cleaned.split('').find(c => /^[A-J]$/.test(c)) || '';
+      if (!allowTen && /^[H-J]$/.test(cleaned)) {
+        this.toast.warning('Los niveles H, I y J solo están disponibles en los anaqueles PB-YPC-13, 14 y 15. Este anaquel solo admite de la A a la G.');
+      } else {
+        this.toast.warning(allowTen ? 'Nivel inválido. Se admiten niveles de la A a la J.' : 'Nivel inválido. Se admiten niveles de la A a la G.');
+      }
+      const validChar = cleaned.split('').find(c => regex.test(c)) || '';
       this.rows()[index].section = validChar;
       if (inputEl) inputEl.value = validChar;
-      this.toast.warning('Nivel inválido. Solo se admiten niveles de la A a la J.');
     }
   }
 

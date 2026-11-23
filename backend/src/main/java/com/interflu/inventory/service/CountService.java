@@ -231,12 +231,19 @@ public class CountService {
 
     public static String cleanNumericString(String str) {
         if (str == null) return "0";
-        String s = str.trim().replaceAll("[\"'$ ]", "");
+        String s = str.trim().replaceAll("[\"'$]", "");
+        if (s.isEmpty()) return "0";
+        s = s.replaceAll("(?i)(pzas|pza|pz|piezas|pieza|unidades|unidad|u|kg|m|mts|paq|cja)", "").trim();
         if (s.isEmpty()) return "0";
         if (s.contains(",") && !s.contains(".")) {
             s = s.replace(",", ".");
         } else if (s.contains(",") && s.contains(".")) {
             s = s.replace(",", "");
+        }
+        s = s.replaceAll("[ ]", "");
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("^-?\\d+(?:\\.\\d+)?").matcher(s);
+        if (m.find()) {
+            return m.group();
         }
         return s;
     }
@@ -536,6 +543,17 @@ public class CountService {
                                     val = String.valueOf((long) numVal);
                                 } else {
                                     val = String.valueOf(numVal);
+                                }
+                            } else if (cell.getCellType() == org.apache.poi.ss.usermodel.CellType.FORMULA) {
+                                try {
+                                    double numVal = cell.getNumericCellValue();
+                                    if (numVal == Math.floor(numVal) && !Double.isInfinite(numVal)) {
+                                        val = String.valueOf((long) numVal);
+                                    } else {
+                                        val = String.valueOf(numVal);
+                                    }
+                                } catch (Exception ignored) {
+                                    val = formatter.formatCellValue(cell).trim();
                                 }
                             } else {
                                 val = formatter.formatCellValue(cell).trim();
