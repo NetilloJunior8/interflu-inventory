@@ -405,6 +405,40 @@ public class CountService {
             }
         }
 
+        // 1.1 If header was found but qtyCol was not detected (e.g. sheets 3-19 where column 7 had no title in header)
+        if (headerRowIdx >= 0 && qtyCol < 0 && codeCol >= 0 && rows.size() > headerRowIdx + 1) {
+            int candidateQtyCol = -1;
+            int maxCols = 0;
+            for (int r = headerRowIdx + 1; r < Math.min(rows.size(), headerRowIdx + 10); r++) {
+                maxCols = Math.max(maxCols, rows.get(r).length);
+            }
+            for (int c = 0; c < maxCols; c++) {
+                if (c == codeCol || c == secCol || c == shelfCol || c == descCol || c == locCol
+                        || c == posCol || c == aisleCol || c == plantCol) {
+                    continue;
+                }
+                int numCount = 0;
+                int checkedRows = 0;
+                for (int r = headerRowIdx + 1; r < Math.min(rows.size(), headerRowIdx + 15); r++) {
+                    String[] dr = rows.get(r);
+                    if (dr.length <= c) continue;
+                    String val = dr[c].trim();
+                    if (val.isEmpty()) continue;
+                    checkedRows++;
+                    if (val.matches("^-?\\d+(\\.\\d+)?$")) {
+                        numCount++;
+                    }
+                }
+                if (checkedRows > 0 && numCount >= (int) Math.ceil(checkedRows * 0.7)) {
+                    candidateQtyCol = c;
+                    break;
+                }
+            }
+            if (candidateQtyCol >= 0) {
+                qtyCol = candidateQtyCol;
+            }
+        }
+
         // 2. Fallback heuristic ONLY if no explicit header found at all (headerless file)
         if (codeCol < 0) {
             String[] firstRow = rows.get(0);
@@ -419,7 +453,7 @@ public class CountService {
                 qtyCol = 2;
                 if (firstRow.length >= 4) shelfCol = 3;
             } else if (firstRow.length >= 7 && (firstRow[4].equalsIgnoreCase("A") || firstRow[4].equalsIgnoreCase("B") || firstRow[4].equalsIgnoreCase("C"))) {
-                // Format: CLAVE, PLANTA, PASILLO, ESTANTE, NIVEL, POSICION, UBICACION
+                // Format: CLAVE, PLANTA, PASILLO, ESTANTE, NIVEL, POSICION, UBICACION [, EXISTENCIAS]
                 codeCol = 0;
                 plantCol = 1;
                 aisleCol = 2;
@@ -427,7 +461,7 @@ public class CountService {
                 secCol = 4;
                 posCol = 5;
                 locCol = 6;
-                qtyCol = -1;
+                qtyCol = (firstRow.length >= 8 && firstRow[7].trim().matches("^-?\\d+(\\.\\d+)?$")) ? 7 : -1;
             } else if (firstRow.length >= 3) {
                 codeCol = 0;
                 qtyCol = 2;
@@ -476,6 +510,20 @@ public class CountService {
             String aisle = (aisleCol >= 0 && row.length > aisleCol) ? row[aisleCol].trim().replace("\"", "") : null;
             String plant = (plantCol >= 0 && row.length > plantCol) ? row[plantCol].trim().replace("\"", "") : null;
             String pos = (posCol >= 0 && row.length > posCol) ? row[posCol].trim().replace("\"", "") : null;
+
+            if (locCode != null && !locCode.isBlank()) {
+                java.util.regex.Matcher lm = java.util.regex.Pattern.compile("(?i)^(P[BA])(\\d+)-(\\d+)([A-J])-(\\d+)").matcher(locCode);
+                if (lm.find()) {
+                    if (plant == null || plant.isBlank()) plant = lm.group(1).toUpperCase();
+                    if (aisle == null || aisle.isBlank()) aisle = lm.group(2);
+                    if (shelfName == null || shelfName.isBlank()) shelfName = lm.group(3);
+                    if (rawSec == null || rawSec.isBlank()) {
+                        rawSec = lm.group(4);
+                        normalizedSec = CountRecord.normalizeSection(rawSec);
+                    }
+                    if (pos == null || pos.isBlank()) pos = lm.group(5);
+                }
+            }
 
             if (locCode == null && plant != null && aisle != null && shelfName != null && normalizedSec != null) {
                 locCode = plant + aisle + "-" + shelfName + normalizedSec + "-" + (pos != null ? pos : "1");
@@ -554,29 +602,27 @@ public class CountService {
                 DataFormatter formatter = new DataFormatter();
                 List<Sheet> sheetsToRead = new ArrayList<>();
 
-                if (targetShelfId != null && targetShelfId > 0 && defaultShelf != null) {
-                    int matchedIdx = -1;
+                // If the workbook has multiple sheets, read all sheets so multi-shelf workbooks (e.g. 19 sheets) are completely processed
+                if (workbook.getNumberOfSheets() > 1) {
                     for (int s = 0; s < workbook.getNumberOfSheets(); s++) {
-                        String sName = workbook.getSheetName(s).trim().toUpperCase();
-                        if (sName.equalsIgnoreCase(defaultShelf.getCode())
-                                || sName.equalsIgnoreCase(defaultShelf.getCode().replace("PB-", ""))
-                                || sName.equalsIgnoreCase(defaultShelf.getCode().replace("PB-ACE-", ""))) {
-                            matchedIdx = s;
-                            break;
+                        Sheet sh = workbook.getSheetAt(s);
+                        String sName = sh.getSheetName().trim().toUpperCase();
+                        if (sName.contains("INSTRUCC") || sName.contains("PORTADA") || sName.contains("LEEME") || sName.contains("README")) {
+                            continue;
                         }
+                        sheetsToRead.add(sh);
                     }
-                    sheetsToRead.add(matchedIdx >= 0 ? workbook.getSheetAt(matchedIdx) : workbook.getSheetAt(0));
+                } else if (targetShelfId != null && targetShelfId > 0 && defaultShelf != null) {
+                    sheetsToRead.add(workbook.getSheetAt(0));
                 } else {
-                    for (int s = 0; s < workbook.getNumberOfSheets(); s++) {
-                        sheetsToRead.add(workbook.getSheetAt(s));
-                    }
+                    sheetsToRead.add(workbook.getSheetAt(0));
                 }
 
                 for (Sheet sheet : sheetsToRead) {
                     Shelf sheetShelf = defaultShelf;
                     String sName = sheet.getSheetName().trim().toUpperCase();
-                    java.util.regex.Matcher sm = java.util.regex.Pattern.compile("(?:ACEROS?|PB-ACE-|ACE-)?\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
-                    if (sm.matches() || sm.find()) {
+                    java.util.regex.Matcher sm = java.util.regex.Pattern.compile("(?:ACEROS?|PB-ACE-|ACE-|ANAQUEL|ESTANTE|HOJA|SHEET)?\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
+                    if (sm.find()) {
                         try {
                             int num = Integer.parseInt(sm.group(1));
                             if (num >= 1 && num <= 19) {
@@ -809,7 +855,7 @@ public class CountService {
                             rec.setSection(normalizedSec);
                             withSectionCount++;
                         }
-                        if (item.locationCode != null && !item.locationCode.isBlank() && (rec.getNotes() == null || rec.getNotes().isBlank() || !rec.getNotes().startsWith("PB3-"))) {
+                        if (item.locationCode != null && !item.locationCode.isBlank() && (rec.getNotes() == null || rec.getNotes().isBlank())) {
                             rec.setNotes(item.locationCode);
                         }
                         rec.setUpdatedAt(LocalDateTime.now());
@@ -843,7 +889,13 @@ public class CountService {
             if (rec == null && (targetShelfId == null || targetShelfId <= 0)) {
                 List<CountRecord> matchesInSession = recordsByCode.get(code);
                 if (matchesInSession != null && !matchesInSession.isEmpty()) {
-                    rec = matchesInSession.get(0);
+                    CountRecord candidate = matchesInSession.get(0);
+                    if (candidate.getShelf() == null || candidate.getShelf().equals(finalShelf)
+                            || candidate.getShelf().getCode().toUpperCase().contains("GENERAL")
+                            || candidate.getShelf().getCode().toUpperCase().contains("PENDIENTE")) {
+                        rec = candidate;
+                        rec.setShelf(finalShelf);
+                    }
                 }
             }
 
@@ -869,7 +921,7 @@ public class CountService {
                 if (normalizedSec != null && (rec.getSection() == null || rec.getSection().isBlank() || "SMART_MERGE".equals(mode))) {
                     rec.setSection(normalizedSec);
                 }
-                if (item.locationCode != null && !item.locationCode.isBlank() && (rec.getNotes() == null || rec.getNotes().isBlank() || !rec.getNotes().startsWith("PB3-"))) {
+                if (item.locationCode != null && !item.locationCode.isBlank()) {
                     rec.setNotes(item.locationCode);
                 }
                 rec.setUpdatedAt(LocalDateTime.now());
