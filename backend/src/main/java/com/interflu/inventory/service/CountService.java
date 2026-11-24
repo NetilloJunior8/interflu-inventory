@@ -440,13 +440,13 @@ public class CountService {
                 // Aspel SAE 5-column format: ESTATUS, TIPO, CLAVE, ESQ, EXISTENCIA [, NIVEL]
                 codeCol = 2;
                 qtyCol = 4;
-                if (firstRow.length >= 6 && firstRow[5].trim().matches("(?i)^[A-J]$")) secCol = 5;
-            } else if (firstRow.length >= 3 && firstRow[0].trim().matches("(?i)^[A-J]$")) {
+                if (firstRow.length >= 6 && firstRow[5].trim().matches("(?i)^[SA-J]$")) secCol = 5;
+            } else if (firstRow.length >= 3 && firstRow[0].trim().matches("(?i)^[SA-J]$")) {
                 secCol = 0;
                 codeCol = 1;
                 qtyCol = 2;
                 if (firstRow.length >= 4) shelfCol = 3;
-            } else if (firstRow.length >= 7 && (firstRow[4].equalsIgnoreCase("A") || firstRow[4].equalsIgnoreCase("B") || firstRow[4].equalsIgnoreCase("C"))) {
+            } else if (firstRow.length >= 7 && (firstRow[4].equalsIgnoreCase("A") || firstRow[4].equalsIgnoreCase("B") || firstRow[4].equalsIgnoreCase("C") || firstRow[4].equalsIgnoreCase("S"))) {
                 // Format: CLAVE, PLANTA, PASILLO, ESTANTE, NIVEL, POSICION, UBICACION [, EXISTENCIAS]
                 codeCol = 0;
                 plantCol = 1;
@@ -506,7 +506,7 @@ public class CountService {
             String pos = (posCol >= 0 && row.length > posCol) ? row[posCol].trim().replace("\"", "") : null;
 
             if (locCode != null && !locCode.isBlank()) {
-                java.util.regex.Matcher lm = java.util.regex.Pattern.compile("(?i)^(P[BA])(\\d+)-(\\d+)([A-J])-(\\d+)").matcher(locCode);
+                java.util.regex.Matcher lm = java.util.regex.Pattern.compile("(?i)^(P[BA])(\\d+)-(\\d+)([SA-J])-(\\d+)").matcher(locCode);
                 if (lm.find()) {
                     if (plant == null || plant.isBlank()) plant = lm.group(1).toUpperCase();
                     if (aisle == null || aisle.isBlank()) aisle = lm.group(2);
@@ -540,9 +540,102 @@ public class CountService {
         }
     }
 
+    public Shelf resolveCanonicalShelf(ImportedItem item, Shelf sheetShelf, Shelf defaultShelf, Map<String, Shelf> shelfCache) {
+        // 1. If item has explicit resolvedShelf from numbered sheet ('1'..'19', 'PB-ACE-01', etc.)
+        if (sheetShelf != null && sheetShelf.getCode().startsWith("PB-ACE-") && !sheetShelf.getCode().equals("PB-ACE-01")) {
+            return sheetShelf;
+        }
+
+        // 2. Extract candidate shelf code from item's fields
+        String candidateCode = null;
+        if (item.shelfName != null && !item.shelfName.isBlank()) {
+            candidateCode = item.shelfName.trim().toUpperCase();
+        } else if (item.locationCode != null && !item.locationCode.isBlank()) {
+            candidateCode = item.locationCode.trim().toUpperCase();
+        }
+
+        if (candidateCode != null) {
+            // Pattern: PB3-01, PB3-1, PB3-1A-1, PB-3-01 -> PB-ACE-01
+            java.util.regex.Matcher mPb3 = java.util.regex.Pattern.compile("(?i)^PB-?3-?(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(candidateCode);
+            if (mPb3.find()) {
+                int num = Integer.parseInt(mPb3.group(1));
+                String targetCode = String.format("PB-ACE-%02d", num);
+                Shelf s = shelfCache.get(targetCode);
+                if (s != null) return s;
+            }
+
+            // Pattern: PB-ACE-01, PB-ACE-1, ACE-01, ACE-1
+            java.util.regex.Matcher mAce = java.util.regex.Pattern.compile("(?i)^(?:PB-)?ACE-?(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(candidateCode);
+            if (mAce.find()) {
+                int num = Integer.parseInt(mAce.group(1));
+                String targetCode = String.format("PB-ACE-%02d", num);
+                Shelf s = shelfCache.get(targetCode);
+                if (s != null) return s;
+            }
+
+            // Pure number: e.g. "1", "2", "19", "ESTANTE 2"
+            java.util.regex.Matcher mNum = java.util.regex.Pattern.compile("^(?:(?:ESTANTE|ANAQUEL)\\s*)?(\\d+)$", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(candidateCode);
+            if (mNum.find()) {
+                int num = Integer.parseInt(mNum.group(1));
+                if ("3".equals(item.aisle) || (item.locationCode != null && item.locationCode.toUpperCase().startsWith("PB3")) || (defaultShelf != null && defaultShelf.getCode().startsWith("PB-ACE")) || (sheetShelf != null && sheetShelf.getCode().startsWith("PB-ACE"))) {
+                    String targetCode = String.format("PB-ACE-%02d", num);
+                    Shelf s = shelfCache.get(targetCode);
+                    if (s != null) return s;
+                } else if ("1".equals(item.aisle)) {
+                    String targetCode = String.format("PB-CON-%02d", num);
+                    Shelf s = shelfCache.get(targetCode);
+                    if (s != null) return s;
+                } else if ("2".equals(item.aisle)) {
+                    String targetCode = String.format("PB-SEL-%02d", num);
+                    Shelf s = shelfCache.get(targetCode);
+                    if (s != null) return s;
+                } else if ("4".equals(item.aisle)) {
+                    String targetCode = String.format("PB-KUR-A%02d", num);
+                    Shelf s = shelfCache.get(targetCode);
+                    if (s != null) return s;
+                } else if ("5".equals(item.aisle)) {
+                    String targetCode = String.format("PB-YPC-%02d", num);
+                    Shelf s = shelfCache.get(targetCode);
+                    if (s != null) return s;
+                } else if (num >= 1 && num <= 19) {
+                    String targetCode = String.format("PB-ACE-%02d", num);
+                    Shelf s = shelfCache.get(targetCode);
+                    if (s != null) return s;
+                }
+            }
+
+            // Direct match in shelfCache
+            Shelf direct = shelfCache.get(candidateCode.toUpperCase());
+            if (direct != null) return direct;
+        }
+
+        // 3. Fallback to sheetShelf if sheet was explicitly matched
+        if (sheetShelf != null) {
+            return sheetShelf;
+        }
+
+        // 4. Fallback to master catalog if known Acero code
+        AceroMasterCatalogService.AceroLocationItem acItem = aceroCatalog.findByCode(item.code);
+        if (acItem != null && acItem.shelfCode != null) {
+            Shelf acShelf = shelfCache.get(acItem.shelfCode.toUpperCase());
+            if (acShelf != null) return acShelf;
+        }
+
+        // 5. Fallback to defaultShelf
+        if (defaultShelf != null) {
+            return defaultShelf;
+        }
+
+        // 6. Fallback: Pendiente shelf PB-PEN-01 if exists
+        Shelf penShelf = shelfCache.get("PB-PEN-01");
+        if (penShelf != null) return penShelf;
+
+        return null;
+    }
+
     /**
      * Imports already counted Excel (.xlsx / .csv) directly into the session,
-     * automatically mapping Nivel (A-G) to physical shelf sections and supporting
+     * automatically mapping Nivel (S, A-G) to physical shelf sections and supporting
      * SMART_MERGE (update existing + append new), REPLACE_ALL, and WEEKLY_UPDATE modes.
      */
     @Transactional
@@ -772,66 +865,17 @@ public class CountService {
             String code = item.code;
             double qty = item.quantity != null ? item.quantity : 0.0;
             String normalizedSec = item.section;
-            Shelf targetShelf = item.resolvedShelf;
 
-            // 0. Filter obsolete / erroneous SAE codes ("ELIMINAR", "E", etc.)
-            if (filterObsolete && isObsoleteOrEliminated(code, item.description)) {
+            // Never discard obsolete or ELIMINAR codes: keep them all for user inspection and filtering
+            if (isObsoleteOrEliminated(code, item.description)) {
                 obsoleteFilteredCount++;
-                continue;
             }
 
-            // Shelf resolution
-            if (item.shelfName != null && !item.shelfName.isBlank()) {
-                String sn = item.shelfName.trim().toUpperCase();
-                if (sn.matches("^\\d+$")) {
-                    int num = Integer.parseInt(sn);
-                    if ("3".equals(item.aisle) || (item.locationCode != null && item.locationCode.startsWith("PB3-")) || (defaultShelf != null && defaultShelf.getCode().startsWith("PB-ACE"))) {
-                        sn = String.format("PB-ACE-%02d", num);
-                    } else if ("1".equals(item.aisle)) {
-                        sn = String.format("PB-CON-%02d", num);
-                    } else if ("2".equals(item.aisle)) {
-                        sn = String.format("PB-SEL-%02d", num);
-                    } else if ("4".equals(item.aisle)) {
-                        sn = String.format("PB-KUR-%02d", num);
-                    } else if ("5".equals(item.aisle)) {
-                        sn = String.format("PB-YPC-%02d", num);
-                    } else if (num >= 1 && num <= 19) {
-                        sn = String.format("PB-ACE-%02d", num);
-                    }
-                }
-                Shelf found = shelfCache.get(sn.toUpperCase());
-                if (found != null) {
-                    targetShelf = found;
-                } else if (defaultShelf == null) {
-                    Shelf newShelf = new Shelf(sn, "Área General", "Importado de Excel", "1", "Planta Baja", 10.0, 10.0, 12.0, 8.0);
-                    targetShelf = shelfRepo.save(newShelf);
-                    shelfCache.put(sn.toUpperCase(), targetShelf);
-                }
+            Shelf finalShelf = resolveCanonicalShelf(item, item.resolvedShelf, defaultShelf, shelfCache);
+            if (finalShelf == null) {
+                finalShelf = defaultShelf;
             }
-
-            // Master Acero Catalog fallback for Acero aisle codes
-            AceroMasterCatalogService.AceroLocationItem acItem = aceroCatalog.findByCode(code);
-            if (acItem != null) {
-                if (targetShelf == null || (defaultShelf != null && targetShelf.equals(defaultShelf) && (targetShelfId == null || targetShelfId <= 0))) {
-                    Shelf foundAceroShelf = shelfCache.get(acItem.shelfCode);
-                    if (foundAceroShelf != null) {
-                        targetShelf = foundAceroShelf;
-                    }
-                }
-                if (normalizedSec == null || normalizedSec.isBlank()) {
-                    normalizedSec = acItem.level;
-                }
-                if (item.locationCode == null || item.locationCode.isBlank()) {
-                    item.locationCode = acItem.locationCode;
-                }
-            }
-
-            if (targetShelf == null) {
-                targetShelf = defaultShelf;
-            }
-            if (targetShelf == null) continue;
-
-            final Shelf finalShelf = targetShelf;
+            if (finalShelf == null) continue;
 
             // In REPLACE_ALL mode, wipe previous counts on each affected shelf once before inserting fresh rows
             if ("REPLACE_ALL".equals(mode) && clearedShelves.add(finalShelf.getId())) {
@@ -858,70 +902,16 @@ public class CountService {
                 newProductsToSave.add(product);
             }
 
-            // 1. WEEKLY_UPDATE MODE: Detect matching codes across the entire session and update ONLY pieces
-            if ("WEEKLY_UPDATE".equals(mode)) {
-                List<CountRecord> sessionRecords = recordsByCode.get(code);
-                if (sessionRecords != null && !sessionRecords.isEmpty()) {
-                    for (CountRecord rec : sessionRecords) {
-                        if (rec.getVersion() == null) {
-                            rec.setVersion(0L);
-                        }
-                        if (item.hasExplicitQuantity) {
-                            rec.setPreviousQuantity(rec.getQuantity());
-                            rec.setQuantity(qty);
-                        }
-                        if (item.description != null && !item.description.isBlank() && !isObsoleteOrEliminated(code, item.description)) {
-                            if (rec.getProduct() != null) {
-                                rec.getProduct().setDescription(item.description);
-                                productCache.put(code, rec.getProduct());
-                                newProductsToSave.add(rec.getProduct());
-                            }
-                        }
-                        if ((rec.getSection() == null || rec.getSection().isBlank()) && normalizedSec != null) {
-                            rec.setSection(normalizedSec);
-                            withSectionCount++;
-                        }
-                        if (item.locationCode != null && !item.locationCode.isBlank() && (rec.getNotes() == null || rec.getNotes().isBlank())) {
-                            rec.setNotes(item.locationCode);
-                        }
-                        rec.setUpdatedAt(LocalDateTime.now());
-                        rec.setValidationStatus(CountRecord.ValidationStatus.VALIDO);
-                        recordsToSave.add(rec);
-                        updatedRecords++;
-                        affectedShelves.add(rec.getShelf().getId());
+            String shelfKey = finalShelf.getId() + "::" + code;
+            boolean alreadySeenInThisFile = !seenInThisFile.add(shelfKey);
 
-                        ShelfAssignment saRec = assignmentMap.get(rec.getShelf().getId());
-                        if (saRec == null) {
-                            saRec = new ShelfAssignment(session, rec.getShelf(), user);
-                            assignmentMap.put(rec.getShelf().getId(), saRec);
-                        }
-                        saRec.setStatus(ShelfAssignment.Status.COMPLETADO);
-                        saRec.setCompletedAt(LocalDateTime.now());
-                        assignmentsToSave.put(saRec.getShelf().getId(), saRec);
-                    }
-                    importedCount++;
-                    if (item.hasExplicitQuantity) {
-                        totalPiecesImported += qty;
-                    }
-                    continue;
-                }
-            }
-
-            // SMART_MERGE or new records:
-            String fileKey = finalShelf.getId() + "::" + code;
-            boolean alreadySeenInThisFile = !seenInThisFile.add(fileKey);
-
-            CountRecord rec = recordsByShelfAndCode.get(fileKey);
-            if (rec == null && (targetShelfId == null || targetShelfId <= 0)) {
+            CountRecord rec = recordsByShelfAndCode.get(shelfKey);
+            if (rec == null) {
                 List<CountRecord> matchesInSession = recordsByCode.get(code);
                 if (matchesInSession != null && !matchesInSession.isEmpty()) {
-                    CountRecord candidate = matchesInSession.get(0);
-                    if (candidate.getShelf() == null || candidate.getShelf().equals(finalShelf)
-                            || candidate.getShelf().getCode().toUpperCase().contains("GENERAL")
-                            || candidate.getShelf().getCode().toUpperCase().contains("PENDIENTE")) {
-                        rec = candidate;
-                        rec.setShelf(finalShelf);
-                    }
+                    rec = matchesInSession.get(0);
+                    rec.setShelf(finalShelf);
+                    recordsByShelfAndCode.put(shelfKey, rec);
                 }
             }
 
@@ -929,22 +919,24 @@ public class CountService {
                 if (rec.getVersion() == null) {
                     rec.setVersion(0L);
                 }
+                rec.setShelf(finalShelf);
+
                 if (item.hasExplicitQuantity) {
-                    if (alreadySeenInThisFile) {
+                    if (alreadySeenInThisFile && !"WEEKLY_UPDATE".equals(mode)) {
                         rec.setQuantity((rec.getQuantity() != null ? rec.getQuantity() : 0.0) + qty);
                     } else {
                         rec.setPreviousQuantity(rec.getQuantity());
                         rec.setQuantity(qty);
                     }
                 }
-                if (item.description != null && !item.description.isBlank() && !isObsoleteOrEliminated(code, item.description)) {
+                if (item.description != null && !item.description.isBlank()) {
                     if (rec.getProduct() != null) {
                         rec.getProduct().setDescription(item.description);
                         productCache.put(code, rec.getProduct());
                         newProductsToSave.add(rec.getProduct());
                     }
                 }
-                if (normalizedSec != null && (rec.getSection() == null || rec.getSection().isBlank() || "SMART_MERGE".equals(mode))) {
+                if (normalizedSec != null) {
                     rec.setSection(normalizedSec);
                 }
                 if (item.locationCode != null && !item.locationCode.isBlank()) {
@@ -975,7 +967,7 @@ public class CountService {
                 rec.setUpdatedAt(LocalDateTime.now());
                 rec.setValidationStatus(CountRecord.ValidationStatus.VALIDO);
                 recordsToSave.add(rec);
-                recordsByShelfAndCode.put(fileKey, rec);
+                recordsByShelfAndCode.put(shelfKey, rec);
                 recordsByCode.computeIfAbsent(code, k -> new ArrayList<>()).add(rec);
                 addedRecords++;
             }

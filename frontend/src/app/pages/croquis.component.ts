@@ -1058,7 +1058,7 @@ export interface LocationAssignerRow {
             <!-- Left Pane: Visual Physical Rack Blueprint (A to J) -->
             <div class="rack-blueprint-card">
               <div class="blueprint-card-header">
-                <span class="blueprint-kicker">CROQUIS DEL ANAQUEL ({{ isTenLevelShelf(inspectedShelf.shelfCode) ? 'A-J · 10 NIVELES' : 'A-G · 7 NIVELES' }})</span>
+                <span class="blueprint-kicker">CROQUIS DEL ANAQUEL ({{ isTenLevelShelf(inspectedShelf.shelfCode) ? 'S, A-J · 11 NIVELES' : 'S, A-G · 8 NIVELES' }})</span>
                 <span class="font-xs text-muted">Clic en nivel para filtrar</span>
               </div>
 
@@ -1078,7 +1078,7 @@ export interface LocationAssignerRow {
                       class="rack-level-tag mono"
                       [class.active-level]="selectedLevelFilter() === lvl"
                       (click)="toggleLevelFilter(lvl)"
-                      [title]="'Filtrar materiales en Nivel ' + lvl"
+                      [title]="'Filtrar materiales en Nivel ' + (lvl === 'S' ? 'S (Superior)' : lvl)"
                     >
                       {{ lvl }}
                     </button>
@@ -1091,7 +1091,7 @@ export interface LocationAssignerRow {
                       [class.tier-selected]="selectedLevelFilter() === lvl"
                       [class.tier-populated]="getLevelStats(lvl).count > 0"
                       (click)="toggleLevelFilter(lvl)"
-                      [title]="'Ver códigos del Nivel ' + lvl"
+                      [title]="'Ver códigos del Nivel ' + (lvl === 'S' ? 'S (Superior)' : lvl)"
                     >
                       <!-- 4 Compartment Box Outlines -->
                       <div class="tier-boxes-strip">
@@ -1108,7 +1108,7 @@ export interface LocationAssignerRow {
                             <strong>{{ getLevelStats(lvl).count }}</strong> cód. &bull; <strong>{{ getLevelStats(lvl).pieces | number:'1.0-0' }}</strong> pzas
                           </ng-container>
                           <ng-container *ngIf="getLevelStats(lvl).count === 0">
-                            Nivel {{ lvl }} vacío
+                            Nivel {{ lvl === 'S' ? 'S (Superior)' : lvl }} vacío
                           </ng-container>
                         </span>
                       </div>
@@ -1882,19 +1882,19 @@ export interface LocationAssignerRow {
               </button>
               <button
                 type="button"
-                class="btn-filter-tab"
-                [class.active]="locationAssignerFilter() === 'PENDIENTES'"
-                (click)="locationAssignerFilter.set('PENDIENTES')"
-              >
-                Solo Pendientes ({{ locationAssignerPendingCount() }})
-              </button>
-              <button
-                type="button"
-                class="btn-filter-tab"
+                class="btn-filter-tab filter-tab-defined"
                 [class.active]="locationAssignerFilter() === 'ASIGNADOS'"
                 (click)="locationAssignerFilter.set('ASIGNADOS')"
               >
-                Con Ubicación ({{ locationAssignerRows().length - locationAssignerPendingCount() }})
+                Definidos ({{ locationAssignerDefinedCount() }})
+              </button>
+              <button
+                type="button"
+                class="btn-filter-tab filter-tab-pending"
+                [class.active]="locationAssignerFilter() === 'PENDIENTES'"
+                (click)="locationAssignerFilter.set('PENDIENTES')"
+              >
+                No Definidos / Pendientes ({{ locationAssignerPendingCount() }})
               </button>
               <button
                 type="button"
@@ -1903,7 +1903,7 @@ export interface LocationAssignerRow {
                 (click)="locationAssignerFilter.set('OBSOLETOS')"
                 *ngIf="locationAssignerObsoleteCount() > 0"
               >
-                Obsoletos / ELIMINAR ({{ locationAssignerObsoleteCount() }})
+                Marcados ELIMINAR / SAE ({{ locationAssignerObsoleteCount() }})
               </button>
             </div>
 
@@ -1950,7 +1950,7 @@ export interface LocationAssignerRow {
                 <tr
                   *ngFor="let row of locationAssignerFilteredRows()"
                   [class.row-dirty]="row.isDirty"
-                  [class.row-missing]="!row.locationCode || !row.level"
+                  [class.row-undefined]="isRowUndefined(row)"
                   [class.row-selected]="row.isSelected"
                   [class.row-obsolete]="row.isObsolete"
                 >
@@ -1964,7 +1964,8 @@ export interface LocationAssignerRow {
                   </td>
                   <td class="td-code mono fw-700">
                     {{ row.code }}
-                    <span *ngIf="row.isObsolete" class="badge-obsolete-tag" title="Partida marcada para eliminar u obsoleta en SAE">ELIMINAR</span>
+                    <span *ngIf="isRowUndefined(row)" class="badge-undefined-tag" title="Partida sin anaquel o sin nivel físico asignado">NO DEFINIDO</span>
+                    <span *ngIf="row.isObsolete" class="badge-obsolete-tag" title="Partida marcada para eliminar u obsoleta en SAE">ELIMINAR SAE</span>
                   </td>
                   <td class="td-desc">
                     <span class="desc-text">{{ row.description }}</span>
@@ -2067,16 +2068,32 @@ export interface LocationAssignerRow {
             <div class="footer-right-group">
               <button
                 type="button"
-                class="btn btn-outline-success"
-                (click)="exportLocationAssignerCsv()"
-                title="Descargar archivo Excel con claves SAE, ubicaciones generadas e indicadores de Mín/Máx"
+                class="btn btn-outline-success btn-sm"
+                (click)="exportLocationAssignerCsv('TODOS')"
+                title="Descargar todos los materiales de la sección en Excel/CSV"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                   <polyline points="7 10 12 15 17 10"></polyline>
                   <line x1="12" y1="15" x2="12" y2="3"></line>
                 </svg>
-                Exportar Datos SAE (.csv)
+                Exportar Todos (.csv)
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-primary btn-sm"
+                (click)="exportLocationAssignerCsv('DEFINIDOS')"
+                title="Exportar únicamente las partidas con anaquel y nivel asignado"
+              >
+                Exportar Definidos ({{ locationAssignerDefinedCount() }})
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-warning btn-sm"
+                (click)="exportLocationAssignerCsv('NO_DEFINIDOS')"
+                title="Exportar las partidas pendientes sin anaquel o sin nivel asignado"
+              >
+                Exportar No Definidos ({{ locationAssignerPendingCount() }})
               </button>
               <button
                 type="button"
@@ -6725,13 +6742,31 @@ export interface LocationAssignerRow {
       color: #ffffff;
     }
     .filter-tab-obsolete {
-      border-color: #ef4444 !important;
-      color: #f87171 !important;
+      border-color: #f97316 !important;
+      color: #ea580c !important;
     }
     .filter-tab-obsolete.active {
-      background: #ef4444 !important;
+      background: #ea580c !important;
       color: #ffffff !important;
-      border-color: #ef4444 !important;
+      border-color: #c2410c !important;
+    }
+    .filter-tab-pending {
+      border-color: #eab308 !important;
+      color: #a16207 !important;
+    }
+    .filter-tab-pending.active {
+      background: #eab308 !important;
+      color: #ffffff !important;
+      border-color: #ca8a04 !important;
+    }
+    .filter-tab-defined {
+      border-color: #10b981 !important;
+      color: #059669 !important;
+    }
+    .filter-tab-defined.active {
+      background: #10b981 !important;
+      color: #ffffff !important;
+      border-color: #059669 !important;
     }
     .assigner-toolbar-actions {
       display: flex;
@@ -6747,16 +6782,39 @@ export interface LocationAssignerRow {
     .assigner-table tr.row-selected {
       background: rgba(56, 189, 248, 0.16) !important;
     }
+    .assigner-table tr.row-undefined {
+      background: #fefce8 !important;
+      border-left: 5px solid #eab308 !important;
+    }
+    .assigner-table tr.row-undefined:hover {
+      background: #fef9c3 !important;
+    }
     .assigner-table tr.row-obsolete {
-      background: rgba(239, 68, 68, 0.1) !important;
+      background: #fff7ed !important;
+      border-left: 5px solid #f97316 !important;
+    }
+    .assigner-table tr.row-obsolete:hover {
+      background: #ffedd5 !important;
+    }
+    .badge-undefined-tag {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 2px 6px;
+      font-size: 0.65rem;
+      font-weight: 800;
+      background: #eab308;
+      color: #713f12;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+      border: 1px solid #facc15;
     }
     .badge-obsolete-tag {
       display: inline-block;
       margin-left: 6px;
-      padding: 1px 5px;
-      font-size: 0.62rem;
+      padding: 2px 6px;
+      font-size: 0.65rem;
       font-weight: 800;
-      background: #ef4444;
+      background: #ea580c;
       color: #ffffff;
       border-radius: 4px;
       letter-spacing: 0.04em;
@@ -7020,8 +7078,8 @@ export class CroquisComponent implements OnInit {
   importingExcel = signal<boolean>(false);
   importResult: any = null;
 
-  // Physical Rack Blueprint & Quick Section Assignment State (Niveles A-J)
-  rackLevels: string[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+  // Physical Rack Blueprint & Quick Section Assignment State (Niveles S, A-J)
+  rackLevels: string[] = ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
   inspectedMaterials = signal<CountRecordDto[]>([]);
   loadingMaterials = signal<boolean>(false);
   selectedLevelFilter = signal<string>('TODOS');
@@ -7147,13 +7205,24 @@ export class CroquisComponent implements OnInit {
     return false;
   }
 
+  isPendingShelf(shelfCode?: string | null): boolean {
+    if (!shelfCode) return true;
+    const c = shelfCode.toUpperCase();
+    return c.includes('PEN') || c.includes('SIN') || c.includes('GENERAL') || c.includes('PENDIENTE') || c.includes('SIN ASIGNAR');
+  }
+
+  isRowUndefined(row: LocationAssignerRow): boolean {
+    if (!row) return true;
+    return !row.level || !row.shelfNum || !row.aisle || row.shelfId === 0 || !row.locationCode || this.isPendingShelf(row.shelfCode);
+  }
+
   locationAssignerFilteredRows = computed(() => {
     let rows = this.locationAssignerRows();
     const filter = this.locationAssignerFilter();
     if (filter === 'PENDIENTES') {
-      rows = rows.filter(r => !r.level || !r.shelfNum || !r.aisle || r.shelfId === 0 || !r.locationCode);
+      rows = rows.filter(r => this.isRowUndefined(r));
     } else if (filter === 'ASIGNADOS') {
-      rows = rows.filter(r => !!r.level && !!r.shelfNum && !!r.aisle && r.shelfId !== 0 && !!r.locationCode);
+      rows = rows.filter(r => !this.isRowUndefined(r) && !r.isObsolete);
     } else if (filter === 'OBSOLETOS') {
       rows = rows.filter(r => this.isObsoleteItem(r.code, r.description));
     }
@@ -7170,7 +7239,11 @@ export class CroquisComponent implements OnInit {
   });
 
   locationAssignerPendingCount = computed(() => {
-    return this.locationAssignerRows().filter(r => !r.level || !r.shelfNum || !r.aisle || r.shelfId === 0 || !r.locationCode).length;
+    return this.locationAssignerRows().filter(r => this.isRowUndefined(r)).length;
+  });
+
+  locationAssignerDefinedCount = computed(() => {
+    return this.locationAssignerRows().filter(r => !this.isRowUndefined(r) && !r.isObsolete).length;
   });
 
   locationAssignerObsoleteCount = computed(() => {
@@ -8416,26 +8489,26 @@ export class CroquisComponent implements OnInit {
   }
 
   getRackLevelsForShelf(shelf?: ShelfAssignmentDto | null): string[] {
-    if (!shelf) return ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    if (!shelf) return ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'G'];
     if (this.isTenLevelShelf(shelf.shelfCode)) {
-      return ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+      return ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
     }
-    return ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    return ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'G'];
   }
 
   getRackLevelsForShelfCode(shelfCode?: string | null): string[] {
     if (this.isTenLevelShelf(shelfCode)) {
-      return ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+      return ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
     }
-    return ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    return ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'G'];
   }
 
   getFamilyFilterLevels(fam?: SectionStat | null): string[] {
-    if (!fam) return ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
-    if (fam.id === 'ypc') {
-      return ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+    if (!fam) return ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    if (fam && (fam.id === 'ypc' || fam.id === 'YPC')) {
+      return ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
     }
-    return ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    return ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'G'];
   }
 
   getLevelsForRow(row: LocationAssignerRow): string[] {
@@ -8444,14 +8517,14 @@ export class CroquisComponent implements OnInit {
 
   getBulkFillLevels(): string[] {
     const sId = this.bulkShelfId();
-    if (!sId) return ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    if (!sId) return ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'G'];
     const shelf = this.allShelves().find(s => s.shelfId === sId);
     return this.getRackLevelsForShelf(shelf);
   }
 
   assignSectionToMaterial(item: CountRecordDto, section: string) {
     const cleanSec = section.trim().toUpperCase();
-    if (cleanSec && !/^[A-J]$/.test(cleanSec)) return;
+    if (cleanSec && !/^[SA-J]$/.test(cleanSec)) return;
 
     this.updatingRecordId.set(item.id);
     this.api.updateCountSection(item.id, cleanSec).subscribe({
@@ -9152,13 +9225,13 @@ export class CroquisComponent implements OnInit {
     }
     const loc = locStr.trim().toUpperCase();
 
-    // Pattern 1: PB3-1A-1 or PB3-10B-2
-    const m1 = loc.match(/^(P[BA])(\d+)-(\d+)([A-G])-?(\d+)?$/);
+    // Pattern 1: PB3-1A-1 or PB3-1S-1 or PB3-10B-2
+    const m1 = loc.match(/^(P[BA])(\d+)-(\d+)([SA-J])-?(\d+)?$/);
     if (m1) {
       const plant = m1[1] === 'PB' ? 'Planta Baja' : 'Planta Alta';
       const aisle = `Pasillo ${m1[2]} (Acero)`;
       const shelf = `Estante ${m1[3]} (Anaquel ${m1[3]})`;
-      const level = `Nivel ${m1[4]}`;
+      const level = m1[4] === 'S' ? 'Nivel S (Superior)' : `Nivel ${m1[4]}`;
       const pos = m1[5] ? `Posición ${m1[5]}` : 'Posición 1';
       return {
         plant,
@@ -9175,8 +9248,8 @@ export class CroquisComponent implements OnInit {
       };
     }
 
-    // Pattern 2: PB-ACE-01 or PB-ACE-01-A
-    const m2 = loc.match(/^(P[BA])-([A-Z0-9]+)-(\d+)(?:-([A-G]))?$/);
+    // Pattern 2: PB-ACE-01 or PB-ACE-01-A or PB-ACE-01-S
+    const m2 = loc.match(/^(P[BA])-([A-Z0-9]+)-(\d+)(?:-([SA-J]))?$/);
     if (m2) {
       const plant = m2[1] === 'PB' ? 'Planta Baja' : 'Planta Alta';
       const fam = m2[2];
@@ -9184,6 +9257,7 @@ export class CroquisComponent implements OnInit {
       const shelfNum = m2[3].replace(/^0+/, '') || m2[3];
       const shelf = `Estante ${shelfNum} (Anaquel ${shelfNum})`;
       const lvlCode = m2[4] || sec || 'A';
+      const level = lvlCode === 'S' ? 'Nivel S (Superior)' : `Nivel ${lvlCode}`;
       return {
         plant,
         plantCode: m2[1],
@@ -9191,11 +9265,11 @@ export class CroquisComponent implements OnInit {
         aisleCode: fam.includes('ACE') ? '3' : fam,
         shelf,
         shelfCode: shelfNum,
-        level: `Nivel ${lvlCode}`,
+        level,
         levelCode: lvlCode,
         position: 'Posición 1',
         positionCode: '1',
-        summary: `${m2[1]} = ${plant} · ${fam} = ${famName} · ${shelfNum} = ${shelf} · ${lvlCode} = Nivel ${lvlCode}`
+        summary: `${m2[1]} = ${plant} · ${fam} = ${famName} · ${shelfNum} = ${shelf} · ${lvlCode} = ${level}`
       };
     }
 
@@ -9662,19 +9736,32 @@ export class CroquisComponent implements OnInit {
     });
   }
 
-  exportLocationAssignerCsv() {
+  exportLocationAssignerCsv(mode: 'TODOS' | 'DEFINIDOS' | 'NO_DEFINIDOS' | 'OBSOLETOS' = 'TODOS') {
     const fam = this.locationAssignerFamily();
     if (!fam) return;
-    const rows = this.locationAssignerRows();
+    let rows = this.locationAssignerRows();
+    let modeSuffix = 'todos';
+    if (mode === 'DEFINIDOS') {
+      rows = rows.filter(r => !this.isRowUndefined(r) && !r.isObsolete);
+      modeSuffix = 'definidos';
+    } else if (mode === 'NO_DEFINIDOS') {
+      rows = rows.filter(r => this.isRowUndefined(r));
+      modeSuffix = 'no_definidos';
+    } else if (mode === 'OBSOLETOS') {
+      rows = rows.filter(r => r.isObsolete);
+      modeSuffix = 'obsoletos_eliminar';
+    }
+
     if (rows.length === 0) {
-      this.toast.warning('No hay materiales para exportar.');
+      this.toast.warning(`No hay materiales para exportar en el modo seleccionado (${modeSuffix}).`);
       return;
     }
 
     const lines: string[] = [];
-    lines.push('CLAVE_SAE,DESCRIPCION,FAMILIA,UBICACION_FISICA,PLANTA,PASILLO,ANAQUEL,NIVEL,POSICION,STOCK_ACTUAL,MINIMO_SEGURIDAD,PUNTO_REORDEN,MAXIMO_OBJETIVO,CUANTO_PEDIR,ESTATUS_REPOSICION');
+    lines.push('CLAVE_SAE,DESCRIPCION,FAMILIA,UBICACION_FISICA,PLANTA,PASILLO,ANAQUEL,NIVEL,POSICION,STOCK_ACTUAL,MINIMO_SEGURIDAD,PUNTO_REORDEN,MAXIMO_OBJETIVO,CUANTO_PEDIR,ESTATUS_REPOSICION,ESTATUS_DEFINICION');
 
     for (const r of rows) {
+      const defStatus = this.isRowUndefined(r) ? 'NO_DEFINIDO' : (r.isObsolete ? 'OBSOLETO_SAE' : 'DEFINIDO');
       lines.push([
         this.escapeCsv(r.code),
         this.escapeCsv(r.description),
@@ -9690,7 +9777,8 @@ export class CroquisComponent implements OnInit {
         r.puntoReorden,
         r.maximoObjetivo,
         r.cuantoPedir,
-        this.escapeCsv(r.statusLabel)
+        this.escapeCsv(r.statusLabel),
+        this.escapeCsv(defStatus)
       ].join(','));
     }
 
@@ -9700,12 +9788,12 @@ export class CroquisComponent implements OnInit {
     const a = document.createElement('a');
     const safeFam = fam.name.replace(/[^a-zA-Z0-9_-]/g, '_');
     a.href = url;
-    a.download = `Interflu_Ubicaciones_SAE_${safeFam}.csv`;
+    a.download = `Interflu_Ubicaciones_${safeFam}_${modeSuffix}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
-    this.toast.success(`Datos de ${fam.name} con ubicaciones y Min/Max exportados a Excel.`);
+    this.toast.success(`Datos de ${fam.name} (${modeSuffix}: ${rows.length} partidas) exportados a Excel/CSV.`);
   }
 
   exportFamilyPlanningExcel(fam: SectionStat) {
