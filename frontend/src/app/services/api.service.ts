@@ -381,13 +381,15 @@ export class ApiService {
     file: File,
     shelfId?: number,
     mode: 'SMART_MERGE' | 'REPLACE_ALL' | 'WEEKLY_UPDATE' | string = 'SMART_MERGE',
-    filterObsolete: boolean = true
+    filterObsolete: boolean = true,
+    targetFamily?: string
   ): Observable<{
     importedRecords: number;
     addedRecords?: number;
     updatedRecords?: number;
     withSectionCount?: number;
     totalPieces: number;
+    sessionTotalPieces?: number;
     shelvesUpdated: number;
     affectedShelves?: string[];
     importMode?: string;
@@ -399,6 +401,7 @@ export class ApiService {
     if (shelfId) formData.append('shelfId', String(shelfId));
     formData.append('mode', mode);
     formData.append('filterObsolete', String(filterObsolete));
+    if (targetFamily) formData.append('targetFamily', targetFamily);
     formData.append('file', file);
     return this.http.post<{
       importedRecords: number;
@@ -406,6 +409,7 @@ export class ApiService {
       updatedRecords?: number;
       withSectionCount?: number;
       totalPieces: number;
+      sessionTotalPieces?: number;
       shelvesUpdated: number;
       affectedShelves?: string[];
       importMode?: string;

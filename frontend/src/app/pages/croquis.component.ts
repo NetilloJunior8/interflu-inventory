@@ -2452,10 +2452,10 @@ export interface LocationAssignerRow {
                   <div class="format-col-chips mono">
                     <span class="col-chip">CLAVE</span>
                     <span class="col-chip">EXISTENCIA FÍSICA</span>
-                    <span class="col-chip col-chip-level">NIVEL (A-G)</span>
-                    <span class="col-chip col-chip-opt">ANAQUEL</span>
+                    <span class="col-chip col-chip-level">NIVEL (S, A-G)</span>
+                    <span class="col-chip col-chip-opt">ANAQUEL / ESTANTE</span>
                   </div>
-                  <span class="font-xs text-muted">Compatible con reportes directos exportados de Aspel SAE (.xlsx / .csv).</span>
+                  <span class="font-xs text-muted">Compatible con libros multi-hoja por anaquel y reportes directos de Aspel SAE (.xlsx / .csv).</span>
                 </div>
                 <button
                   type="button"
@@ -2476,9 +2476,9 @@ export interface LocationAssignerRow {
               <!-- Destination Shelf -->
               <div class="form-group mt-3">
                 <label class="field-label">Anaquel Destino:</label>
-                <select class="select select-sm" [ngModel]="importTargetShelfId()" (ngModelChange)="importTargetShelfId.set($event)">
-                  <option [ngValue]="0">Detectar automáticamente en todo el inventario (según códigos existentes)</option>
-                  <option *ngFor="let sh of allShelves()" [value]="sh.shelfId">
+                <select class="select select-sm" [ngModel]="importTargetShelfId()" (ngModelChange)="importTargetShelfId.set(+$event || 0)">
+                  <option [ngValue]="0">Detectar automáticamente (por hoja, columna ESTANTE/ANAQUEL o códigos SAE)</option>
+                  <option *ngFor="let sh of allShelves()" [ngValue]="sh.shelfId">
                     [{{ sh.plant || 'Planta Baja' }}] {{ sh.shelfCode }} &bull; {{ sh.shelfDescription || sh.shelfZone }}
                   </option>
                 </select>
@@ -2500,7 +2500,7 @@ export interface LocationAssignerRow {
                       <span class="mode-rec-badge badge-weekly">Solo Piezas</span>
                     </div>
                     <p class="mode-desc">
-                      Detecta códigos coincidentes del SAE y actualiza únicamente las piezas físicas. Conserva intactos anaqueles, niveles A-G, croquis y códigos de ubicación.
+                      Si el archivo viene del SAE sin ubicación, actualiza existencias conservando anaqueles y niveles S, A-J. Si trae hojas/columnas por estante, los acomoda automáticamente.
                     </p>
                   </button>
 
@@ -2513,10 +2513,10 @@ export interface LocationAssignerRow {
                     <div class="mode-card-top">
                       <span class="mode-radio"></span>
                       <span class="mode-title">Inteligente: Actualizar y Agregar</span>
-                      <span class="mode-rec-badge">Con Nivel A-G</span>
+                      <span class="mode-rec-badge">Con Nivel S, A-J</span>
                     </div>
                     <p class="mode-desc">
-                      Sustituye piezas y asigna nivel (A-G) de códigos repetidos, agrega los códigos nuevos y conserva los demás sin borrar nada.
+                      Distribuye cada hoja en su anaquel, actualiza piezas y nivel (S, A-J) sin perder ubicaciones existentes y deja en amarillo las claves sin definir.
                     </p>
                   </button>
 
@@ -2528,16 +2528,16 @@ export interface LocationAssignerRow {
                   >
                     <div class="mode-card-top">
                       <span class="mode-radio"></span>
-                      <span class="mode-title">Sustituir Todo el Anaquel</span>
+                      <span class="mode-title">Sustituir Anaquel(es) del Archivo</span>
                     </div>
                     <p class="mode-desc">
-                      Borra los conteos previos del anaquel destino y deja exactamente lo que trae este archivo Excel.
+                      Borra conteos previos de los anaqueles incluidos en este archivo y carga exactamente sus nuevas partidas.
                     </p>
                   </button>
                 </div>
               </div>
 
-              <!-- Obsolete Filter Toggle -->
+              <!-- Obsolete Filter Info -->
               <div class="obsolete-filter-card mt-3">
                 <label class="obsolete-filter-label">
                   <input
@@ -2547,8 +2547,8 @@ export interface LocationAssignerRow {
                     (ngModelChange)="filterObsoleteImport.set($event)"
                   />
                   <div class="obsolete-filter-text">
-                    <strong class="font-sm">Omitir automáticamente códigos obsoletos / marcados con "ELIMINAR" o "E" en SAE</strong>
-                    <span class="font-xs text-muted d-block">Detecta partidas discontinuadas o canceladas en SAE para evitar que alteren las existencias reales o el croquis.</span>
+                    <strong class="font-sm">Señalar claves obsoletas / "ELIMINAR" y sin definir en amarillo (sin descartar ninguna)</strong>
+                    <span class="font-xs text-muted d-block">Todas las claves se conservan para auditoría: las que no tienen anaquel o traen "ELIMINAR" se filtran aparte y se resaltan en amarillo.</span>
                   </div>
                 </label>
               </div>
@@ -2612,7 +2612,7 @@ export interface LocationAssignerRow {
                 </div>
                 <h4 class="success-title">Importación Completada con Éxito</h4>
                 <p class="success-subtitle">
-                  {{ res.importMode === 'WEEKLY_UPDATE' ? 'Levantamiento semanal completado: existencias físicas actualizadas manteniendo anaqueles, niveles A-G y ubicaciones intactas.' : (res.importMode === 'REPLACE_ALL' ? 'Se reemplazó el contenido completo del anaquel destino.' : 'Modo inteligente aplicado: códigos repetidos actualizados y nuevos agregados.') }}
+                  {{ res.importMode === 'WEEKLY_UPDATE' ? 'Levantamiento semanal completado: existencias físicas actualizadas y acomodadas.' : (res.importMode === 'REPLACE_ALL' ? 'Se sustituyó el contenido completo de los anaqueles incluidos en el archivo.' : 'Modo inteligente aplicado: cada hoja fue acomodada en su anaquel y nivel físico correspondiente.') }}
                 </p>
               </div>
 
@@ -2627,15 +2627,15 @@ export interface LocationAssignerRow {
                 </div>
                 <div class="imp-kpi-card">
                   <span class="imp-kpi-val mono text-indigo">{{ res.withSectionCount ?? 0 }}</span>
-                  <span class="imp-kpi-lbl">Con Nivel A-G</span>
+                  <span class="imp-kpi-lbl">Con Nivel S, A-J</span>
                 </div>
                 <div class="imp-kpi-card" *ngIf="res.obsoleteFiltered && res.obsoleteFiltered > 0">
                   <span class="imp-kpi-val mono text-warning-brand">{{ res.obsoleteFiltered }}</span>
-                  <span class="imp-kpi-lbl">Obsoletos Omitidos</span>
+                  <span class="imp-kpi-lbl">Marcados ELIMINAR</span>
                 </div>
                 <div class="imp-kpi-card">
                   <span class="imp-kpi-val mono">{{ res.totalPieces | number:'1.0-2' }}</span>
-                  <span class="imp-kpi-lbl">Piezas Totales</span>
+                  <span class="imp-kpi-lbl">Piezas del Archivo</span>
                 </div>
               </div>
 
@@ -5542,6 +5542,7 @@ export interface LocationAssignerRow {
       border-radius: 4px;
       text-transform: uppercase;
     }
+    .level-chip-s { background: #e2e8f0; color: #0f172a; border: 1px solid #94a3b8; }
     .level-chip-a { background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; }
     .level-chip-b { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
     .level-chip-c { background: #ecfeff; color: #0e7490; border: 1px solid #a5f3fc; }
@@ -7071,6 +7072,7 @@ export class CroquisComponent implements OnInit {
   showImportExcelModal = false;
   selectedExcelFile: File | null = null;
   importTargetShelfId = signal<number>(0);
+  importTargetFamily = signal<string>('');
   importMode = signal<'SMART_MERGE' | 'REPLACE_ALL' | 'WEEKLY_UPDATE'>('SMART_MERGE');
   filterObsoleteImport = signal<boolean>(true);
   isDraggingFile = signal<boolean>(false);
@@ -8236,12 +8238,13 @@ export class CroquisComponent implements OnInit {
   }
 
   // Croquis Smart Import Methods (Levantamiento Semanal SAE / Excel)
-  openCroquisImportModal(shelfId?: number) {
+  openCroquisImportModal(shelfId?: number, familyId: string = '') {
     if (this.sessions().length === 0 || this.activeSessionId() === 0) {
       this.toast.warning('No hay inventario activo. Selecciona o inicia una sesión primero.');
       return;
     }
     this.importTargetShelfId.set(shelfId || 0);
+    this.importTargetFamily.set(familyId || '');
     this.importMode.set('SMART_MERGE');
     this.selectedExcelFile = null;
     this.importResult = null;
@@ -8318,12 +8321,13 @@ export class CroquisComponent implements OnInit {
     }
     const shelfParam = this.importTargetShelfId() > 0 ? this.importTargetShelfId() : undefined;
     const mode = this.importMode();
+    const famParam = this.importTargetFamily() || this.activeFamilyExplorer()?.id || undefined;
     this.importingExcel.set(true);
-    this.api.importExcelCounts(sessionId, this.selectedExcelFile, shelfParam, mode, this.filterObsoleteImport()).subscribe({
+    this.api.importExcelCounts(sessionId, this.selectedExcelFile, shelfParam, mode, this.filterObsoleteImport(), famParam).subscribe({
       next: (res) => {
         this.importingExcel.set(false);
         this.importResult = res;
-        const obsMsg = res.obsoleteFiltered ? ` (${res.obsoleteFiltered} obsoletos omitidos)` : '';
+        const obsMsg = res.obsoleteFiltered ? ` (${res.obsoleteFiltered} marcadas ELIMINAR en amarillo)` : '';
         this.toast.success(
           `Importación exitosa: ${res.addedRecords ?? res.importedRecords} nuevos, ${res.updatedRecords ?? 0} actualizados (${res.totalPieces} pzas)${obsMsg}.`
         );
@@ -8970,6 +8974,10 @@ export class CroquisComponent implements OnInit {
       next: (records) => {
         this.allSessionCounts.set(records);
         this.loadingFamilyCounts.set(false);
+        const openAssignerFam = this.locationAssignerFamily();
+        if (openAssignerFam) {
+          this.openLocationAssignerForFamily(openAssignerFam);
+        }
       },
       error: (err: any) => {
         this.loadingFamilyCounts.set(false);
@@ -8989,7 +8997,7 @@ export class CroquisComponent implements OnInit {
 
   assignSectionFromFamilyExplorer(item: CountRecordDto, section: string) {
     const cleanSec = section.trim().toUpperCase();
-    if (cleanSec && !/^[A-J]$/.test(cleanSec)) return;
+    if (cleanSec && !/^[SA-J]$/.test(cleanSec)) return;
 
     this.updatingRecordId.set(item.id);
     this.api.updateCountSection(item.id, cleanSec).subscribe({
@@ -9084,16 +9092,16 @@ export class CroquisComponent implements OnInit {
     const shelfCode = (item.shelfCode || (item.locations && item.locations[0] ? item.locations[0].shelfCode : '')).trim().toUpperCase();
     const section = (item.section || (item.locations && item.locations[0] ? item.locations[0].section : '')).trim().toUpperCase();
 
-    // 1. Direct Acero Master Catalog lookup by code, shelf, and section
+    // 1. Notes matching PB\d+-\d+[SA-J]-?\d* (exact imported/assigned location)
+    if (item.notes && typeof item.notes === 'string') {
+      const match = item.notes.match(/P[BA]\d+-\d+[SA-J]-?\d*/i);
+      if (match) return match[0].toUpperCase();
+    }
+
+    // 2. Direct Acero Master Catalog lookup by code, shelf, and section
     const aceroMeta = findAceroLocation(code, shelfCode, section);
     if (aceroMeta) {
       return aceroMeta.ubicacion;
-    }
-
-    // 2. Notes matching PB\d+-\d+[A-G]-?\d*
-    if (item.notes && typeof item.notes === 'string') {
-      const match = item.notes.match(/P[BA]\d+-\d+[A-G]-?\d*/i);
-      if (match) return match[0].toUpperCase();
     }
 
     // 3. Fallback for other families: shelf code + section
@@ -9456,7 +9464,8 @@ export class CroquisComponent implements OnInit {
     this.locationAssignerFilter.set('TODOS');
 
     this.bulkPlant.set('PB');
-    const defaultAisle = fam.id === 'ACERO' ? '3' : (fam.codePrefix || '1');
+    const famIdLower = (fam.id || '').toLowerCase();
+    const defaultAisle = famIdLower === 'acero' ? '3' : (fam.codePrefix || '1');
     this.bulkAisle.set(defaultAisle);
     const famShelves = this.familyShelves();
     if (famShelves.length > 0) {
@@ -9467,22 +9476,37 @@ export class CroquisComponent implements OnInit {
     this.bulkLevel.set('A');
     this.bulkPosition.set('1');
 
-    const counts = this.familyCounts();
+    const familyRecords = this.familyCounts();
+    const familyIds = new Set(familyRecords.map(r => r.id));
+    const pendingExtras = this.allSessionCounts().filter(r => {
+      if (familyIds.has(r.id)) return false;
+      if (!this.isPendingShelf(r.shelfCode)) return false;
+      const notes = (r.notes || '').trim().toLowerCase();
+      if (notes.startsWith('sin_definir::')) {
+        const tagFam = notes.replace('sin_definir::', '').trim();
+        return tagFam === famIdLower || tagFam === 'general';
+      }
+      return !r.section;
+    });
+    const counts = [...familyRecords, ...pendingExtras];
+
     const rows: LocationAssignerRow[] = counts.map(r => {
       const code = (r.capturedCode || '').trim();
       const desc = r.description || code;
       const shelfCode = (r.shelfCode || '').trim();
-      const decoded = this.decodeLocation(r.notes || '', r.section, code, shelfCode);
+      const rawNotes = (r.notes || '').trim();
+      const cleanNotes = (rawNotes.toUpperCase().startsWith('SIN_DEFINIR') || rawNotes.toUpperCase().startsWith('IMPORTADO DE:')) ? '' : rawNotes;
+      const decoded = this.decodeLocation(cleanNotes, r.section, code, shelfCode);
 
       const plant: 'PB' | 'PA' = decoded.plantCode === 'PA' ? 'PA' : 'PB';
       const aisle = decoded.aisleCode || defaultAisle;
-      const shelfNum = decoded.shelfCode || (shelfCode ? shelfCode.replace(/^[A-Za-z_-]+/, '') : '1');
+      const shelfNum = this.isPendingShelf(shelfCode) ? '' : (decoded.shelfCode || (shelfCode ? shelfCode.replace(/^[A-Za-z_-]+/, '') : '1'));
       const level = r.section || decoded.levelCode || '';
       const position = decoded.positionCode || '1';
 
-      const locationCode = (r.notes && r.notes.trim().length > 0)
-        ? r.notes.trim()
-        : (level ? this.buildLocationCode(plant, aisle, shelfNum, level, position) : '');
+      const locationCode = cleanNotes.length > 0
+        ? cleanNotes
+        : (level && !this.isPendingShelf(shelfCode) ? this.buildLocationCode(plant, aisle, shelfNum, level, position) : '');
 
       const stockActual = r.quantity || 0;
       const monthlyDemandAvg = Math.max(12, Math.round((stockActual || 25) * 1.25));
@@ -9630,6 +9654,9 @@ export class CroquisComponent implements OnInit {
           return r;
         });
         this.locationAssignerRows.set(updatedRows);
+        if (this.activeSessionId() > 0) {
+          this.loadShelves(this.activeSessionId());
+        }
 
         this.toast.success(`${updatedList.length} ubicaciones guardadas y sincronizadas exitosamente.`);
       },
@@ -9871,7 +9898,7 @@ export class CroquisComponent implements OnInit {
     if (!fam) return;
     const famShelves = this.familyShelves();
     const firstShelfId = famShelves.length > 0 ? famShelves[0].shelfId : 0;
-    this.openCroquisImportModal(firstShelfId);
+    this.openCroquisImportModal(firstShelfId, fam.id.toLowerCase());
     this.importMode.set('SMART_MERGE');
     this.toast.info(`Importador SAE listo para la seccion ${fam.name}. Selecciona el archivo de Excel o CSV.`);
   }

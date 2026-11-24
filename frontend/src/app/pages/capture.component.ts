@@ -2820,7 +2820,7 @@ export class CaptureComponent implements OnInit {
     const rawVal = inputEl?.value || '';
     const cleaned = rawVal.trim().toUpperCase();
     const allowTen = this.isTenLevelShelf();
-    const regex = allowTen ? /^[A-J]$/ : /^[A-G]$/;
+    const regex = allowTen ? /^[SA-J]$/ : /^[SA-G]$/;
 
     if (regex.test(cleaned)) {
       this.rows()[index].section = cleaned;
@@ -3238,7 +3238,7 @@ export class CaptureComponent implements OnInit {
       let secVal = '';
       if (sCol >= 0 && sCol < parts.length && parts[sCol]) {
         const cleanedSec = parts[sCol].trim().toUpperCase();
-        if (/^[A-G]$/.test(cleanedSec)) {
+        if (/^[SA-G]$/.test(cleanedSec)) {
           secVal = cleanedSec;
         }
       }

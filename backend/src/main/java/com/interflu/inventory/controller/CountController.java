@@ -68,10 +68,11 @@ public class CountController {
                                                @RequestParam(required = false) Long shelfId,
                                                @RequestParam(defaultValue = "SMART_MERGE") String mode,
                                                @RequestParam(defaultValue = "true", required = false) boolean filterObsolete,
+                                               @RequestParam(required = false) String targetFamily,
                                                @RequestParam("file") MultipartFile file) {
         User currentUser = userHelper.getCurrentUser();
         try {
-            Map<String, Object> result = countService.importExcelCounts(sessionId, shelfId, mode, filterObsolete, file, currentUser);
+            Map<String, Object> result = countService.importExcelCounts(sessionId, shelfId, mode, filterObsolete, targetFamily, file, currentUser);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             e.printStackTrace();

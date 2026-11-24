@@ -228,6 +228,8 @@ public class CountService {
         String plant;
         String position;
         Shelf resolvedShelf;
+        boolean sheetFromExplicitRack;
+        boolean hasExplicitShelfInfo;
     }
 
     public static boolean isObsoleteOrEliminated(String code, String desc) {
@@ -352,7 +354,7 @@ public class CountService {
                 || cu.equals("DETALLE") || cu.equals("CONCEPTO");
     }
 
-    private void parseSheetRowsIntoItems(List<String[]> rows, Shelf sheetShelf, List<ImportedItem> result) {
+    private void parseSheetRowsIntoItems(List<String[]> rows, Shelf sheetShelf, boolean sheetFromExplicitRack, List<ImportedItem> result) {
         if (rows == null || rows.isEmpty()) return;
 
         int codeCol = -1;
@@ -505,6 +507,10 @@ public class CountService {
             String plant = (plantCol >= 0 && row.length > plantCol) ? row[plantCol].trim().replace("\"", "") : null;
             String pos = (posCol >= 0 && row.length > posCol) ? row[posCol].trim().replace("\"", "") : null;
 
+            if (locCode != null && (locCode.isBlank() || locCode.contains("&") || locCode.startsWith("="))) {
+                locCode = null;
+            }
+
             if (locCode != null && !locCode.isBlank()) {
                 java.util.regex.Matcher lm = java.util.regex.Pattern.compile("(?i)^(P[BA])(\\d+)-(\\d+)([SA-J])-(\\d+)").matcher(locCode);
                 if (lm.find()) {
@@ -519,9 +525,14 @@ public class CountService {
                 }
             }
 
-            if (locCode == null && plant != null && aisle != null && shelfName != null && normalizedSec != null) {
-                locCode = plant + aisle + "-" + shelfName + normalizedSec + "-" + (pos != null ? pos : "1");
+            if (locCode == null && plant != null && !plant.isBlank() && aisle != null && !aisle.isBlank()
+                    && shelfName != null && !shelfName.isBlank() && normalizedSec != null) {
+                locCode = plant + aisle + "-" + shelfName + normalizedSec + "-" + (pos != null && !pos.isBlank() ? pos : "1");
             }
+
+            boolean hasRowShelfInfo = (shelfName != null && !shelfName.isBlank())
+                    || (locCode != null && !locCode.isBlank())
+                    || (aisle != null && !aisle.isBlank());
 
             ImportedItem item = new ImportedItem();
             item.code = code;
@@ -535,18 +546,85 @@ public class CountService {
             item.plant = plant;
             item.position = pos;
             item.resolvedShelf = sheetShelf;
+            item.sheetFromExplicitRack = sheetFromExplicitRack;
+            item.hasExplicitShelfInfo = sheetFromExplicitRack || hasRowShelfInfo;
 
             result.add(item);
         }
     }
 
-    public Shelf resolveCanonicalShelf(ImportedItem item, Shelf sheetShelf, Shelf defaultShelf, Map<String, Shelf> shelfCache) {
-        // 1. If item has explicit resolvedShelf from numbered sheet ('1'..'19', 'PB-ACE-01', etc.)
-        if (sheetShelf != null && sheetShelf.getCode().startsWith("PB-ACE-") && !sheetShelf.getCode().equals("PB-ACE-01")) {
-            return sheetShelf;
+    private static class SheetHeaderResolution {
+        Shelf shelf;
+        boolean explicitRackSheet;
+        SheetHeaderResolution(Shelf shelf, boolean explicitRackSheet) {
+            this.shelf = shelf;
+            this.explicitRackSheet = explicitRackSheet;
+        }
+    }
+
+    private SheetHeaderResolution resolveSheetHeaderShelf(String rawSheetName, Shelf userSelectedDefaultShelf, Map<String, Shelf> shelfCache) {
+        if (rawSheetName == null || rawSheetName.isBlank()) {
+            return new SheetHeaderResolution(userSelectedDefaultShelf, false);
+        }
+        String sName = rawSheetName.trim().toUpperCase();
+
+        // 1. Direct shelf code in sheet name (e.g. "PB-ACE-02", "PB-KUR-A01", "PA-P1-01")
+        Shelf direct = shelfCache.get(sName);
+        if (direct != null) {
+            return new SheetHeaderResolution(direct, true);
         }
 
-        // 2. Extract candidate shelf code from item's fields
+        // 2. Explicit Acero pattern in sheet name ("ACEROS 5", "PB-ACE-5", "ACE-05")
+        java.util.regex.Matcher mAce = java.util.regex.Pattern.compile("(?:ACEROS?|PB-ACE-|ACE-)\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
+        if (mAce.find()) {
+            try {
+                int num = Integer.parseInt(mAce.group(1));
+                Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
+                if (s != null) return new SheetHeaderResolution(s, true);
+            } catch (Exception ignored) {}
+        }
+
+        // 3. Explicit YPC pattern in sheet name
+        java.util.regex.Matcher mYpc = java.util.regex.Pattern.compile("(?:PB-)?YPC-?\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
+        if (mYpc.find()) {
+            try {
+                int num = Integer.parseInt(mYpc.group(1));
+                Shelf s = shelfCache.get(String.format("PB-YPC-%02d", num));
+                if (s != null) return new SheetHeaderResolution(s, true);
+            } catch (Exception ignored) {}
+        }
+
+        // 4. Numbered sheet ("1", "2", ..., "19", "ANAQUEL 3", "ESTANTE 4")
+        java.util.regex.Matcher mNum = java.util.regex.Pattern.compile("^(?:(?:ANAQUEL|ESTANTE)\\s*)?(\\d{1,2})$", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
+        if (mNum.find()) {
+            try {
+                int num = Integer.parseInt(mNum.group(1));
+                String defCode = userSelectedDefaultShelf != null ? userSelectedDefaultShelf.getCode().toUpperCase() : "";
+                if (defCode.startsWith("PB-YPC-")) {
+                    Shelf s = shelfCache.get(String.format("PB-YPC-%02d", num));
+                    if (s != null) return new SheetHeaderResolution(s, true);
+                } else if (defCode.startsWith("PB-CON-")) {
+                    Shelf s = shelfCache.get(String.format("PB-CON-%02d", num));
+                    if (s != null) return new SheetHeaderResolution(s, true);
+                } else if (defCode.startsWith("PB-SEL-")) {
+                    Shelf s = shelfCache.get(String.format("PB-SEL-%02d", num));
+                    if (s != null) return new SheetHeaderResolution(s, true);
+                } else if (num >= 1 && num <= 19) {
+                    Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
+                    if (s != null) return new SheetHeaderResolution(s, true);
+                }
+            } catch (Exception ignored) {}
+        }
+
+        return new SheetHeaderResolution(userSelectedDefaultShelf, false);
+    }
+
+    /**
+     * Resolves an explicit shelf from either row columns (ESTANTE, ANAQUEL, UBICACION, PASILLO)
+     * or an explicit numbered shelf sheet (1..19). Returns null when the row carries no location
+     * information (e.g., plain Aspel SAE stock export).
+     */
+    public Shelf resolveExplicitShelf(ImportedItem item, Shelf userSelectedDefaultShelf, Map<String, Shelf> shelfCache) {
         String candidateCode = null;
         if (item.shelfName != null && !item.shelfName.isBlank()) {
             candidateCode = item.shelfName.trim().toUpperCase();
@@ -555,21 +633,23 @@ public class CountService {
         }
 
         if (candidateCode != null) {
-            // Pattern: PB3-01, PB3-1, PB3-1A-1, PB-3-01 -> PB-ACE-01
-            java.util.regex.Matcher mPb3 = java.util.regex.Pattern.compile("(?i)^PB-?3-?(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(candidateCode);
+            // Direct exact shelf code (PB-ACE-02, PB-KUR-A01, PA-P1-03, etc.)
+            Shelf direct = shelfCache.get(candidateCode);
+            if (direct != null) return direct;
+
+            // Pattern: PB3-01, PB3-1, PB3-1A-1, PB-3-01 -> PB-ACE-01..19
+            java.util.regex.Matcher mPb3 = java.util.regex.Pattern.compile("(?i)^PB-?3-?(\\d+)").matcher(candidateCode);
             if (mPb3.find()) {
                 int num = Integer.parseInt(mPb3.group(1));
-                String targetCode = String.format("PB-ACE-%02d", num);
-                Shelf s = shelfCache.get(targetCode);
+                Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
                 if (s != null) return s;
             }
 
             // Pattern: PB-ACE-01, PB-ACE-1, ACE-01, ACE-1
-            java.util.regex.Matcher mAce = java.util.regex.Pattern.compile("(?i)^(?:PB-)?ACE-?(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(candidateCode);
+            java.util.regex.Matcher mAce = java.util.regex.Pattern.compile("(?i)^(?:PB-)?ACE-?(\\d+)").matcher(candidateCode);
             if (mAce.find()) {
                 int num = Integer.parseInt(mAce.group(1));
-                String targetCode = String.format("PB-ACE-%02d", num);
-                Shelf s = shelfCache.get(targetCode);
+                Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
                 if (s != null) return s;
             }
 
@@ -577,74 +657,55 @@ public class CountService {
             java.util.regex.Matcher mNum = java.util.regex.Pattern.compile("^(?:(?:ESTANTE|ANAQUEL)\\s*)?(\\d+)$", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(candidateCode);
             if (mNum.find()) {
                 int num = Integer.parseInt(mNum.group(1));
-                if ("3".equals(item.aisle) || (item.locationCode != null && item.locationCode.toUpperCase().startsWith("PB3")) || (defaultShelf != null && defaultShelf.getCode().startsWith("PB-ACE")) || (sheetShelf != null && sheetShelf.getCode().startsWith("PB-ACE"))) {
-                    String targetCode = String.format("PB-ACE-%02d", num);
-                    Shelf s = shelfCache.get(targetCode);
+                String refCode = item.resolvedShelf != null ? item.resolvedShelf.getCode().toUpperCase()
+                        : (userSelectedDefaultShelf != null ? userSelectedDefaultShelf.getCode().toUpperCase() : "");
+                if ("3".equals(item.aisle) || (item.locationCode != null && item.locationCode.toUpperCase().startsWith("PB3")) || refCode.startsWith("PB-ACE")) {
+                    Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
                     if (s != null) return s;
-                } else if ("1".equals(item.aisle)) {
-                    String targetCode = String.format("PB-CON-%02d", num);
-                    Shelf s = shelfCache.get(targetCode);
+                } else if ("1".equals(item.aisle) || refCode.startsWith("PB-CON")) {
+                    Shelf s = shelfCache.get(String.format("PB-CON-%02d", num));
                     if (s != null) return s;
-                } else if ("2".equals(item.aisle)) {
-                    String targetCode = String.format("PB-SEL-%02d", num);
-                    Shelf s = shelfCache.get(targetCode);
+                } else if ("2".equals(item.aisle) || refCode.startsWith("PB-SEL")) {
+                    Shelf s = shelfCache.get(String.format("PB-SEL-%02d", num));
                     if (s != null) return s;
-                } else if ("4".equals(item.aisle)) {
-                    String targetCode = String.format("PB-KUR-A%02d", num);
-                    Shelf s = shelfCache.get(targetCode);
+                } else if ("4".equals(item.aisle) || refCode.startsWith("PB-KUR")) {
+                    Shelf s = shelfCache.get(String.format("PB-KUR-A%02d", num));
                     if (s != null) return s;
-                } else if ("5".equals(item.aisle)) {
-                    String targetCode = String.format("PB-YPC-%02d", num);
-                    Shelf s = shelfCache.get(targetCode);
+                } else if ("5".equals(item.aisle) || refCode.startsWith("PB-YPC")) {
+                    Shelf s = shelfCache.get(String.format("PB-YPC-%02d", num));
                     if (s != null) return s;
                 } else if (num >= 1 && num <= 19) {
-                    String targetCode = String.format("PB-ACE-%02d", num);
-                    Shelf s = shelfCache.get(targetCode);
+                    Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
                     if (s != null) return s;
                 }
             }
-
-            // Direct match in shelfCache
-            Shelf direct = shelfCache.get(candidateCode.toUpperCase());
-            if (direct != null) return direct;
         }
 
-        // 3. Fallback to sheetShelf if sheet was explicitly matched
-        if (sheetShelf != null) {
-            return sheetShelf;
+        // Explicit numbered/shelf sheet fallback
+        if (item.sheetFromExplicitRack && item.resolvedShelf != null) {
+            return item.resolvedShelf;
         }
-
-        // 4. Fallback to master catalog if known Acero code
-        AceroMasterCatalogService.AceroLocationItem acItem = aceroCatalog.findByCode(item.code);
-        if (acItem != null && acItem.shelfCode != null) {
-            Shelf acShelf = shelfCache.get(acItem.shelfCode.toUpperCase());
-            if (acShelf != null) return acShelf;
-        }
-
-        // 5. Fallback to defaultShelf
-        if (defaultShelf != null) {
-            return defaultShelf;
-        }
-
-        // 6. Fallback: Pendiente shelf PB-PEN-01 if exists
-        Shelf penShelf = shelfCache.get("PB-PEN-01");
-        if (penShelf != null) return penShelf;
 
         return null;
     }
 
     /**
      * Imports already counted Excel (.xlsx / .csv) directly into the session,
-     * automatically mapping Nivel (S, A-G) to physical shelf sections and supporting
+     * automatically mapping Nivel (S, A-J) to physical shelf sections and supporting
      * SMART_MERGE (update existing + append new), REPLACE_ALL, and WEEKLY_UPDATE modes.
      */
     @Transactional
     public Map<String, Object> importExcelCounts(Long sessionId, Long targetShelfId, String importMode, MultipartFile file, User user) throws Exception {
-        return importExcelCounts(sessionId, targetShelfId, importMode, true, file, user);
+        return importExcelCounts(sessionId, targetShelfId, importMode, true, null, file, user);
     }
 
     @Transactional
     public Map<String, Object> importExcelCounts(Long sessionId, Long targetShelfId, String importMode, boolean filterObsolete, MultipartFile file, User user) throws Exception {
+        return importExcelCounts(sessionId, targetShelfId, importMode, filterObsolete, null, file, user);
+    }
+
+    @Transactional
+    public Map<String, Object> importExcelCounts(Long sessionId, Long targetShelfId, String importMode, boolean filterObsolete, String targetFamily, MultipartFile file, User user) throws Exception {
         InventorySession session = sessionRepo.findById(sessionId)
                 .orElseThrow(() -> new IllegalArgumentException("Sesión no encontrada"));
 
@@ -662,44 +723,54 @@ public class CountService {
 
         String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename().toLowerCase() : "";
 
-        // Shelf resolution: either passed explicitly or matched from file name (e.g., "ACEROS 5" -> "PB-ACE-05")
-        Shelf defaultShelf = null;
-        if (targetShelfId != null && targetShelfId > 0) {
-            defaultShelf = shelfRepo.findById(targetShelfId).orElse(null);
+        // Preload shelf cache before reading workbook so sheet mapping uses canonical shelves
+        Map<String, Shelf> shelfCache = new HashMap<>();
+        List<Shelf> allActiveShelves = shelfRepo.findByActiveTrueOrderByCodeAsc();
+        for (Shelf s : shelfRepo.findAll()) {
+            shelfCache.put(s.getCode().toUpperCase(), s);
         }
-        if (defaultShelf == null && file.getOriginalFilename() != null) {
+
+        Shelf userSelectedDefaultShelf = null;
+        if (targetShelfId != null && targetShelfId > 0) {
+            userSelectedDefaultShelf = shelfRepo.findById(targetShelfId).orElse(null);
+        }
+        Shelf filenameInferredShelf = null;
+        if (userSelectedDefaultShelf == null && file.getOriginalFilename() != null) {
             String cleanName = file.getOriginalFilename().toUpperCase();
             java.util.regex.Matcher m = java.util.regex.Pattern.compile("ACEROS?\\s*(\\d+)|PB-ACE-(\\d+)|ACE-(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(cleanName);
             if (m.find()) {
                 String numStr = m.group(1) != null ? m.group(1) : (m.group(2) != null ? m.group(2) : m.group(3));
                 int num = Integer.parseInt(numStr);
-                String targetCode = String.format("PB-ACE-%02d", num);
-                defaultShelf = shelfRepo.findByCodeIgnoreCase(targetCode).orElse(null);
+                filenameInferredShelf = shelfCache.get(String.format("PB-ACE-%02d", num));
             }
         }
-        if (defaultShelf == null) {
-            List<Shelf> allShelves = shelfRepo.findByActiveTrueOrderByCodeAsc();
-            defaultShelf = allShelves.isEmpty() ? null : allShelves.get(0);
+        Shelf pendingShelf = shelfCache.get("PB-PEN-01");
+        if (pendingShelf == null) {
+            pendingShelf = shelfCache.get("PA-GEN-01");
         }
+        if (pendingShelf == null && !allActiveShelves.isEmpty()) {
+            pendingShelf = allActiveShelves.get(0);
+        }
+
+        Shelf effectiveDefaultShelf = userSelectedDefaultShelf != null ? userSelectedDefaultShelf : filenameInferredShelf;
 
         List<ImportedItem> itemsToProcess = new ArrayList<>();
 
         if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
             try (InputStream is = file.getInputStream(); Workbook workbook = WorkbookFactory.create(is)) {
                 DataFormatter formatter = new DataFormatter();
+                FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
                 List<Sheet> sheetsToRead = new ArrayList<>();
 
-                // If the workbook has multiple sheets, check if it has individual shelf sheets (e.g. sheets named "1", "2", "3" or containing ESTANTE/UBICACIÓN)
                 boolean hasShelfNumberedSheets = false;
                 for (int s = 0; s < workbook.getNumberOfSheets(); s++) {
                     String sn = workbook.getSheetName(s).trim();
-                    if (sn.matches("^(?:[1-9]|1[0-9])$") || sn.matches("(?i)^(?:ANAQUEL|ESTANTE)\\s*\\d+$")) {
+                    if (sn.matches("^\\d{1,2}$") || sn.matches("(?i)^(?:ANAQUEL|ESTANTE|PB-\\w+-|PA-\\w+-)\\s*[A-Z0-9-]+$")) {
                         hasShelfNumberedSheets = true;
                         break;
                     }
                 }
 
-                // If the workbook has multiple sheets, read all sheets so multi-shelf workbooks (e.g. 19 sheets) are completely processed
                 if (workbook.getNumberOfSheets() > 1) {
                     for (int s = 0; s < workbook.getNumberOfSheets(); s++) {
                         Sheet sh = workbook.getSheetAt(s);
@@ -707,7 +778,6 @@ public class CountService {
                         if (sName.contains("INSTRUCC") || sName.contains("PORTADA") || sName.contains("LEEME") || sName.contains("README")) {
                             continue;
                         }
-                        // If this workbook has numbered shelf sheets ('1', '2', ..., '19'), skip any summary sheet like 'Hoja1' that has audit columns (AJUSTE, EXIST SISTEMA)
                         if (hasShelfNumberedSheets && (sName.startsWith("HOJA") || sName.startsWith("SHEET") || sName.contains("COMPARATIV") || sName.contains("RESUMEN") || sName.contains("DIFERENC"))) {
                             boolean isAuditSummary = false;
                             for (int r = 0; r < Math.min(sh.getLastRowNum() + 1, 3); r++) {
@@ -731,28 +801,12 @@ public class CountService {
                         }
                         sheetsToRead.add(sh);
                     }
-                } else if (targetShelfId != null && targetShelfId > 0 && defaultShelf != null) {
-                    sheetsToRead.add(workbook.getSheetAt(0));
                 } else {
                     sheetsToRead.add(workbook.getSheetAt(0));
                 }
 
                 for (Sheet sheet : sheetsToRead) {
-                    Shelf sheetShelf = defaultShelf;
-                    String sName = sheet.getSheetName().trim().toUpperCase();
-                    java.util.regex.Matcher sm = java.util.regex.Pattern.compile("(?:ACEROS?|PB-ACE-|ACE-|ANAQUEL|ESTANTE)?\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
-                    if (sm.find()) {
-                        try {
-                            int num = Integer.parseInt(sm.group(1));
-                            if (num >= 1 && num <= 19) {
-                                String targetCode = String.format("PB-ACE-%02d", num);
-                                Optional<Shelf> foundS = shelfRepo.findByCodeIgnoreCase(targetCode);
-                                if (foundS.isPresent()) {
-                                    sheetShelf = foundS.get();
-                                }
-                            }
-                        } catch (Exception ignored) {}
-                    }
+                    SheetHeaderResolution sheetRes = resolveSheetHeaderShelf(sheet.getSheetName(), effectiveDefaultShelf, shelfCache);
 
                     List<String[]> sheetRows = new ArrayList<>();
                     for (Row row : sheet) {
@@ -763,23 +817,24 @@ public class CountService {
                         for (int c = 0; c < maxCols; c++) {
                             Cell cell = row.getCell(c, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
                             String val;
-                            if (cell.getCellType() == org.apache.poi.ss.usermodel.CellType.NUMERIC) {
+                            if (cell.getCellType() == CellType.NUMERIC) {
                                 double numVal = cell.getNumericCellValue();
-                                if (numVal == Math.floor(numVal) && !Double.isInfinite(numVal)) {
-                                    val = String.valueOf((long) numVal);
-                                } else {
-                                    val = String.valueOf(numVal);
-                                }
-                            } else if (cell.getCellType() == org.apache.poi.ss.usermodel.CellType.FORMULA) {
-                                try {
+                                val = (numVal == Math.floor(numVal) && !Double.isInfinite(numVal))
+                                        ? String.valueOf((long) numVal) : String.valueOf(numVal);
+                            } else if (cell.getCellType() == CellType.FORMULA) {
+                                CellType cached = cell.getCachedFormulaResultType();
+                                if (cached == CellType.NUMERIC) {
                                     double numVal = cell.getNumericCellValue();
-                                    if (numVal == Math.floor(numVal) && !Double.isInfinite(numVal)) {
-                                        val = String.valueOf((long) numVal);
-                                    } else {
-                                        val = String.valueOf(numVal);
+                                    val = (numVal == Math.floor(numVal) && !Double.isInfinite(numVal))
+                                            ? String.valueOf((long) numVal) : String.valueOf(numVal);
+                                } else if (cached == CellType.STRING) {
+                                    val = cell.getRichStringCellValue().getString().trim();
+                                } else {
+                                    try {
+                                        val = formatter.formatCellValue(cell, evaluator).trim();
+                                    } catch (Exception ignored) {
+                                        val = "";
                                     }
-                                } catch (Exception ignored) {
-                                    val = formatter.formatCellValue(cell).trim();
                                 }
                             } else {
                                 val = formatter.formatCellValue(cell).trim();
@@ -790,7 +845,7 @@ public class CountService {
                         if (hasText) sheetRows.add(cells.toArray(new String[0]));
                     }
 
-                    parseSheetRowsIntoItems(sheetRows, sheetShelf, itemsToProcess);
+                    parseSheetRowsIntoItems(sheetRows, sheetRes.shelf, sheetRes.explicitRackSheet, itemsToProcess);
                 }
             }
         } else {
@@ -812,12 +867,99 @@ public class CountService {
                     }
                     if (hasText) csvRows.add(parts);
                 }
-                parseSheetRowsIntoItems(csvRows, defaultShelf, itemsToProcess);
+                parseSheetRowsIntoItems(csvRows, effectiveDefaultShelf, filenameInferredShelf != null, itemsToProcess);
             }
         }
 
         if (itemsToProcess.isEmpty()) {
             throw new IllegalArgumentException("El archivo está vacío o no contiene partidas legibles.");
+        }
+
+        // Pre-resolve explicit physical shelf targets for every imported item
+        Map<ImportedItem, Shelf> explicitShelfMap = new IdentityHashMap<>();
+        Set<Long> explicitShelfIds = new LinkedHashSet<>();
+        Map<Long, Set<String>> codesNeededPerExplicitShelf = new HashMap<>();
+        Map<Long, Integer> explicitRowCountPerShelf = new HashMap<>();
+        Map<String, Integer> rowCountPerCodeInFile = new HashMap<>();
+
+        for (ImportedItem item : itemsToProcess) {
+            rowCountPerCodeInFile.merge(item.code, 1, Integer::sum);
+            Shelf s = resolveExplicitShelf(item, effectiveDefaultShelf, shelfCache);
+            if (s != null) {
+                explicitShelfMap.put(item, s);
+                explicitShelfIds.add(s.getId());
+                codesNeededPerExplicitShelf.computeIfAbsent(s.getId(), k -> new HashSet<>()).add(item.code);
+                if (item.hasExplicitShelfInfo || item.section != null) {
+                    explicitRowCountPerShelf.merge(s.getId(), 1, Integer::sum);
+                }
+            }
+        }
+
+        boolean isMultiShelfPhysicalImport = explicitShelfIds.size() >= 2;
+        Set<Long> fullPhysicalShelfIds = new LinkedHashSet<>();
+        if ("REPLACE_ALL".equals(mode)) {
+            if (!explicitShelfIds.isEmpty()) {
+                fullPhysicalShelfIds.addAll(explicitShelfIds);
+            } else if (effectiveDefaultShelf != null) {
+                fullPhysicalShelfIds.add(effectiveDefaultShelf.getId());
+            }
+        } else if (isMultiShelfPhysicalImport) {
+            for (Long sId : explicitShelfIds) {
+                if (explicitRowCountPerShelf.getOrDefault(sId, 0) >= 10) {
+                    fullPhysicalShelfIds.add(sId);
+                }
+            }
+        }
+
+        // In REPLACE_ALL mode, wipe affected shelves BEFORE indexing pre-existing records
+        if ("REPLACE_ALL".equals(mode)) {
+            for (Long sId : fullPhysicalShelfIds) {
+                List<CountRecord> oldShelfRecords = countRepo.findBySessionIdAndShelfId(session.getId(), sId);
+                if (!oldShelfRecords.isEmpty()) {
+                    countRepo.deleteAll(oldShelfRecords);
+                }
+            }
+            if (!fullPhysicalShelfIds.isEmpty()) {
+                countRepo.flush();
+            }
+        }
+
+        Map<String, Product> productCache = new HashMap<>();
+        for (Product p : productRepo.findAll()) {
+            productCache.put(p.getCode().toUpperCase(), p);
+        }
+
+        List<CountRecord> sessionRecordsAll = countRepo.findBySessionIdOrderByIdAsc(session.getId());
+        Map<String, List<CountRecord>> allPreexistingByCode = new HashMap<>();
+        Map<Long, Map<String, List<CountRecord>>> preexistingByShelfAndCode = new HashMap<>();
+        Map<String, Deque<CountRecord>> relocatableByCode = new HashMap<>();
+
+        for (CountRecord r : sessionRecordsAll) {
+            String cu = r.getCapturedCode().toUpperCase();
+            allPreexistingByCode.computeIfAbsent(cu, k -> new ArrayList<>()).add(r);
+            if (r.getShelf() != null) {
+                Long sId = r.getShelf().getId();
+                String sCode = r.getShelf().getCode().toUpperCase();
+                preexistingByShelfAndCode
+                        .computeIfAbsent(sId, k -> new HashMap<>())
+                        .computeIfAbsent(cu, k -> new ArrayList<>())
+                        .add(r);
+
+                boolean isPhantomPb3 = sCode.matches("^PB-?3-?\\d+$");
+                boolean isPendingBucket = sCode.contains("PEN") || sCode.contains("GEN");
+                boolean isStrandedOnSingleDump = isMultiShelfPhysicalImport
+                        && (sCode.equals("PB-ACE-01") || (effectiveDefaultShelf != null && effectiveDefaultShelf.getId().equals(sId)))
+                        && !codesNeededPerExplicitShelf.getOrDefault(sId, Collections.emptySet()).contains(cu);
+
+                if (isPhantomPb3 || isPendingBucket || isStrandedOnSingleDump) {
+                    relocatableByCode.computeIfAbsent(cu, k -> new ArrayDeque<>()).add(r);
+                }
+            }
+        }
+
+        Map<Long, ShelfAssignment> assignmentMap = new HashMap<>();
+        for (ShelfAssignment sa : assignmentRepo.findBySessionIdOrderByShelfCodeAsc(session.getId())) {
+            assignmentMap.put(sa.getShelf().getId(), sa);
         }
 
         int importedCount = 0;
@@ -827,73 +969,192 @@ public class CountService {
         int obsoleteFilteredCount = 0;
         double totalPiecesImported = 0.0;
         Set<Long> affectedShelves = new LinkedHashSet<>();
-        Set<Long> clearedShelves = new HashSet<>();
-        Set<String> seenInThisFile = new HashSet<>();
-
-        // PRELOAD CACHE FOR ULTRA-FAST IMPORT (Eliminates thousands of individual SQL queries)
-        Map<String, Shelf> shelfCache = new HashMap<>();
-        for (Shelf s : shelfRepo.findAll()) {
-            shelfCache.put(s.getCode().toUpperCase(), s);
-        }
-
-        Map<String, Product> productCache = new HashMap<>();
-        for (Product p : productRepo.findAll()) {
-            productCache.put(p.getCode().toUpperCase(), p);
-        }
-
-        List<CountRecord> sessionRecordsAll = countRepo.findBySessionIdOrderByUpdatedAtDesc(session.getId());
-        Map<String, List<CountRecord>> recordsByCode = new HashMap<>();
-        Map<String, CountRecord> recordsByShelfAndCode = new HashMap<>();
-        for (CountRecord r : sessionRecordsAll) {
-            String cu = r.getCapturedCode().toUpperCase();
-            recordsByCode.computeIfAbsent(cu, k -> new ArrayList<>()).add(r);
-            if (r.getShelf() != null) {
-                recordsByShelfAndCode.put(r.getShelf().getId() + "::" + cu, r);
-            }
-        }
-
-        Map<Long, ShelfAssignment> assignmentMap = new HashMap<>();
-        for (ShelfAssignment sa : assignmentRepo.findBySessionIdOrderByShelfCodeAsc(session.getId())) {
-            assignmentMap.put(sa.getShelf().getId(), sa);
-        }
+        Set<Long> claimedPreexistingIds = new HashSet<>();
 
         List<Product> newProductsToSave = new ArrayList<>();
         List<CountRecord> recordsToSave = new ArrayList<>();
         Map<Long, ShelfAssignment> assignmentsToSave = new HashMap<>();
+
+        String familyHint = (targetFamily != null && !targetFamily.isBlank()) ? targetFamily.trim().toLowerCase() : "general";
 
         for (ImportedItem item : itemsToProcess) {
             String code = item.code;
             double qty = item.quantity != null ? item.quantity : 0.0;
             String normalizedSec = item.section;
 
-            // Never discard obsolete or ELIMINAR codes: keep them all for user inspection and filtering
             if (isObsoleteOrEliminated(code, item.description)) {
                 obsoleteFilteredCount++;
             }
 
-            Shelf finalShelf = resolveCanonicalShelf(item, item.resolvedShelf, defaultShelf, shelfCache);
-            if (finalShelf == null) {
-                finalShelf = defaultShelf;
-            }
-            if (finalShelf == null) continue;
+            Shelf explicitShelf = explicitShelfMap.get(item);
 
-            // In REPLACE_ALL mode, wipe previous counts on each affected shelf once before inserting fresh rows
-            if ("REPLACE_ALL".equals(mode) && clearedShelves.add(finalShelf.getId())) {
-                List<CountRecord> oldShelfRecords = countRepo.findBySessionIdAndShelfId(session.getId(), finalShelf.getId());
-                if (!oldShelfRecords.isEmpty()) {
-                    countRepo.deleteAll(oldShelfRecords);
-                    countRepo.flush();
+            // CASE A: Row has NO explicit shelf/sheet info (e.g. plain Aspel SAE stock export)
+            if (explicitShelf == null) {
+                List<CountRecord> existingMatches = allPreexistingByCode.getOrDefault(code, Collections.emptyList());
+                List<CountRecord> physicalMatches = new ArrayList<>();
+                List<CountRecord> pendingMatches = new ArrayList<>();
+                for (CountRecord r : existingMatches) {
+                    if (r.getId() != null && claimedPreexistingIds.contains(r.getId())) continue;
+                    String sc = r.getShelf() != null ? r.getShelf().getCode().toUpperCase() : "";
+                    if (sc.contains("PEN") || sc.contains("GEN") || sc.matches("^PB-?3-?\\d+$")) {
+                        pendingMatches.add(r);
+                    } else {
+                        physicalMatches.add(r);
+                    }
                 }
+
+                // If item ALREADY lives on physical shelf(ves) and user isn't explicitly forcing single-shelf REPLACE_ALL:
+                // Update stock quantity IN-PLACE while keeping physical shelf, level (S, A-J), and location intact!
+                if (!physicalMatches.isEmpty() && (!"REPLACE_ALL".equals(mode) || userSelectedDefaultShelf == null)) {
+                    boolean singleSaeSummaryForCode = rowCountPerCodeInFile.getOrDefault(code, 1) == 1;
+                    for (int i = 0; i < physicalMatches.size(); i++) {
+                        CountRecord rec = physicalMatches.get(i);
+                        if (rec.getVersion() == null) rec.setVersion(0L);
+                        if (item.hasExplicitQuantity) {
+                            rec.setPreviousQuantity(rec.getQuantity());
+                            rec.setQuantity((singleSaeSummaryForCode && i > 0) ? 0.0 : qty);
+                        }
+                        if (item.description != null && !item.description.isBlank() && rec.getProduct() != null) {
+                            rec.getProduct().setDescription(item.description);
+                            productCache.put(code, rec.getProduct());
+                            newProductsToSave.add(rec.getProduct());
+                        }
+                        if ((rec.getSection() == null || rec.getSection().isBlank()) && normalizedSec != null) {
+                            rec.setSection(normalizedSec);
+                        }
+                        rec.setUpdatedAt(LocalDateTime.now());
+                        rec.setValidationStatus(CountRecord.ValidationStatus.VALIDO);
+                        recordsToSave.add(rec);
+                        if (rec.getId() != null) claimedPreexistingIds.add(rec.getId());
+                        if (rec.getSection() != null && !rec.getSection().isBlank()) withSectionCount++;
+                        updatedRecords++;
+
+                        Shelf sh = rec.getShelf();
+                        affectedShelves.add(sh.getId());
+                        ShelfAssignment sa = assignmentMap.get(sh.getId());
+                        if (sa == null) {
+                            sa = new ShelfAssignment(session, sh, user);
+                            assignmentMap.put(sh.getId(), sa);
+                        }
+                        if (rec.getSection() != null && !rec.getSection().isBlank()) {
+                            sa.setStatus(ShelfAssignment.Status.COMPLETADO);
+                            sa.setCompletedAt(LocalDateTime.now());
+                        } else if (sa.getStatus() == ShelfAssignment.Status.PENDIENTE) {
+                            sa.setStatus(ShelfAssignment.Status.EN_CONTEO);
+                        }
+                        assignmentsToSave.put(sh.getId(), sa);
+                        if (singleSaeSummaryForCode) break; // primary bin holds full quantity; secondary zeroed only if more exist
+                    }
+                    // If singleSaeSummaryForCode had secondary physical bins, zero them to prevent double stock inflation
+                    if (singleSaeSummaryForCode && physicalMatches.size() > 1 && item.hasExplicitQuantity) {
+                        for (int i = 1; i < physicalMatches.size(); i++) {
+                            CountRecord extra = physicalMatches.get(i);
+                            if (extra.getVersion() == null) extra.setVersion(0L);
+                            extra.setPreviousQuantity(extra.getQuantity());
+                            extra.setQuantity(0.0);
+                            extra.setUpdatedAt(LocalDateTime.now());
+                            recordsToSave.add(extra);
+                            if (extra.getId() != null) claimedPreexistingIds.add(extra.getId());
+                        }
+                    }
+
+                    importedCount++;
+                    if (item.hasExplicitQuantity) totalPiecesImported += qty;
+                    continue;
+                }
+
+                // Brand new or unlocated SAE SKU -> place on explicit userSelectedDefaultShelf (if chosen) OR pendingShelf (NO DEFINIDO)
+                Shelf targetShelf = (userSelectedDefaultShelf != null) ? userSelectedDefaultShelf : pendingShelf;
+                if (targetShelf == null) continue;
+
+                Product product = productCache.get(code);
+                if (product == null) {
+                    String desc = (item.description != null && !item.description.isBlank()) ? item.description : parseIndustrialDescription(code);
+                    product = new Product(code, desc, "PZA", "GENERAL", targetShelf.getCode(), 0.0);
+                    productCache.put(code, product);
+                    newProductsToSave.add(product);
+                }
+
+                CountRecord rec = null;
+                if (!pendingMatches.isEmpty()) {
+                    rec = pendingMatches.get(0);
+                } else {
+                    List<CountRecord> onTarget = preexistingByShelfAndCode
+                            .getOrDefault(targetShelf.getId(), Collections.emptyMap())
+                            .getOrDefault(code, Collections.emptyList());
+                    for (CountRecord cand : onTarget) {
+                        if (cand.getId() == null || !claimedPreexistingIds.contains(cand.getId())) {
+                            rec = cand;
+                            break;
+                        }
+                    }
+                }
+
+                if (rec != null) {
+                    if (rec.getVersion() == null) rec.setVersion(0L);
+                    rec.setShelf(targetShelf);
+                    if (item.hasExplicitQuantity) {
+                        rec.setPreviousQuantity(rec.getQuantity());
+                        rec.setQuantity(qty);
+                    }
+                    if (item.description != null && !item.description.isBlank() && rec.getProduct() != null) {
+                        rec.getProduct().setDescription(item.description);
+                        productCache.put(code, rec.getProduct());
+                        newProductsToSave.add(rec.getProduct());
+                    }
+                    if (normalizedSec != null) rec.setSection(normalizedSec);
+                    rec.setNotes(item.locationCode != null && !item.locationCode.isBlank() ? item.locationCode : ("SIN_DEFINIR::" + familyHint));
+                    rec.setUpdatedAt(LocalDateTime.now());
+                    rec.setValidationStatus(CountRecord.ValidationStatus.VALIDO);
+                    recordsToSave.add(rec);
+                    if (rec.getId() != null) claimedPreexistingIds.add(rec.getId());
+                    updatedRecords++;
+                } else {
+                    rec = new CountRecord();
+                    rec.setSession(session);
+                    rec.setShelf(targetShelf);
+                    rec.setProduct(product);
+                    rec.setCapturedCode(code);
+                    rec.setQuantity(item.hasExplicitQuantity ? qty : 0.0);
+                    rec.setSection(normalizedSec);
+                    rec.setUser(user);
+                    rec.setNotes(item.locationCode != null && !item.locationCode.isBlank() ? item.locationCode : ("SIN_DEFINIR::" + familyHint));
+                    rec.setCountedAt(LocalDateTime.now());
+                    rec.setUpdatedAt(LocalDateTime.now());
+                    rec.setValidationStatus(CountRecord.ValidationStatus.VALIDO);
+                    recordsToSave.add(rec);
+                    addedRecords++;
+                }
+                if (rec.getSection() != null && !rec.getSection().isBlank()) withSectionCount++;
+
+                ShelfAssignment sa = assignmentMap.get(targetShelf.getId());
+                if (sa == null) {
+                    sa = new ShelfAssignment(session, targetShelf, user);
+                    assignmentMap.put(targetShelf.getId(), sa);
+                }
+                boolean isPendingBucket = targetShelf.getCode().toUpperCase().contains("PEN") || targetShelf.getCode().toUpperCase().contains("GEN");
+                if (!isPendingBucket && normalizedSec != null) {
+                    sa.setStatus(ShelfAssignment.Status.COMPLETADO);
+                    sa.setCompletedAt(LocalDateTime.now());
+                } else if (sa.getStatus() == ShelfAssignment.Status.PENDIENTE) {
+                    sa.setStatus(ShelfAssignment.Status.EN_CONTEO);
+                }
+                assignmentsToSave.put(targetShelf.getId(), sa);
+                affectedShelves.add(targetShelf.getId());
+                importedCount++;
+                if (item.hasExplicitQuantity) totalPiecesImported += qty;
+                continue;
             }
 
-            // Ensure assignment exists for this session in cache
+            // CASE B: Row has EXPLICIT physical shelf (e.g. Multi-sheet 1..19, ESTANTE column, UBICACION PB3-2A-1)
+            Shelf finalShelf = explicitShelf;
+
             ShelfAssignment sa = assignmentMap.get(finalShelf.getId());
             if (sa == null) {
                 sa = new ShelfAssignment(session, finalShelf, user);
                 assignmentMap.put(finalShelf.getId(), sa);
             }
 
-            // Product check/create in cache
             Product product = productCache.get(code);
             if (product == null) {
                 String desc = (item.description != null && !item.description.isBlank()) ? item.description : parseIndustrialDescription(code);
@@ -902,53 +1163,74 @@ public class CountService {
                 newProductsToSave.add(product);
             }
 
-            String shelfKey = finalShelf.getId() + "::" + code;
-            boolean alreadySeenInThisFile = !seenInThisFile.add(shelfKey);
+            // Find an UNCLAIMED preexisting record on finalShelf first (exact section match preferred!)
+            CountRecord rec = null;
+            List<CountRecord> candidatesOnShelf = preexistingByShelfAndCode
+                    .getOrDefault(finalShelf.getId(), Collections.emptyMap())
+                    .getOrDefault(code, Collections.emptyList());
 
-            CountRecord rec = recordsByShelfAndCode.get(shelfKey);
+            if (normalizedSec != null) {
+                for (CountRecord cand : candidatesOnShelf) {
+                    if (cand.getId() != null && claimedPreexistingIds.contains(cand.getId())) continue;
+                    if (normalizedSec.equalsIgnoreCase(cand.getSection())) {
+                        rec = cand;
+                        break;
+                    }
+                }
+            }
             if (rec == null) {
-                List<CountRecord> matchesInSession = recordsByCode.get(code);
-                if (matchesInSession != null && !matchesInSession.isEmpty()) {
-                    rec = matchesInSession.get(0);
-                    rec.setShelf(finalShelf);
-                    recordsByShelfAndCode.put(shelfKey, rec);
+                for (CountRecord cand : candidatesOnShelf) {
+                    if (cand.getId() != null && claimedPreexistingIds.contains(cand.getId())) continue;
+                    if (cand.getSection() == null || cand.getSection().isBlank()) {
+                        rec = cand;
+                        break;
+                    }
+                }
+            }
+            if (rec == null) {
+                for (CountRecord cand : candidatesOnShelf) {
+                    if (cand.getId() != null && claimedPreexistingIds.contains(cand.getId())) continue;
+                    rec = cand;
+                    break;
+                }
+            }
+
+            // Otherwise relocate an UNCLAIMED trapped record from PB3-*, PENDIENTE, or stranded Anaquel 1
+            if (rec == null) {
+                Deque<CountRecord> relocDeque = relocatableByCode.get(code);
+                if (relocDeque != null) {
+                    while (!relocDeque.isEmpty()) {
+                        CountRecord cand = relocDeque.pollFirst();
+                        if (cand.getId() == null || !claimedPreexistingIds.contains(cand.getId())) {
+                            rec = cand;
+                            break;
+                        }
+                    }
                 }
             }
 
             if (rec != null) {
-                if (rec.getVersion() == null) {
-                    rec.setVersion(0L);
-                }
+                if (rec.getVersion() == null) rec.setVersion(0L);
                 rec.setShelf(finalShelf);
-
-                if (item.hasExplicitQuantity) {
-                    if (alreadySeenInThisFile && !"WEEKLY_UPDATE".equals(mode)) {
-                        rec.setQuantity((rec.getQuantity() != null ? rec.getQuantity() : 0.0) + qty);
-                    } else {
-                        rec.setPreviousQuantity(rec.getQuantity());
-                        rec.setQuantity(qty);
-                    }
+                rec.setPreviousQuantity(rec.getQuantity());
+                rec.setQuantity(item.hasExplicitQuantity ? qty : 0.0);
+                if (item.description != null && !item.description.isBlank() && rec.getProduct() != null) {
+                    rec.getProduct().setDescription(item.description);
+                    productCache.put(code, rec.getProduct());
+                    newProductsToSave.add(rec.getProduct());
                 }
-                if (item.description != null && !item.description.isBlank()) {
-                    if (rec.getProduct() != null) {
-                        rec.getProduct().setDescription(item.description);
-                        productCache.put(code, rec.getProduct());
-                        newProductsToSave.add(rec.getProduct());
-                    }
-                }
-                if (normalizedSec != null) {
-                    rec.setSection(normalizedSec);
-                }
+                rec.setSection(normalizedSec);
                 if (item.locationCode != null && !item.locationCode.isBlank()) {
                     rec.setNotes(item.locationCode);
+                } else {
+                    rec.setNotes(null);
                 }
                 rec.setUpdatedAt(LocalDateTime.now());
                 rec.setValidationStatus(CountRecord.ValidationStatus.VALIDO);
                 recordsToSave.add(rec);
+                if (rec.getId() != null) claimedPreexistingIds.add(rec.getId());
                 updatedRecords++;
-                if (rec.getSection() != null && !rec.getSection().isBlank()) {
-                    withSectionCount++;
-                }
+                if (rec.getSection() != null && !rec.getSection().isBlank()) withSectionCount++;
             } else {
                 rec = new CountRecord();
                 rec.setSession(session);
@@ -956,30 +1238,62 @@ public class CountService {
                 rec.setProduct(product);
                 rec.setCapturedCode(code);
                 rec.setQuantity(item.hasExplicitQuantity ? qty : 0.0);
-                if (normalizedSec != null) {
-                    rec.setSection(normalizedSec);
-                    withSectionCount++;
-                }
+                rec.setSection(normalizedSec);
+                if (rec.getSection() != null && !rec.getSection().isBlank()) withSectionCount++;
                 rec.setUser(user);
-                String noteVal = (item.locationCode != null && !item.locationCode.isBlank()) ? item.locationCode : ("Importado de: " + file.getOriginalFilename());
-                rec.setNotes(noteVal);
+                rec.setNotes(item.locationCode != null && !item.locationCode.isBlank() ? item.locationCode : null);
                 rec.setCountedAt(LocalDateTime.now());
                 rec.setUpdatedAt(LocalDateTime.now());
                 rec.setValidationStatus(CountRecord.ValidationStatus.VALIDO);
                 recordsToSave.add(rec);
-                recordsByShelfAndCode.put(shelfKey, rec);
-                recordsByCode.computeIfAbsent(code, k -> new ArrayList<>()).add(rec);
                 addedRecords++;
             }
 
-            sa.setStatus(ShelfAssignment.Status.COMPLETADO);
-            sa.setCompletedAt(LocalDateTime.now());
+            if (finalShelf.getCode().toUpperCase().contains("PEN")) {
+                if (sa.getStatus() == ShelfAssignment.Status.PENDIENTE) {
+                    sa.setStatus(ShelfAssignment.Status.EN_CONTEO);
+                }
+            } else {
+                sa.setStatus(ShelfAssignment.Status.COMPLETADO);
+                sa.setCompletedAt(LocalDateTime.now());
+            }
             assignmentsToSave.put(finalShelf.getId(), sa);
 
             affectedShelves.add(finalShelf.getId());
             importedCount++;
             if (item.hasExplicitQuantity) {
                 totalPiecesImported += qty;
+            }
+        }
+
+        // Reconcile leftover unclaimed records ONLY on full covered rack sheets and phantom PB3-* shelves
+        // (eliminates old trapped records on Anaquel 1 / PB3-01 and old duplicate merges when re-importing full rack sheets)
+        if (isMultiShelfPhysicalImport) {
+            List<CountRecord> staleToDelete = new ArrayList<>();
+            Set<Long> phantomPb3ShelfIds = new HashSet<>();
+            for (CountRecord r : sessionRecordsAll) {
+                if (r.getId() != null && claimedPreexistingIds.contains(r.getId())) continue;
+                if (r.getShelf() == null) continue;
+                String sCode = r.getShelf().getCode().toUpperCase();
+                boolean isPhantomPb3 = sCode.matches("^PB-?3-?\\d+$");
+                boolean isCoveredFullShelf = fullPhysicalShelfIds.contains(r.getShelf().getId());
+                if (isPhantomPb3) {
+                    phantomPb3ShelfIds.add(r.getShelf().getId());
+                    staleToDelete.add(r);
+                } else if (isCoveredFullShelf) {
+                    staleToDelete.add(r);
+                }
+            }
+            if (!staleToDelete.isEmpty()) {
+                countRepo.deleteAll(staleToDelete);
+            }
+            for (Long phId : phantomPb3ShelfIds) {
+                ShelfAssignment saPh = assignmentMap.get(phId);
+                if (saPh != null) {
+                    saPh.setStatus(ShelfAssignment.Status.PENDIENTE);
+                    saPh.setCompletedAt(null);
+                    assignmentsToSave.put(phId, saPh);
+                }
             }
         }
 
@@ -993,6 +1307,10 @@ public class CountService {
         if (!assignmentsToSave.isEmpty()) {
             assignmentRepo.saveAll(assignmentsToSave.values());
         }
+        countRepo.flush();
+
+        Double sessionTotalPieces = countRepo.sumQuantityBySessionId(session.getId());
+        if (sessionTotalPieces == null) sessionTotalPieces = 0.0;
 
         List<String> affectedCodes = new ArrayList<>();
         for (Long sId : affectedShelves) {
@@ -1002,7 +1320,7 @@ public class CountService {
         auditService.log(session.getId(), session.getFolio(), user.getUsername(), user.getFullName(),
                 "IMPORTAR_CONTEOS_EXCEL", "CountRecord", null,
                 mode, String.valueOf(importedCount),
-                String.format("Importación (%s): %d partidas (%d nuevas, %d actualizadas, %d con nivel A-G, %.2f pzas, %d obsoletas omitidas) en %d anaqueles desde %s",
+                String.format("Importación (%s): %d partidas (%d nuevas, %d actualizadas, %d con nivel S/A-J, %.2f pzas, %d obsoletas identificadas) en %d anaqueles desde %s",
                         mode, importedCount, addedRecords, updatedRecords, withSectionCount, totalPiecesImported, obsoleteFilteredCount, affectedShelves.size(), file.getOriginalFilename()));
 
         Map<String, Object> resp = new HashMap<>();
@@ -1011,6 +1329,7 @@ public class CountService {
         resp.put("updatedRecords", updatedRecords);
         resp.put("withSectionCount", withSectionCount);
         resp.put("totalPieces", totalPiecesImported);
+        resp.put("sessionTotalPieces", sessionTotalPieces);
         resp.put("shelvesUpdated", affectedShelves.size());
         resp.put("affectedShelves", affectedCodes);
         resp.put("obsoleteFiltered", obsoleteFilteredCount);
@@ -1150,13 +1469,13 @@ public class CountService {
                 row.createCell(4).setCellValue((String) samples[r][4]);
             }
 
-            // Excel Dropdown Validation for NIVEL column (A-J) on rows 2..500
+            // Excel Dropdown Validation for NIVEL column (S, A-J) on rows 2..500
             DataValidationHelper dvHelper = sheet.getDataValidationHelper();
-            DataValidationConstraint dvConstraint = dvHelper.createExplicitListConstraint(new String[]{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J"});
+            DataValidationConstraint dvConstraint = dvHelper.createExplicitListConstraint(new String[]{"S", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J"});
             CellRangeAddressList addressList = new CellRangeAddressList(1, 500, 3, 3);
             DataValidation validation = dvHelper.createValidation(dvConstraint, addressList);
             validation.setShowErrorBox(true);
-            validation.createErrorBox("Nivel no válido", "Solo se permiten letras de nivel A a J.");
+            validation.createErrorBox("Nivel no válido", "Solo se permiten niveles S (Superior) y A a J.");
             sheet.addValidationData(validation);
 
             // Instructions Sheet
@@ -1168,7 +1487,7 @@ public class CountService {
                 "1. Columna CLAVE: Clave o código del producto/refacción (idéntico al SAE).",
                 "2. Columna EXISTENCIAS: Cantidad o número de piezas (idéntico al SAE).",
                 "3. Columna DESCRIPCIÓN: Nombre del producto o descripción (idéntico al SAE).",
-                "4. Columna NIVEL (Opcional): Letra de nivel de la A a la J (los anaqueles 13, 14 y 15 cuentan con niveles H, I, J).",
+                "4. Columna NIVEL (Opcional): Letra de nivel S (Superior) o A a la J (los anaqueles 13, 14 y 15 cuentan con niveles H, I, J).",
                 "5. Columna ANAQUEL (Opcional): Código de anaquel (ej. PB-ACE-01, PB-YPC-10). Si seleccionas el anaquel en pantalla, se llena automáticamente.",
                 "6. Al importar archivos exportados directamente desde SAE, la app extrae automáticamente Clave, Existencias y Descripción e ignora las columnas sobrantes.",
             };

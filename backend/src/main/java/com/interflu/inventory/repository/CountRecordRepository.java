@@ -11,6 +11,8 @@ public interface CountRecordRepository extends JpaRepository<CountRecord, Long> 
 
     List<CountRecord> findBySessionIdOrderByUpdatedAtDesc(Long sessionId);
 
+    List<CountRecord> findBySessionIdOrderByIdAsc(Long sessionId);
+
     List<CountRecord> findBySessionIdAndShelfIdOrderByUpdatedAtDesc(Long sessionId, Long shelfId);
 
     List<CountRecord> findBySessionIdAndShelfIdOrderByIdAsc(Long sessionId, Long shelfId);
