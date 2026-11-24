@@ -67,14 +67,39 @@ public class CountController {
     public ResponseEntity<?> importExcelCounts(@RequestParam Long sessionId,
                                                @RequestParam(required = false) Long shelfId,
                                                @RequestParam(defaultValue = "SMART_MERGE") String mode,
+                                               @RequestParam(defaultValue = "true", required = false) boolean filterObsolete,
                                                @RequestParam("file") MultipartFile file) {
         User currentUser = userHelper.getCurrentUser();
         try {
-            Map<String, Object> result = countService.importExcelCounts(sessionId, shelfId, mode, file, currentUser);
+            Map<String, Object> result = countService.importExcelCounts(sessionId, shelfId, mode, filterObsolete, file, currentUser);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.badRequest().body(Map.of("message", "Error al importar Excel: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/session/{sessionId}/purge-obsolete")
+    @DeleteMapping("/session/{sessionId}/obsolete")
+    public ResponseEntity<?> purgeObsoleteCounts(@PathVariable Long sessionId) {
+        User currentUser = userHelper.getCurrentUser();
+        try {
+            Map<String, Object> result = countService.purgeObsoleteCounts(sessionId, currentUser);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/session/{sessionId}/auto-assign-master")
+    public ResponseEntity<?> autoAssignMasterCatalog(@PathVariable Long sessionId,
+                                                     @RequestParam(defaultValue = "ACERO") String family) {
+        User currentUser = userHelper.getCurrentUser();
+        try {
+            Map<String, Object> result = countService.autoAssignFromMasterCatalog(sessionId, family, currentUser);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 

@@ -380,7 +380,8 @@ export class ApiService {
     sessionId: number,
     file: File,
     shelfId?: number,
-    mode: 'SMART_MERGE' | 'REPLACE_ALL' | 'WEEKLY_UPDATE' | string = 'SMART_MERGE'
+    mode: 'SMART_MERGE' | 'REPLACE_ALL' | 'WEEKLY_UPDATE' | string = 'SMART_MERGE',
+    filterObsolete: boolean = true
   ): Observable<{
     importedRecords: number;
     addedRecords?: number;
@@ -390,12 +391,14 @@ export class ApiService {
     shelvesUpdated: number;
     affectedShelves?: string[];
     importMode?: string;
+    obsoleteFiltered?: number;
     message?: string;
   }> {
     const formData = new FormData();
     formData.append('sessionId', String(sessionId));
     if (shelfId) formData.append('shelfId', String(shelfId));
     formData.append('mode', mode);
+    formData.append('filterObsolete', String(filterObsolete));
     formData.append('file', file);
     return this.http.post<{
       importedRecords: number;
@@ -406,7 +409,16 @@ export class ApiService {
       shelvesUpdated: number;
       affectedShelves?: string[];
       importMode?: string;
+      obsoleteFiltered?: number;
     }>(`${this.baseUrl}/counts/import-excel`, formData);
+  }
+
+  purgeObsoleteCounts(sessionId: number): Observable<{ purgedCount: number; remainingCount: number }> {
+    return this.http.post<{ purgedCount: number; remainingCount: number }>(`${this.baseUrl}/counts/session/${sessionId}/purge-obsolete`, {});
+  }
+
+  autoAssignMasterCatalog(sessionId: number, family: string = 'ACERO'): Observable<{ modifiedCount: number }> {
+    return this.http.post<{ modifiedCount: number }>(`${this.baseUrl}/counts/session/${sessionId}/auto-assign-master?family=${encodeURIComponent(family)}`, {});
   }
 
   downloadImportTemplate(): Observable<Blob> {

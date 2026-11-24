@@ -1,0 +1,6962 @@
+[
+  {
+    "code": "CG401/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "A",
+    "position": "1",
+    "locationCode": "PB3-1A-1",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "CG403/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "A",
+    "position": "2",
+    "locationCode": "PB3-1A-2",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "CG403/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "A",
+    "position": "3",
+    "locationCode": "PB3-1A-3",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "CG401/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "A",
+    "position": "4",
+    "locationCode": "PB3-1A-4",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401/4XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "A",
+    "position": "5",
+    "locationCode": "PB3-1A-5",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401/4X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "A",
+    "position": "6",
+    "locationCode": "PB3-1A-6",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401/4X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "A",
+    "position": "7",
+    "locationCode": "PB3-1A-7",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401/4X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "A",
+    "position": "8",
+    "locationCode": "PB3-1A-8",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401/4X5",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "A",
+    "position": "9",
+    "locationCode": "PB3-1A-9",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401/4X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "A",
+    "position": "10",
+    "locationCode": "PB3-1A-10",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401/8XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "A",
+    "position": "11",
+    "locationCode": "PB3-1A-11",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401/8X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "A",
+    "position": "12",
+    "locationCode": "PB3-1A-12",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401/8X21/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "A",
+    "position": "13",
+    "locationCode": "PB3-1A-13",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG403/8XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "B",
+    "position": "1",
+    "locationCode": "PB3-1B-1",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG403/8X11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "B",
+    "position": "2",
+    "locationCode": "PB3-1B-2",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG403/8X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "B",
+    "position": "3",
+    "locationCode": "PB3-1B-3",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG403/8X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "B",
+    "position": "4",
+    "locationCode": "PB3-1B-4",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG403/8X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "B",
+    "position": "5",
+    "locationCode": "PB3-1B-5",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG403/8X5",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "B",
+    "position": "6",
+    "locationCode": "PB3-1B-6",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG403/8X51/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "B",
+    "position": "7",
+    "locationCode": "PB3-1B-7",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG403/8X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "B",
+    "position": "8",
+    "locationCode": "PB3-1B-8",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401/2XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "B",
+    "position": "9",
+    "locationCode": "PB3-1B-9",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401/2X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "B",
+    "position": "10",
+    "locationCode": "PB3-1B-10",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401/2X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "C",
+    "position": "1",
+    "locationCode": "PB3-1C-1",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401/2X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "C",
+    "position": "2",
+    "locationCode": "PB3-1C-2",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401/2X5",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "C",
+    "position": "3",
+    "locationCode": "PB3-1C-3",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401/2X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "C",
+    "position": "4",
+    "locationCode": "PB3-1C-4",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401/2X12",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "C",
+    "position": "5",
+    "locationCode": "PB3-1C-5",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401/2X10",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "C",
+    "position": "5",
+    "locationCode": "PB3-1C-5",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401/2X8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "C",
+    "position": "6",
+    "locationCode": "PB3-1C-6",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG403/4XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "C",
+    "position": "7",
+    "locationCode": "PB3-1C-7",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG403/4X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "C",
+    "position": "8",
+    "locationCode": "PB3-1C-8",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG403/4X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "C",
+    "position": "9",
+    "locationCode": "PB3-1C-9",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG403/4X5",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "C",
+    "position": "10",
+    "locationCode": "PB3-1C-10",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG403/4X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "D",
+    "position": "1",
+    "locationCode": "PB3-1D-1",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG403/4X8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "D",
+    "position": "2",
+    "locationCode": "PB3-1D-2",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG403/4X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "D",
+    "position": "3",
+    "locationCode": "PB3-1D-3",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "D",
+    "position": "4",
+    "locationCode": "PB3-1D-4",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "D",
+    "position": "5",
+    "locationCode": "PB3-1D-5",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "D",
+    "position": "6",
+    "locationCode": "PB3-1D-6",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "D",
+    "position": "7",
+    "locationCode": "PB3-1D-7",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "D",
+    "position": "8",
+    "locationCode": "PB3-1D-8",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG401X8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "D",
+    "position": "9",
+    "locationCode": "PB3-1D-9",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG4011/4XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "D",
+    "position": "10",
+    "locationCode": "PB3-1D-10",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG4011/4X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "E",
+    "position": "1",
+    "locationCode": "PB3-1E-1",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG4011/4X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "E",
+    "position": "2",
+    "locationCode": "PB3-1E-2",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG4011/4X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "E",
+    "position": "3",
+    "locationCode": "PB3-1E-3",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG4011/2X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "E",
+    "position": "4",
+    "locationCode": "PB3-1E-4",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG4011/2XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "E",
+    "position": "5",
+    "locationCode": "PB3-1E-5",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG4011/4X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "E",
+    "position": "6",
+    "locationCode": "PB3-1E-6",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG4011/2X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "E",
+    "position": "7",
+    "locationCode": "PB3-1E-7",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG4011/2X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "E",
+    "position": "8",
+    "locationCode": "PB3-1E-8",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG402X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "E",
+    "position": "9",
+    "locationCode": "PB3-1E-9",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG402XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "F",
+    "position": "1",
+    "locationCode": "PB3-1F-1",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "NG403XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "F",
+    "position": "2",
+    "locationCode": "PB3-1F-2",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "CG401",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "F",
+    "position": "3",
+    "locationCode": "PB3-1F-3",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "CRG401/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "F",
+    "position": "4",
+    "locationCode": "PB3-1F-4",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "CRG403/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "F",
+    "position": "5",
+    "locationCode": "PB3-1F-5",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "CG4011/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "G",
+    "position": "1",
+    "locationCode": "PB3-1G-1",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "CG4011/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "G",
+    "position": "2",
+    "locationCode": "PB3-1G-2",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "CG402",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "1",
+    "level": "G",
+    "position": "3",
+    "locationCode": "PB3-1G-3",
+    "shelfCode": "PB-ACE-01"
+  },
+  {
+    "code": "RBG1/2X1/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "A",
+    "position": "1",
+    "locationCode": "PB3-2A-1",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG1/2X3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "A",
+    "position": "2",
+    "locationCode": "PB3-2A-2",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG1/2X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "A",
+    "position": "3",
+    "locationCode": "PB3-2A-3",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG3/8X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "A",
+    "position": "4",
+    "locationCode": "PB3-2A-4",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG3/4X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "A",
+    "position": "5",
+    "locationCode": "PB3-2A-5",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG3/4X3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "A",
+    "position": "6",
+    "locationCode": "PB3-2A-6",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG1/4X1/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "A",
+    "position": "7",
+    "locationCode": "PB3-2A-7",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG3/4X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "A",
+    "position": "8",
+    "locationCode": "PB3-2A-8",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG1X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "A",
+    "position": "9",
+    "locationCode": "PB3-2A-9",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG1X3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "A",
+    "position": "10",
+    "locationCode": "PB3-2A-10",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG1X3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "B",
+    "position": "1",
+    "locationCode": "PB3-2B-1",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG11/4X3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "B",
+    "position": "2",
+    "locationCode": "PB3-2B-2",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG1X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "B",
+    "position": "3",
+    "locationCode": "PB3-2B-3",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG11/4X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "B",
+    "position": "4",
+    "locationCode": "PB3-2B-4",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG11/4X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "B",
+    "position": "5",
+    "locationCode": "PB3-2B-5",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG11/2X3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "B",
+    "position": "6",
+    "locationCode": "PB3-2B-6",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG11/2X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "B",
+    "position": "7",
+    "locationCode": "PB3-2B-7",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG11/2X11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "B",
+    "position": "8",
+    "locationCode": "PB3-2B-8",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG2X3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "B",
+    "position": "9",
+    "locationCode": "PB3-2B-9",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG11/2X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "C",
+    "position": "1",
+    "locationCode": "PB3-2C-1",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG2X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "C",
+    "position": "2",
+    "locationCode": "PB3-2C-2",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG2X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "C",
+    "position": "3",
+    "locationCode": "PB3-2C-3",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG2X11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "C",
+    "position": "4",
+    "locationCode": "PB3-2C-4",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG2X11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "C",
+    "position": "5",
+    "locationCode": "PB3-2C-5",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG3X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "C",
+    "position": "6",
+    "locationCode": "PB3-2C-6",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "RBG221/2X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "C",
+    "position": "7",
+    "locationCode": "PB3-2C-7",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "C45G401/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "C",
+    "position": "8",
+    "locationCode": "PB3-2C-8",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "C45G403/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "C",
+    "position": "9",
+    "locationCode": "PB3-2C-9",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "C45G4011/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "D",
+    "position": "1",
+    "locationCode": "PB3-2D-1",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "C45G401",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "D",
+    "position": "2",
+    "locationCode": "PB3-2D-2",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "C45G402",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "D",
+    "position": "3",
+    "locationCode": "PB3-2D-3",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "C45G4011/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "D",
+    "position": "4",
+    "locationCode": "PB3-2D-4",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "C90G401/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "D",
+    "position": "5",
+    "locationCode": "PB3-2D-5",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "C90G401/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "D",
+    "position": "6",
+    "locationCode": "PB3-2D-6",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "C90G403/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "D",
+    "position": "7",
+    "locationCode": "PB3-2D-7",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "C90G401/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "D",
+    "position": "8",
+    "locationCode": "PB3-2D-8",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "C90G403/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "D",
+    "position": "9",
+    "locationCode": "PB3-2D-9",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "C90G401",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "D",
+    "position": "10",
+    "locationCode": "PB3-2D-10",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "TUG1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "E",
+    "position": "1",
+    "locationCode": "PB3-2E-1",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "TG1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "E",
+    "position": "2",
+    "locationCode": "PB3-2E-2",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "TG3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "E",
+    "position": "3",
+    "locationCode": "PB3-2E-3",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "TG3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "E",
+    "position": "4",
+    "locationCode": "PB3-2E-4",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "TG1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "E",
+    "position": "5",
+    "locationCode": "PB3-2E-5",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "TG1/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "F",
+    "position": "1",
+    "locationCode": "PB3-2F-1",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "TG1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "F",
+    "position": "2",
+    "locationCode": "PB3-2F-2",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "TUG1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "F",
+    "position": "3",
+    "locationCode": "PB3-2F-3",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "TUG3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "F",
+    "position": "4",
+    "locationCode": "PB3-2F-4",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "TUG1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "F",
+    "position": "5",
+    "locationCode": "PB3-2F-5",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "TUG3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "F",
+    "position": "6",
+    "locationCode": "PB3-2F-6",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "TUG11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "G",
+    "position": "1",
+    "locationCode": "PB3-2G-1",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "TUG11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "G",
+    "position": "2",
+    "locationCode": "PB3-2G-2",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "TUG2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "G",
+    "position": "3",
+    "locationCode": "PB3-2G-3",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "TUG3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "2",
+    "level": "G",
+    "position": "4",
+    "locationCode": "PB3-2G-4",
+    "shelfCode": "PB-ACE-02"
+  },
+  {
+    "code": "TMG1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "A",
+    "position": "1",
+    "locationCode": "PB3-3A-1",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TMG3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "A",
+    "position": "2",
+    "locationCode": "PB3-3A-2",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TMG3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "A",
+    "position": "3",
+    "locationCode": "PB3-3A-3",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TMG1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "A",
+    "position": "4",
+    "locationCode": "PB3-3A-4",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TMG1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "A",
+    "position": "5",
+    "locationCode": "PB3-3A-5",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TMG11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "A",
+    "position": "6",
+    "locationCode": "PB3-3A-6",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TMG11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "A",
+    "position": "7",
+    "locationCode": "PB3-3A-7",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TMG2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "A",
+    "position": "8",
+    "locationCode": "PB3-3A-8",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TMG3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "A",
+    "position": "9",
+    "locationCode": "PB3-3A-9",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TCG1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "B",
+    "position": "1",
+    "locationCode": "PB3-3B-1",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TCG3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "B",
+    "position": "2",
+    "locationCode": "PB3-3B-2",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TCG1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "B",
+    "position": "3",
+    "locationCode": "PB3-3B-3",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TCG3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "B",
+    "position": "4",
+    "locationCode": "PB3-3B-4",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TCG1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "B",
+    "position": "5",
+    "locationCode": "PB3-3B-5",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TCG11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "B",
+    "position": "6",
+    "locationCode": "PB3-3B-6",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TCG2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "B",
+    "position": "7",
+    "locationCode": "PB3-3B-7",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "RCG1/2X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "B",
+    "position": "8",
+    "locationCode": "PB3-3B-8",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "RCG1/2X3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "B",
+    "position": "9",
+    "locationCode": "PB3-3B-9",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "RCG3/4X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "B",
+    "position": "10",
+    "locationCode": "PB3-3B-10",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "RCG2X11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "B",
+    "position": "11",
+    "locationCode": "PB3-3B-11",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "RCG3/4X3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "C",
+    "position": "1",
+    "locationCode": "PB3-3C-1",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "RCG3/4X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "C",
+    "position": "2",
+    "locationCode": "PB3-3C-2",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "RCG1X3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "C",
+    "position": "3",
+    "locationCode": "PB3-3C-3",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "RCG1X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "C",
+    "position": "4",
+    "locationCode": "PB3-3C-4",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "RCG11/2X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "C",
+    "position": "5",
+    "locationCode": "PB3-3C-5",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "RCG11/2X3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "C",
+    "position": "6",
+    "locationCode": "PB3-3C-6",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "RCG11/2X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "C",
+    "position": "7",
+    "locationCode": "PB3-3C-7",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TMG21/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "C",
+    "position": "8",
+    "locationCode": "PB3-3C-8",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "RCG2X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "C",
+    "position": "9",
+    "locationCode": "PB3-3C-9",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "RCG2X11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "C",
+    "position": "10",
+    "locationCode": "PB3-3C-10",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "RBG4X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "C",
+    "position": "11",
+    "locationCode": "PB3-3C-11",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "RCG3/8X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "D",
+    "position": "1",
+    "locationCode": "PB3-3D-1",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "RCG11/4X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "D",
+    "position": "2",
+    "locationCode": "PB3-3D-2",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "RCG11/2X11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "D",
+    "position": "3",
+    "locationCode": "PB3-3D-3",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "NAG1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "D",
+    "position": "4",
+    "locationCode": "PB3-3D-4",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "NAG3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "D",
+    "position": "5",
+    "locationCode": "PB3-3D-5",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "NAG1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "D",
+    "position": "6",
+    "locationCode": "PB3-3D-6",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "NAG1-1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "D",
+    "position": "7",
+    "locationCode": "PB3-3D-7",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "NAG2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "D",
+    "position": "8",
+    "locationCode": "PB3-3D-8",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "NAG2-1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "E",
+    "position": "1",
+    "locationCode": "PB3-3E-1",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "NAG1-1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "E",
+    "position": "2",
+    "locationCode": "PB3-3E-2",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "NB1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "E",
+    "position": "3",
+    "locationCode": "PB3-3E-3",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "NB3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "E",
+    "position": "4",
+    "locationCode": "PB3-3E-4",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "NB11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "E",
+    "position": "5",
+    "locationCode": "PB3-3E-5",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "NB1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "E",
+    "position": "6",
+    "locationCode": "PB3-3E-6",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "NB11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "E",
+    "position": "7",
+    "locationCode": "PB3-3E-7",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "NB2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "E",
+    "position": "8",
+    "locationCode": "PB3-3E-8",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "NB21/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "F",
+    "position": "1",
+    "locationCode": "PB3-3F-1",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "NB3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "F",
+    "position": "2",
+    "locationCode": "PB3-3F-2",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TG11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "F",
+    "position": "3",
+    "locationCode": "PB3-3F-3",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TG11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "F",
+    "position": "4",
+    "locationCode": "PB3-3F-4",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TG2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "F",
+    "position": "5",
+    "locationCode": "PB3-3F-5",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "TG404",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "F",
+    "position": "6",
+    "locationCode": "PB3-3F-6",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "C90G4011/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "G",
+    "position": "1",
+    "locationCode": "PB3-3G-1",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "C90G4011/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "G",
+    "position": "2",
+    "locationCode": "PB3-3G-2",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "C90G402",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "3",
+    "level": "G",
+    "position": "3",
+    "locationCode": "PB3-3G-3",
+    "shelfCode": "PB-ACE-03"
+  },
+  {
+    "code": "C45G402",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "A",
+    "position": "1",
+    "locationCode": "PB3-4A-1",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "C45G403",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "A",
+    "position": "2",
+    "locationCode": "PB3-4A-2",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "CI401/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "A",
+    "position": "3",
+    "locationCode": "PB3-4A-3",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NBI1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "A",
+    "position": "4",
+    "locationCode": "PB3-4A-4",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NBI3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "A",
+    "position": "5",
+    "locationCode": "PB3-4A-5",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NBI1-1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "A",
+    "position": "6",
+    "locationCode": "PB3-4A-6",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NBI1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "A",
+    "position": "7",
+    "locationCode": "PB3-4A-7",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NBI1-1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "A",
+    "position": "8",
+    "locationCode": "PB3-4A-8",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NBG2X11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "B",
+    "position": "1",
+    "locationCode": "PB3-4B-1",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "CAI401/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "B",
+    "position": "2",
+    "locationCode": "PB3-4B-2",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NBI2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "B",
+    "position": "3",
+    "locationCode": "PB3-4B-3",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "CI401/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "B",
+    "position": "4",
+    "locationCode": "PB3-4B-4",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "CI403/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "B",
+    "position": "5",
+    "locationCode": "PB3-4B-5",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "CI401",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "B",
+    "position": "6",
+    "locationCode": "PB3-4B-6",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "CI403/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "B",
+    "position": "7",
+    "locationCode": "PB3-4B-7",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "CAI401",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "B",
+    "position": "8",
+    "locationCode": "PB3-4B-8",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "CI4011/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "B",
+    "position": "9",
+    "locationCode": "PB3-4B-9",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "CI4011/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "C",
+    "position": "1",
+    "locationCode": "PB3-4C-1",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "CI402",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "C",
+    "position": "2",
+    "locationCode": "PB3-4C-2",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI401/4XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "C",
+    "position": "3",
+    "locationCode": "PB3-4C-3",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI401/4X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "C",
+    "position": "4",
+    "locationCode": "PB3-4C-4",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI401/4X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "C",
+    "position": "5",
+    "locationCode": "PB3-4C-5",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI401/4X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "C",
+    "position": "6",
+    "locationCode": "PB3-4C-6",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI401/4X5",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "C",
+    "position": "7",
+    "locationCode": "PB3-4C-7",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI401/4X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "C",
+    "position": "8",
+    "locationCode": "PB3-4C-8",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NAG3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "D",
+    "position": "1",
+    "locationCode": "PB3-4D-1",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI403/8XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "D",
+    "position": "2",
+    "locationCode": "PB3-4D-2",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI403/8X11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "D",
+    "position": "3",
+    "locationCode": "PB3-4D-3",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI403/8X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "D",
+    "position": "4",
+    "locationCode": "PB3-4D-4",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI403/8X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "D",
+    "position": "5",
+    "locationCode": "PB3-4D-5",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI403/8X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "D",
+    "position": "6",
+    "locationCode": "PB3-4D-6",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI401/2XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "D",
+    "position": "7",
+    "locationCode": "PB3-4D-7",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI401/2X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "D",
+    "position": "8",
+    "locationCode": "PB3-4D-8",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI401/2X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "D",
+    "position": "9",
+    "locationCode": "PB3-4D-9",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI401/2X5",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "D",
+    "position": "10",
+    "locationCode": "PB3-4D-10",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI401/2X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "D",
+    "position": "11",
+    "locationCode": "PB3-4D-11",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NB4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "E",
+    "position": "1",
+    "locationCode": "PB3-4E-1",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI401/2X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "E",
+    "position": "2",
+    "locationCode": "PB3-4E-2",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI403/4XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "E",
+    "position": "3",
+    "locationCode": "PB3-4E-3",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI401XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "E",
+    "position": "4",
+    "locationCode": "PB3-4E-4",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI403/4X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "E",
+    "position": "5",
+    "locationCode": "PB3-4E-5",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI403/4X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "E",
+    "position": "6",
+    "locationCode": "PB3-4E-6",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI403/4X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "E",
+    "position": "7",
+    "locationCode": "PB3-4E-7",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI401X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "E",
+    "position": "8",
+    "locationCode": "PB3-4E-8",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI401X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "E",
+    "position": "9",
+    "locationCode": "PB3-4E-9",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI401X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "E",
+    "position": "10",
+    "locationCode": "PB3-4E-10",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI401X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "E",
+    "position": "11",
+    "locationCode": "PB3-4E-11",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI4011/4X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "F",
+    "position": "1",
+    "locationCode": "PB3-4F-1",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI4011/4XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "F",
+    "position": "2",
+    "locationCode": "PB3-4F-2",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI4011/4X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "F",
+    "position": "3",
+    "locationCode": "PB3-4F-3",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI4011/4X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "F",
+    "position": "4",
+    "locationCode": "PB3-4F-4",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI4011/2X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "F",
+    "position": "5",
+    "locationCode": "PB3-4F-5",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI4011/4X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "F",
+    "position": "6",
+    "locationCode": "PB3-4F-6",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI4011/2XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "F",
+    "position": "7",
+    "locationCode": "PB3-4F-7",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "C45I401/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "F",
+    "position": "8",
+    "locationCode": "PB3-4F-8",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "C45I403/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "F",
+    "position": "9",
+    "locationCode": "PB3-4F-9",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI402XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "G",
+    "position": "1",
+    "locationCode": "PB3-4G-1",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI4011/2X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "G",
+    "position": "2",
+    "locationCode": "PB3-4G-2",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI4011/2X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "G",
+    "position": "3",
+    "locationCode": "PB3-4G-3",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI402X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "G",
+    "position": "4",
+    "locationCode": "PB3-4G-4",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "NI402X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "4",
+    "level": "G",
+    "position": "5",
+    "locationCode": "PB3-4G-5",
+    "shelfCode": "PB-ACE-04"
+  },
+  {
+    "code": "C45I401",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "A",
+    "position": "1",
+    "locationCode": "PB3-5A-1",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "NI403XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "A",
+    "position": "2",
+    "locationCode": "PB3-5A-2",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "NI402X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "A",
+    "position": "3",
+    "locationCode": "PB3-5A-3",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TUINOX1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "A",
+    "position": "4",
+    "locationCode": "PB3-5A-4",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TUINOX3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "A",
+    "position": "5",
+    "locationCode": "PB3-5A-5",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TUINOX3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "A",
+    "position": "6",
+    "locationCode": "PB3-5A-6",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TUINOX1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "A",
+    "position": "7",
+    "locationCode": "PB3-5A-7",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TUINOX1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "B",
+    "position": "1",
+    "locationCode": "PB3-5B-1",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TUINOX11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "B",
+    "position": "2",
+    "locationCode": "PB3-5B-2",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TUINOX11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "B",
+    "position": "3",
+    "locationCode": "PB3-5B-3",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TUINOX2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "B",
+    "position": "4",
+    "locationCode": "PB3-5B-4",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "RBINOX1/4X1/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "B",
+    "position": "5",
+    "locationCode": "PB3-5B-5",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "RBINOX3/8X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "B",
+    "position": "6",
+    "locationCode": "PB3-5B-6",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "RBINOX1/2X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "C",
+    "position": "1",
+    "locationCode": "PB3-5C-1",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "RBINOX1/2X3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "C",
+    "position": "2",
+    "locationCode": "PB3-5C-2",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "RBINOX3/4X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "C",
+    "position": "3",
+    "locationCode": "PB3-5C-3",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "RBINOX3/4X3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "C",
+    "position": "4",
+    "locationCode": "PB3-5C-4",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "RBINOX3/4X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "C",
+    "position": "5",
+    "locationCode": "PB3-5C-5",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "RBINOX1X3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "C",
+    "position": "6",
+    "locationCode": "PB3-5C-6",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "RBINOX11/4X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "C",
+    "position": "7",
+    "locationCode": "PB3-5C-7",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "RBINOX1X3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "C",
+    "position": "8",
+    "locationCode": "PB3-5C-8",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "RBINOX1X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "C",
+    "position": "9",
+    "locationCode": "PB3-5C-9",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "RBINOX2X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "C",
+    "position": "10",
+    "locationCode": "PB3-5C-10",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "RBINOX11/2X11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "C",
+    "position": "11",
+    "locationCode": "PB3-5C-11",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "RBINOX11/2X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "D",
+    "position": "1",
+    "locationCode": "PB3-5D-1",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "RBINOX2X11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "D",
+    "position": "2",
+    "locationCode": "PB3-5D-2",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TMI1/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "D",
+    "position": "3",
+    "locationCode": "PB3-5D-3",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TMI1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "D",
+    "position": "4",
+    "locationCode": "PB3-5D-4",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TMI1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "D",
+    "position": "5",
+    "locationCode": "PB3-5D-5",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TMI3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "D",
+    "position": "6",
+    "locationCode": "PB3-5D-6",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TMI1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "D",
+    "position": "7",
+    "locationCode": "PB3-5D-7",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TMI3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "D",
+    "position": "8",
+    "locationCode": "PB3-5D-8",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TMI11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "D",
+    "position": "9",
+    "locationCode": "PB3-5D-9",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TMI11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "D",
+    "position": "10",
+    "locationCode": "PB3-5D-10",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "C45I402",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "E",
+    "position": "1",
+    "locationCode": "PB3-5E-1",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TAI1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "E",
+    "position": "2",
+    "locationCode": "PB3-5E-2",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TAI3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "E",
+    "position": "3",
+    "locationCode": "PB3-5E-3",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "C90I401",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "E",
+    "position": "4",
+    "locationCode": "PB3-5E-4",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "C90I403/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "E",
+    "position": "5",
+    "locationCode": "PB3-5E-5",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "C90I403/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "E",
+    "position": "6",
+    "locationCode": "PB3-5E-6",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "C90I401/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "E",
+    "position": "7",
+    "locationCode": "PB3-5E-7",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "C90I401/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "E",
+    "position": "8",
+    "locationCode": "PB3-5E-8",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TMI2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "E",
+    "position": "9",
+    "locationCode": "PB3-5E-9",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TAI3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "F",
+    "position": "1",
+    "locationCode": "PB3-5F-1",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TAI1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "F",
+    "position": "2",
+    "locationCode": "PB3-5F-2",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TCI401/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "F",
+    "position": "3",
+    "locationCode": "PB3-5F-3",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TCI403/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "F",
+    "position": "4",
+    "locationCode": "PB3-5F-4",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TCI401/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "F",
+    "position": "5",
+    "locationCode": "PB3-5F-5",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TCI403/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "F",
+    "position": "6",
+    "locationCode": "PB3-5F-6",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TCI401",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "F",
+    "position": "7",
+    "locationCode": "PB3-5F-7",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TCI4011/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "F",
+    "position": "8",
+    "locationCode": "PB3-5F-8",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TCI402",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "F",
+    "position": "9",
+    "locationCode": "PB3-5F-9",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TCI4011/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "F",
+    "position": "10",
+    "locationCode": "PB3-5F-10",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TAI1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "G",
+    "position": "1",
+    "locationCode": "PB3-5G-1",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TAI11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "G",
+    "position": "2",
+    "locationCode": "PB3-5G-2",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TAI11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "G",
+    "position": "3",
+    "locationCode": "PB3-5G-3",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "TAI2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "5",
+    "level": "G",
+    "position": "4",
+    "locationCode": "PB3-5G-4",
+    "shelfCode": "PB-ACE-05"
+  },
+  {
+    "code": "C90I4011/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "A",
+    "position": "1",
+    "locationCode": "PB3-6A-1",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "C90I4011/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "A",
+    "position": "2",
+    "locationCode": "PB3-6A-2",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "C90I402",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "A",
+    "position": "3",
+    "locationCode": "PB3-6A-3",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "CN401/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "B",
+    "position": "1",
+    "locationCode": "PB3-6B-1",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "CN403/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "B",
+    "position": "2",
+    "locationCode": "PB3-6B-2",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "CN401/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "B",
+    "position": "3",
+    "locationCode": "PB3-6B-3",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "CN403/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "B",
+    "position": "4",
+    "locationCode": "PB3-6B-4",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "CN401",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "B",
+    "position": "5",
+    "locationCode": "PB3-6B-5",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "CN4011/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "B",
+    "position": "6",
+    "locationCode": "PB3-6B-6",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "CN4011/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "B",
+    "position": "7",
+    "locationCode": "PB3-6B-7",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "CN402",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "C",
+    "position": "1",
+    "locationCode": "PB3-6C-1",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "CN4021/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "C",
+    "position": "2",
+    "locationCode": "PB3-6C-2",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN401/4XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "C",
+    "position": "3",
+    "locationCode": "PB3-6C-3",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN401/4X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "C",
+    "position": "4",
+    "locationCode": "PB3-6C-4",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN401/4X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "C",
+    "position": "5",
+    "locationCode": "PB3-6C-5",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN401/4X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "C",
+    "position": "6",
+    "locationCode": "PB3-6C-6",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN403/8XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "C",
+    "position": "7",
+    "locationCode": "PB3-6C-7",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN403/8X21/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "C",
+    "position": "8",
+    "locationCode": "PB3-6C-8",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN403/8X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "C",
+    "position": "9",
+    "locationCode": "PB3-6C-9",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN403/8X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "C",
+    "position": "10",
+    "locationCode": "PB3-6C-10",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN403/8X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "D",
+    "position": "1",
+    "locationCode": "PB3-6D-1",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN403/8X5",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "D",
+    "position": "2",
+    "locationCode": "PB3-6D-2",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN401/2X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "D",
+    "position": "3",
+    "locationCode": "PB3-6D-3",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN401/2X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "D",
+    "position": "4",
+    "locationCode": "PB3-6D-4",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN403/4XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "D",
+    "position": "5",
+    "locationCode": "PB3-6D-5",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN403/4X11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "D",
+    "position": "6",
+    "locationCode": "PB3-6D-6",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN403/4X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "D",
+    "position": "7",
+    "locationCode": "PB3-6D-7",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN403/4X5",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "D",
+    "position": "8",
+    "locationCode": "PB3-6D-8",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN401XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "D",
+    "position": "9",
+    "locationCode": "PB3-6D-9",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN401X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "D",
+    "position": "10",
+    "locationCode": "PB3-6D-10",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN401/2XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "E",
+    "position": "1",
+    "locationCode": "PB3-6E-1",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN401/2X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "E",
+    "position": "2",
+    "locationCode": "PB3-6E-2",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN401/2X5",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "E",
+    "position": "3",
+    "locationCode": "PB3-6E-3",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN401/2X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "E",
+    "position": "4",
+    "locationCode": "PB3-6E-4",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN403/4X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "E",
+    "position": "5",
+    "locationCode": "PB3-6E-5",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN403/4X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "E",
+    "position": "6",
+    "locationCode": "PB3-6E-6",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN403/4X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "E",
+    "position": "7",
+    "locationCode": "PB3-6E-7",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN403/4X8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "E",
+    "position": "8",
+    "locationCode": "PB3-6E-8",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN401X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "E",
+    "position": "9",
+    "locationCode": "PB3-6E-9",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN401X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "E",
+    "position": "10",
+    "locationCode": "PB3-6E-10",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN401X51/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "F",
+    "position": "1",
+    "locationCode": "PB3-6F-1",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN401X5",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "F",
+    "position": "2",
+    "locationCode": "PB3-6F-2",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN401X8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "F",
+    "position": "3",
+    "locationCode": "PB3-6F-3",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN401X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "F",
+    "position": "4",
+    "locationCode": "PB3-6F-4",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN4011/4XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "F",
+    "position": "5",
+    "locationCode": "PB3-6F-5",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN4011/4X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "F",
+    "position": "6",
+    "locationCode": "PB3-6F-6",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN4011/2XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "F",
+    "position": "7",
+    "locationCode": "PB3-6F-7",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN4011/4X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "F",
+    "position": "8",
+    "locationCode": "PB3-6F-8",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN4011/4X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "F",
+    "position": "9",
+    "locationCode": "PB3-6F-9",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN4011/4X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "F",
+    "position": "10",
+    "locationCode": "PB3-6F-10",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN4011/2X5",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "G",
+    "position": "1",
+    "locationCode": "PB3-6G-1",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN4011/2X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "G",
+    "position": "2",
+    "locationCode": "PB3-6G-2",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN4011/2X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "G",
+    "position": "3",
+    "locationCode": "PB3-6G-3",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN4011/2X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "G",
+    "position": "4",
+    "locationCode": "PB3-6G-4",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "RBN403X11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "G",
+    "position": "5",
+    "locationCode": "PB3-6G-5",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN4011/2X8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "G",
+    "position": "6",
+    "locationCode": "PB3-6G-6",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "NN4011/2X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "G",
+    "position": "7",
+    "locationCode": "PB3-6G-7",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "RBN4021/2X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "G",
+    "position": "8",
+    "locationCode": "PB3-6G-8",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "CA4011/2X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "6",
+    "level": "G",
+    "position": "9",
+    "locationCode": "PB3-6G-9",
+    "shelfCode": "PB-ACE-06"
+  },
+  {
+    "code": "TMA401/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "A",
+    "position": "1",
+    "locationCode": "PB3-7A-1",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TMA403/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "A",
+    "position": "2",
+    "locationCode": "PB3-7A-2",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TMA401/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "A",
+    "position": "3",
+    "locationCode": "PB3-7A-3",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TMA403/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "A",
+    "position": "4",
+    "locationCode": "PB3-7A-4",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TMA401",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "A",
+    "position": "5",
+    "locationCode": "PB3-7A-5",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TMA4011/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "A",
+    "position": "6",
+    "locationCode": "PB3-7A-6",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TMA402",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "A",
+    "position": "7",
+    "locationCode": "PB3-7A-7",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TMA4011/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "A",
+    "position": "8",
+    "locationCode": "PB3-7A-8",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TMA404",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "A",
+    "position": "9",
+    "locationCode": "PB3-7A-9",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TCA401/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "A",
+    "position": "10",
+    "locationCode": "PB3-7A-10",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TMA403",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "A",
+    "position": "11",
+    "locationCode": "PB3-7A-11",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TCA403/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "B",
+    "position": "1",
+    "locationCode": "PB3-7B-1",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TCA401",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "B",
+    "position": "2",
+    "locationCode": "PB3-7B-2",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TCA4011/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "B",
+    "position": "3",
+    "locationCode": "PB3-7B-3",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TCA402",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "B",
+    "position": "4",
+    "locationCode": "PB3-7B-4",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN403/8X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "B",
+    "position": "5",
+    "locationCode": "PB3-7B-5",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN403/8X1/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "B",
+    "position": "6",
+    "locationCode": "PB3-7B-6",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN401/2X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "B",
+    "position": "7",
+    "locationCode": "PB3-7B-7",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN401/2X3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "B",
+    "position": "8",
+    "locationCode": "PB3-7B-8",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN403/4X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "B",
+    "position": "9",
+    "locationCode": "PB3-7B-9",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN403/4X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "B",
+    "position": "10",
+    "locationCode": "PB3-7B-10",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN404X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "B",
+    "position": "11",
+    "locationCode": "PB3-7B-11",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN401/2X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "C",
+    "position": "1",
+    "locationCode": "PB3-7C-1",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN401X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "C",
+    "position": "2",
+    "locationCode": "PB3-7C-2",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN401X3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "C",
+    "position": "3",
+    "locationCode": "PB3-7C-3",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN4011/4X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "C",
+    "position": "4",
+    "locationCode": "PB3-7C-4",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN4011/4X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "C",
+    "position": "5",
+    "locationCode": "PB3-7C-5",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN4011/4X3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "C",
+    "position": "6",
+    "locationCode": "PB3-7C-6",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN4011/2X11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "C",
+    "position": "7",
+    "locationCode": "PB3-7C-7",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN4011/2X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "C",
+    "position": "8",
+    "locationCode": "PB3-7C-8",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN402X11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "C",
+    "position": "9",
+    "locationCode": "PB3-7C-9",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN402X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "C",
+    "position": "10",
+    "locationCode": "PB3-7C-10",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "CPN403/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "C",
+    "position": "11",
+    "locationCode": "PB3-7C-11",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "C45N403/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "C",
+    "position": "12",
+    "locationCode": "PB3-7C-12",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN403X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "D",
+    "position": "1",
+    "locationCode": "PB3-7D-1",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN4021/2X11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "D",
+    "position": "2",
+    "locationCode": "PB3-7D-2",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RCA401X3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "D",
+    "position": "3",
+    "locationCode": "PB3-7D-3",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RCA4011/4X3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "D",
+    "position": "4",
+    "locationCode": "PB3-7D-4",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RCA401X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "D",
+    "position": "5",
+    "locationCode": "PB3-7D-5",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TAN401/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "D",
+    "position": "6",
+    "locationCode": "PB3-7D-6",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TAN401",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "D",
+    "position": "7",
+    "locationCode": "PB3-7D-7",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN4021/2X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "E",
+    "position": "1",
+    "locationCode": "PB3-7E-1",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RBN403X11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "E",
+    "position": "2",
+    "locationCode": "PB3-7E-2",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RCA401/2X3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "E",
+    "position": "3",
+    "locationCode": "PB3-7E-3",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "RCA403/4X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "E",
+    "position": "4",
+    "locationCode": "PB3-7E-4",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TAN403/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "E",
+    "position": "5",
+    "locationCode": "PB3-7E-5",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TAN401/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "E",
+    "position": "6",
+    "locationCode": "PB3-7E-6",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TAN4011/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "E",
+    "position": "7",
+    "locationCode": "PB3-7E-7",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TAN4011/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "F",
+    "position": "1",
+    "locationCode": "PB3-7F-1",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TAN402",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "F",
+    "position": "2",
+    "locationCode": "PB3-7F-2",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TAN403/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "F",
+    "position": "3",
+    "locationCode": "PB3-7F-3",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TUAN1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "F",
+    "position": "4",
+    "locationCode": "PB3-7F-4",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TUAN3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "G",
+    "position": "1",
+    "locationCode": "PB3-7G-1",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TUAN3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "G",
+    "position": "2",
+    "locationCode": "PB3-7G-2",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TUAN1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "G",
+    "position": "3",
+    "locationCode": "PB3-7G-3",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TUAN11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "7",
+    "level": "G",
+    "position": "4",
+    "locationCode": "PB3-7G-4",
+    "shelfCode": "PB-ACE-07"
+  },
+  {
+    "code": "TUAN3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "A",
+    "position": "1",
+    "locationCode": "PB3-8A-1",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "TUAN2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "A",
+    "position": "2",
+    "locationCode": "PB3-8A-2",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "TUAN11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "A",
+    "position": "3",
+    "locationCode": "PB3-8A-3",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "C90N4011/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "B",
+    "position": "1",
+    "locationCode": "PB3-8B-1",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "C90N401",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "B",
+    "position": "2",
+    "locationCode": "PB3-8B-2",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "C90N403/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "B",
+    "position": "3",
+    "locationCode": "PB3-8B-3",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "C90N401/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "B",
+    "position": "4",
+    "locationCode": "PB3-8B-4",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "C90N401/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "B",
+    "position": "5",
+    "locationCode": "PB3-8B-5",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "C90N403/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "B",
+    "position": "6",
+    "locationCode": "PB3-8B-6",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "C90N403",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "C",
+    "position": "1",
+    "locationCode": "PB3-8C-1",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "C90N402",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "C",
+    "position": "2",
+    "locationCode": "PB3-8C-2",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "C90N4011/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "C",
+    "position": "3",
+    "locationCode": "PB3-8C-3",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "C45N402",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "D",
+    "position": "1",
+    "locationCode": "PB3-8D-1",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "C45N4011/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "D",
+    "position": "2",
+    "locationCode": "PB3-8D-2",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN8011/4X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "D",
+    "position": "3",
+    "locationCode": "PB3-8D-3",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN8011/4X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "D",
+    "position": "4",
+    "locationCode": "PB3-8D-4",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN803/8XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "D",
+    "position": "5",
+    "locationCode": "PB3-8D-5",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN803/8X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "D",
+    "position": "6",
+    "locationCode": "PB3-8D-6",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN801/2X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "D",
+    "position": "7",
+    "locationCode": "PB3-8D-7",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN801/2XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "D",
+    "position": "8",
+    "locationCode": "PB3-8D-8",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN801/4XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "E",
+    "position": "1",
+    "locationCode": "PB3-8E-1",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN801/4X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "E",
+    "position": "2",
+    "locationCode": "PB3-8E-2",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN801/4X5",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "E",
+    "position": "3",
+    "locationCode": "PB3-8E-3",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN801/4X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "E",
+    "position": "4",
+    "locationCode": "PB3-8E-4",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN803/8X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "E",
+    "position": "5",
+    "locationCode": "PB3-8E-5",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN803/8X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "E",
+    "position": "6",
+    "locationCode": "PB3-8E-6",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN801/2X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "E",
+    "position": "7",
+    "locationCode": "PB3-8E-7",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN801/2X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "E",
+    "position": "8",
+    "locationCode": "PB3-8E-8",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN803X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "E",
+    "position": "9",
+    "locationCode": "PB3-8E-9",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "RBN403X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "E",
+    "position": "10",
+    "locationCode": "PB3-8E-10",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN801/2X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "F",
+    "position": "1",
+    "locationCode": "PB3-8F-1",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN803/4X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "F",
+    "position": "2",
+    "locationCode": "PB3-8F-2",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN803/4X5",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "F",
+    "position": "3",
+    "locationCode": "PB3-8F-3",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN803/4XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "F",
+    "position": "4",
+    "locationCode": "PB3-8F-4",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN803/4X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "F",
+    "position": "5",
+    "locationCode": "PB3-8F-5",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN803/4X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "F",
+    "position": "6",
+    "locationCode": "PB3-8F-6",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN801X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "F",
+    "position": "7",
+    "locationCode": "PB3-8F-7",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN803/4X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "F",
+    "position": "8",
+    "locationCode": "PB3-8F-8",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN803/8X11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "F",
+    "position": "9",
+    "locationCode": "PB3-8F-9",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN801XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "F",
+    "position": "10",
+    "locationCode": "PB3-8F-10",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN801X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "A",
+    "position": "1",
+    "locationCode": "PB3-8A-1",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN801X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "A",
+    "position": "2",
+    "locationCode": "PB3-8A-2",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN801X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "A",
+    "position": "3",
+    "locationCode": "PB3-8A-3",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN8011/4X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "A",
+    "position": "4",
+    "locationCode": "PB3-8A-4",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN8011/2XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "A",
+    "position": "5",
+    "locationCode": "PB3-8A-5",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN8011/4X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "8",
+    "level": "A",
+    "position": "6",
+    "locationCode": "PB3-8A-6",
+    "shelfCode": "PB-ACE-08"
+  },
+  {
+    "code": "NN8011/4X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "A",
+    "position": "1",
+    "locationCode": "PB3-9A-1",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "NN8011/2X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "A",
+    "position": "2",
+    "locationCode": "PB3-9A-2",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "NN8011/4X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "A",
+    "position": "3",
+    "locationCode": "PB3-9A-3",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "NN8011/2XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "A",
+    "position": "4",
+    "locationCode": "PB3-9A-4",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "NN8011/2X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "A",
+    "position": "5",
+    "locationCode": "PB3-9A-5",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "NN8011/2X5",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "A",
+    "position": "6",
+    "locationCode": "PB3-9A-6",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "NN8011/2X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "A",
+    "position": "7",
+    "locationCode": "PB3-9A-7",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "NN8011/4X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "A",
+    "position": "8",
+    "locationCode": "PB3-9A-8",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "NN802X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "B",
+    "position": "1",
+    "locationCode": "PB3-9B-1",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "NN802X5",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "B",
+    "position": "2",
+    "locationCode": "PB3-9B-2",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "NN802X4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "B",
+    "position": "3",
+    "locationCode": "PB3-9B-3",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "NN8011/2X3",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "B",
+    "position": "4",
+    "locationCode": "PB3-9B-4",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "NN802XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "B",
+    "position": "5",
+    "locationCode": "PB3-9B-5",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA803/4X3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "C",
+    "position": "1",
+    "locationCode": "PB3-9C-1",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA801X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "C",
+    "position": "2",
+    "locationCode": "PB3-9C-2",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA801/2X3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "C",
+    "position": "3",
+    "locationCode": "PB3-9C-3",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA803/4X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "C",
+    "position": "4",
+    "locationCode": "PB3-9C-4",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA801/2X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "C",
+    "position": "5",
+    "locationCode": "PB3-9C-5",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA803/4X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "C",
+    "position": "6",
+    "locationCode": "PB3-9C-6",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA802X11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "C",
+    "position": "7",
+    "locationCode": "PB3-9C-7",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA803/8X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "C",
+    "position": "8",
+    "locationCode": "PB3-9C-8",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA801X3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "C",
+    "position": "9",
+    "locationCode": "PB3-9C-9",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "NN802X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "C",
+    "position": "10",
+    "locationCode": "PB3-9C-10",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA801X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "D",
+    "position": "1",
+    "locationCode": "PB3-9D-1",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA801X3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "D",
+    "position": "2",
+    "locationCode": "PB3-9D-2",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA8011/4X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "D",
+    "position": "3",
+    "locationCode": "PB3-9D-3",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA8011/4X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "D",
+    "position": "4",
+    "locationCode": "PB3-9D-4",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA8011/4X3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "D",
+    "position": "5",
+    "locationCode": "PB3-9D-5",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA8011/2X11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "D",
+    "position": "6",
+    "locationCode": "PB3-9D-6",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA8011/2X3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "D",
+    "position": "7",
+    "locationCode": "PB3-9D-7",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA8011/2X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "D",
+    "position": "8",
+    "locationCode": "PB3-9D-8",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA802X3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "D",
+    "position": "9",
+    "locationCode": "PB3-9D-9",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA802X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "D",
+    "position": "10",
+    "locationCode": "PB3-9D-10",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA802X11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "E",
+    "position": "1",
+    "locationCode": "PB3-9E-1",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "RBA803X2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "E",
+    "position": "2",
+    "locationCode": "PB3-9E-2",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "CN801/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "E",
+    "position": "3",
+    "locationCode": "PB3-9E-3",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "CN803/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "E",
+    "position": "4",
+    "locationCode": "PB3-9E-4",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "CN801/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "E",
+    "position": "5",
+    "locationCode": "PB3-9E-5",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "CN803/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "F",
+    "position": "1",
+    "locationCode": "PB3-9F-1",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "TCA803/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "F",
+    "position": "2",
+    "locationCode": "PB3-9F-2",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "TCA801/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "F",
+    "position": "3",
+    "locationCode": "PB3-9F-3",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "TCA801",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "F",
+    "position": "4",
+    "locationCode": "PB3-9F-4",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "TMA801/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "F",
+    "position": "5",
+    "locationCode": "PB3-9F-5",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "TMA803/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "F",
+    "position": "6",
+    "locationCode": "PB3-9F-6",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "TMA801",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "",
+    "position": "7",
+    "locationCode": "PB3-9 -7",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "TMA8011/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "F",
+    "position": "8",
+    "locationCode": "PB3-9F-8",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "TMA8011/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "F",
+    "position": "9",
+    "locationCode": "PB3-9F-9",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "TMA802",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "F",
+    "position": "10",
+    "locationCode": "PB3-9F-10",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "CN801",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "G",
+    "position": "1",
+    "locationCode": "PB3-9G-1",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "CN8011/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "G",
+    "position": "2",
+    "locationCode": "PB3-9G-2",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "CN802",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "G",
+    "position": "3",
+    "locationCode": "PB3-9G-3",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "CN8011/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "9",
+    "level": "G",
+    "position": "4",
+    "locationCode": "PB3-9G-4",
+    "shelfCode": "PB-ACE-09"
+  },
+  {
+    "code": "C90N8011/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "A",
+    "position": "1",
+    "locationCode": "PB3-10A-1",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "C90N8011/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "A",
+    "position": "2",
+    "locationCode": "PB3-10A-2",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "C90N801",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "B",
+    "position": "1",
+    "locationCode": "PB3-10B-1",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "C90N803/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "B",
+    "position": "2",
+    "locationCode": "PB3-10B-2",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "C90N801/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "B",
+    "position": "3",
+    "locationCode": "PB3-10B-3",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "TUAN802",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "C",
+    "position": "1",
+    "locationCode": "PB3-10C-1",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "TUAN8011/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "C",
+    "position": "2",
+    "locationCode": "PB3-10C-2",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "TUAN8011/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "C",
+    "position": "3",
+    "locationCode": "PB3-10C-3",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "TUAN1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "D",
+    "position": "1",
+    "locationCode": "PB3-10D-1",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "TUAN3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "D",
+    "position": "2",
+    "locationCode": "PB3-10D-2",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "TUAN1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "D",
+    "position": "3",
+    "locationCode": "PB3-10D-3",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "TAN8011/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "D",
+    "position": "4",
+    "locationCode": "PB3-10D-4",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "TAN8011/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "E",
+    "position": "1",
+    "locationCode": "PB3-10E-1",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "TAN801",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "E",
+    "position": "2",
+    "locationCode": "PB3-10E-2",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "TAN803/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "E",
+    "position": "3",
+    "locationCode": "PB3-10E-3",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "TAN801/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "F",
+    "position": "1",
+    "locationCode": "PB3-10F-1",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "C90N801/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "F",
+    "position": "2",
+    "locationCode": "PB3-10F-2",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "TAN801/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "F",
+    "position": "3",
+    "locationCode": "PB3-10F-3",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "TAN802",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "F",
+    "position": "4",
+    "locationCode": "PB3-10F-4",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "C45N802",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "F",
+    "position": "5",
+    "locationCode": "PB3-10F-5",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "C45N8011/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "F",
+    "position": "6",
+    "locationCode": "PB3-10F-6",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "TMA803",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "G",
+    "position": "1",
+    "locationCode": "PB3-10G-1",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "C45N803/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "G",
+    "position": "2",
+    "locationCode": "PB3-10G-2",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "C90N803/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "G",
+    "position": "3",
+    "locationCode": "PB3-10G-3",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "C45N801/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "G",
+    "position": "4",
+    "locationCode": "PB3-10G-4",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "NN803X6",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "G",
+    "position": "5",
+    "locationCode": "PB3-10G-5",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "NN803XRC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "10",
+    "level": "G",
+    "position": "6",
+    "locationCode": "PB3-10G-6",
+    "shelfCode": "PB-ACE-10"
+  },
+  {
+    "code": "RCI1/4X1/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "A",
+    "position": "1",
+    "locationCode": "PB3-11A-1",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI3/8X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "A",
+    "position": "2",
+    "locationCode": "PB3-11A-2",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI1/2X3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "A",
+    "position": "3",
+    "locationCode": "PB3-11A-3",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI1/2X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "A",
+    "position": "4",
+    "locationCode": "PB3-11A-4",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI3/4X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "A",
+    "position": "5",
+    "locationCode": "PB3-11A-5",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI3/4X3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "A",
+    "position": "6",
+    "locationCode": "PB3-11A-6",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI3/4X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "A",
+    "position": "7",
+    "locationCode": "PB3-11A-7",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI1X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "A",
+    "position": "8",
+    "locationCode": "PB3-11A-8",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI1X3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "A",
+    "position": "9",
+    "locationCode": "PB3-11A-9",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI11/2X1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "B",
+    "position": "1",
+    "locationCode": "PB3-11B-1",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI11/2X3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "B",
+    "position": "2",
+    "locationCode": "PB3-11B-2",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI11/2X11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "B",
+    "position": "3",
+    "locationCode": "PB3-11B-3",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI2X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "B",
+    "position": "4",
+    "locationCode": "PB3-11B-4",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI1X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "B",
+    "position": "5",
+    "locationCode": "PB3-11B-5",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI1X3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "B",
+    "position": "6",
+    "locationCode": "PB3-11B-6",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI11/4X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "B",
+    "position": "7",
+    "locationCode": "PB3-11B-7",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI11/4X3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "B",
+    "position": "8",
+    "locationCode": "PB3-11B-8",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI2X3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "C",
+    "position": "1",
+    "locationCode": "PB3-11C-1",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI2X1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "C",
+    "position": "2",
+    "locationCode": "PB3-11C-2",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI2X11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "C",
+    "position": "3",
+    "locationCode": "PB3-11C-3",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI2X11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "C",
+    "position": "4",
+    "locationCode": "PB3-11C-4",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI11/2X1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "C",
+    "position": "5",
+    "locationCode": "PB3-11C-5",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "RCI11/2X3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "C",
+    "position": "6",
+    "locationCode": "PB3-11C-6",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "SIFON1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "D",
+    "position": "1",
+    "locationCode": "PB3-11D-1",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "CPI3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "D",
+    "position": "2",
+    "locationCode": "PB3-11D-2",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "CPI1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "D",
+    "position": "3",
+    "locationCode": "PB3-11D-3",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "C90I40S1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "D",
+    "position": "4",
+    "locationCode": "PB3-11D-4",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "CPI1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "D",
+    "position": "5",
+    "locationCode": "PB3-11D-5",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "C90I40S3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "D",
+    "position": "6",
+    "locationCode": "PB3-11D-6",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "SIFONINOX1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "D",
+    "position": "7",
+    "locationCode": "PB3-11D-7",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "C90I40S1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "11",
+    "level": "D",
+    "position": "8",
+    "locationCode": "PB3-11D-8",
+    "shelfCode": "PB-ACE-11"
+  },
+  {
+    "code": "VBIM1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "A",
+    "position": "1",
+    "locationCode": "PB3-15A-1",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBIM3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "A",
+    "position": "2",
+    "locationCode": "PB3-15A-2",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBIM1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "A",
+    "position": "3",
+    "locationCode": "PB3-15A-3",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBIM3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "A",
+    "position": "4",
+    "locationCode": "PB3-15A-4",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBIM1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "B",
+    "position": "1",
+    "locationCode": "PB3-15B-1",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBIM11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "B",
+    "position": "2",
+    "locationCode": "PB3-15B-2",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBIM11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "B",
+    "position": "3",
+    "locationCode": "PB3-15B-3",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBIM2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "B",
+    "position": "4",
+    "locationCode": "PB3-15B-4",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBLG3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "C",
+    "position": "1",
+    "locationCode": "PB3-15C-1",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBLG1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "C",
+    "position": "2",
+    "locationCode": "PB3-15C-2",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBLG11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "C",
+    "position": "3",
+    "locationCode": "PB3-15C-3",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBLG11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "C",
+    "position": "4",
+    "locationCode": "PB3-15C-4",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBLG1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "C",
+    "position": "5",
+    "locationCode": "PB3-15C-5",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBIMR-11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "C",
+    "position": "6",
+    "locationCode": "PB3-15C-6",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBCM1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "D",
+    "position": "1",
+    "locationCode": "PB3-15D-1",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBCM3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "D",
+    "position": "2",
+    "locationCode": "PB3-15D-2",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBCM1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "D",
+    "position": "3",
+    "locationCode": "PB3-15D-3",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBCM3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "D",
+    "position": "4",
+    "locationCode": "PB3-15D-4",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBCM1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "E",
+    "position": "1",
+    "locationCode": "PB3-15E-1",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBCM11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "E",
+    "position": "2",
+    "locationCode": "PB3-15E-2",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBCM11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "E",
+    "position": "3",
+    "locationCode": "PB3-15E-3",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VBCM2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "15",
+    "level": "E",
+    "position": "4",
+    "locationCode": "PB3-15E-4",
+    "shelfCode": "PB-ACE-15"
+  },
+  {
+    "code": "VAI3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "16",
+    "level": "A",
+    "position": "1",
+    "locationCode": "PB3-16A-1",
+    "shelfCode": "PB-ACE-16"
+  },
+  {
+    "code": "VAI1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "16",
+    "level": "A",
+    "position": "2",
+    "locationCode": "PB3-16A-2",
+    "shelfCode": "PB-ACE-16"
+  },
+  {
+    "code": "VW444T1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "16",
+    "level": "A",
+    "position": "3",
+    "locationCode": "PB3-16A-3",
+    "shelfCode": "PB-ACE-16"
+  },
+  {
+    "code": "VW444T3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "16",
+    "level": "A",
+    "position": "4",
+    "locationCode": "PB3-16A-4",
+    "shelfCode": "PB-ACE-16"
+  },
+  {
+    "code": "VW444T3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "16",
+    "level": "A",
+    "position": "5",
+    "locationCode": "PB3-16A-5",
+    "shelfCode": "PB-ACE-16"
+  },
+  {
+    "code": "VW444T1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "16",
+    "level": "A",
+    "position": "6",
+    "locationCode": "PB3-16A-6",
+    "shelfCode": "PB-ACE-16"
+  },
+  {
+    "code": "VW444T1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "16",
+    "level": "A",
+    "position": "7",
+    "locationCode": "PB3-16A-7",
+    "shelfCode": "PB-ACE-16"
+  },
+  {
+    "code": "VW444T11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "16",
+    "level": "B",
+    "position": "1",
+    "locationCode": "PB3-16B-1",
+    "shelfCode": "PB-ACE-16"
+  },
+  {
+    "code": "VW444T11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "16",
+    "level": "B",
+    "position": "2",
+    "locationCode": "PB3-16B-2",
+    "shelfCode": "PB-ACE-16"
+  },
+  {
+    "code": "VBA30W-1/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "16",
+    "level": "B",
+    "position": "3",
+    "locationCode": "PB3-16B-3",
+    "shelfCode": "PB-ACE-16"
+  },
+  {
+    "code": "VBA30W-3/8",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "16",
+    "level": "B",
+    "position": "4",
+    "locationCode": "PB3-16B-4",
+    "shelfCode": "PB-ACE-16"
+  },
+  {
+    "code": "VBA30W-3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "16",
+    "level": "B",
+    "position": "5",
+    "locationCode": "PB3-16B-5",
+    "shelfCode": "PB-ACE-16"
+  },
+  {
+    "code": "VBA30W-1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "16",
+    "level": "C",
+    "position": "1",
+    "locationCode": "PB3-16C-1",
+    "shelfCode": "PB-ACE-16"
+  },
+  {
+    "code": "VBA30W-11/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "16",
+    "level": "C",
+    "position": "2",
+    "locationCode": "PB3-16C-2",
+    "shelfCode": "PB-ACE-16"
+  },
+  {
+    "code": "VBA30W-11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "16",
+    "level": "C",
+    "position": "3",
+    "locationCode": "PB3-16C-3",
+    "shelfCode": "PB-ACE-16"
+  },
+  {
+    "code": "VBA30W-2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "16",
+    "level": "C",
+    "position": "4",
+    "locationCode": "PB3-16C-4",
+    "shelfCode": "PB-ACE-16"
+  },
+  {
+    "code": "VBNM4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "16",
+    "level": "D",
+    "position": "1",
+    "locationCode": "PB3-16D-1",
+    "shelfCode": "PB-ACE-16"
+  },
+  {
+    "code": "VBIM4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "16",
+    "level": "D",
+    "position": "2",
+    "locationCode": "PB3-16D-2",
+    "shelfCode": "PB-ACE-16"
+  },
+  {
+    "code": "VW444T2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "16",
+    "level": "D",
+    "position": "3",
+    "locationCode": "PB3-16D-3",
+    "shelfCode": "PB-ACE-16"
+  },
+  {
+    "code": "6340060",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "A",
+    "position": "1",
+    "locationCode": "PB3-17A-1",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "63400100",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "A",
+    "position": "2",
+    "locationCode": "PB3-17A-2",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "63400160",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "A",
+    "position": "3",
+    "locationCode": "PB3-17A-3",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "63400200",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "A",
+    "position": "4",
+    "locationCode": "PB3-17A-4",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "63400300",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "A",
+    "position": "5",
+    "locationCode": "PB3-17A-5",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "63400600",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "A",
+    "position": "6",
+    "locationCode": "PB3-17A-6",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "6340010000",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "A",
+    "position": "7",
+    "locationCode": "PB3-17A-7",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "634002000",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "A",
+    "position": "8",
+    "locationCode": "PB3-17A-8",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "634003000",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "B",
+    "position": "1",
+    "locationCode": "PB3-17B-1",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "6310060",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "B",
+    "position": "2",
+    "locationCode": "PB3-17B-2",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "63100100",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "B",
+    "position": "3",
+    "locationCode": "PB3-17B-3",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "63100160",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "B",
+    "position": "4",
+    "locationCode": "PB3-17B-4",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "63100200",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "B",
+    "position": "5",
+    "locationCode": "PB3-17B-5",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "5110060",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "B",
+    "position": "6",
+    "locationCode": "PB3-17B-6",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "51100100",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "B",
+    "position": "7",
+    "locationCode": "PB3-17B-7",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "51100160",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "B",
+    "position": "8",
+    "locationCode": "PB3-17B-8",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "51100300",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "B",
+    "position": "9",
+    "locationCode": "PB3-17B-9",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "63110100",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "C",
+    "position": "1",
+    "locationCode": "PB3-17C-1",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "63110160",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "C",
+    "position": "2",
+    "locationCode": "PB3-17C-2",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "63110200",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "C",
+    "position": "3",
+    "locationCode": "PB3-17C-3",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "63110300",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "C",
+    "position": "4",
+    "locationCode": "PB3-17C-4",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "63110600",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "C",
+    "position": "5",
+    "locationCode": "PB3-17C-5",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "63410100",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "C",
+    "position": "6",
+    "locationCode": "PB3-17C-6",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "63410160",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "C",
+    "position": "7",
+    "locationCode": "PB3-17C-7",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "63410200",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "D",
+    "position": "1",
+    "locationCode": "PB3-17D-1",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "63410300",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "D",
+    "position": "2",
+    "locationCode": "PB3-17D-2",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "63410400",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "D",
+    "position": "3",
+    "locationCode": "PB3-17D-3",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "634101000",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "D",
+    "position": "4",
+    "locationCode": "PB3-17D-4",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "634103000",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "D",
+    "position": "5",
+    "locationCode": "PB3-17D-5",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "634105000",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "E",
+    "position": "1",
+    "locationCode": "PB3-17E-1",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "6331030VAC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "E",
+    "position": "2",
+    "locationCode": "PB3-17E-2",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "6341010000",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "E",
+    "position": "3",
+    "locationCode": "PB3-17E-3",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "6341030VAC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "E",
+    "position": "4",
+    "locationCode": "PB3-17E-4",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "6340030VAC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "E",
+    "position": "5",
+    "locationCode": "PB3-17E-5",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "6311030VAC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "E",
+    "position": "6",
+    "locationCode": "PB3-17E-6",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "301100250100",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "E",
+    "position": "7",
+    "locationCode": "PB3-17E-7",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "6330030VAC",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "E",
+    "position": "8",
+    "locationCode": "PB3-17E-8",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "10040060",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "17",
+    "level": "E",
+    "position": "9",
+    "locationCode": "PB3-17E-9",
+    "shelfCode": "PB-ACE-17"
+  },
+  {
+    "code": "40KL4P00030X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "A",
+    "position": "1",
+    "locationCode": "PB3-18A-1",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "40KL4P00060X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "A",
+    "position": "2",
+    "locationCode": "PB3-18A-2",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "40KL4P00100X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "A",
+    "position": "3",
+    "locationCode": "PB3-18A-3",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "40KL4P00200X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "A",
+    "position": "4",
+    "locationCode": "PB3-18A-4",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "40KL4P00160X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "B",
+    "position": "1",
+    "locationCode": "PB3-18B-1",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "40KL4P00300X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "B",
+    "position": "2",
+    "locationCode": "PB3-18B-2",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "40CL4P00030X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "B",
+    "position": "3",
+    "locationCode": "PB3-18B-3",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "40CL4P00060X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "B",
+    "position": "4",
+    "locationCode": "PB3-18B-4",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "40CL4P00100X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "B",
+    "position": "5",
+    "locationCode": "PB3-18B-5",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "40CL4P00160X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "C",
+    "position": "1",
+    "locationCode": "PB3-18C-1",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "40CL4P00200X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "C",
+    "position": "2",
+    "locationCode": "PB3-18C-2",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "20CB4P00030X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "C",
+    "position": "3",
+    "locationCode": "PB3-18C-3",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "20CB4P00060X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "C",
+    "position": "4",
+    "locationCode": "PB3-18C-4",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "15CB8P00200X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "C",
+    "position": "5",
+    "locationCode": "PB3-18C-5",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "40PL4P00200X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "C",
+    "position": "6",
+    "locationCode": "PB3-18C-6",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "25HL4P00400X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "D",
+    "position": "1",
+    "locationCode": "PB3-18D-1",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "40HL4P00100X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "D",
+    "position": "2",
+    "locationCode": "PB3-18D-2",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "3121N 3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "E",
+    "position": "1",
+    "locationCode": "PB3-18E-1",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "3121N 1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "E",
+    "position": "2",
+    "locationCode": "PB3-18E-2",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "3121N 1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "E",
+    "position": "3",
+    "locationCode": "PB3-18E-3",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "3121N 11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "E",
+    "position": "4",
+    "locationCode": "PB3-18E-4",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "2460N 1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "E",
+    "position": "5",
+    "locationCode": "PB3-18E-5",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "3121N 2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "E",
+    "position": "6",
+    "locationCode": "PB3-18E-6",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "3302N 1/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "E",
+    "position": "7",
+    "locationCode": "PB3-18E-7",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "3302N 3/4",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "E",
+    "position": "8",
+    "locationCode": "PB3-18E-8",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "3302N 1",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "E",
+    "position": "9",
+    "locationCode": "PB3-18E-9",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "3302N 11/2",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "18",
+    "level": "E",
+    "position": "10",
+    "locationCode": "PB3-18E-10",
+    "shelfCode": "PB-ACE-18"
+  },
+  {
+    "code": "25KL4P00030X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "A",
+    "position": "1",
+    "locationCode": "PB3-19A-1",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KL4P00060X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "A",
+    "position": "2",
+    "locationCode": "PB3-19A-2",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KL4P00100X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "A",
+    "position": "3",
+    "locationCode": "PB3-19A-3",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KL4P00160X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "A",
+    "position": "4",
+    "locationCode": "PB3-19A-4",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KL4P00200X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "A",
+    "position": "5",
+    "locationCode": "PB3-19A-5",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KL4P00400X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "A",
+    "position": "6",
+    "locationCode": "PB3-19A-6",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KL4P00600X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "B",
+    "position": "1",
+    "locationCode": "PB3-19B-1",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KL4P01000X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "B",
+    "position": "2",
+    "locationCode": "PB3-19B-2",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KL4P02000X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "B",
+    "position": "3",
+    "locationCode": "PB3-19B-3",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KL4P03000X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "B",
+    "position": "4",
+    "locationCode": "PB3-19B-4",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KL4P05000X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "B",
+    "position": "5",
+    "locationCode": "PB3-19B-5",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KL4P10000X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "C",
+    "position": "1",
+    "locationCode": "PB3-19C-1",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KB4P00060X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "C",
+    "position": "2",
+    "locationCode": "PB3-19C-2",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KB4P00100X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "C",
+    "position": "3",
+    "locationCode": "PB3-19C-3",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KB4P00160X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "C",
+    "position": "4",
+    "locationCode": "PB3-19C-4",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KB4P00200X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "C",
+    "position": "5",
+    "locationCode": "PB3-19C-5",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KB4P00300X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "D",
+    "position": "1",
+    "locationCode": "PB3-19D-1",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KB4P00400X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "D",
+    "position": "2",
+    "locationCode": "PB3-19D-2",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KB4P02000X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "D",
+    "position": "3",
+    "locationCode": "PB3-19D-3",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KB4P03000X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "D",
+    "position": "4",
+    "locationCode": "PB3-19D-4",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25KB4P05000X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "D",
+    "position": "5",
+    "locationCode": "PB3-19D-5",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "20CL4P00030X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "E",
+    "position": "1",
+    "locationCode": "PB3-19E-1",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "20CL4P00060X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "E",
+    "position": "2",
+    "locationCode": "PB3-19E-2",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "20CL4P00300X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "E",
+    "position": "3",
+    "locationCode": "PB3-19E-3",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25CL4P00060",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "E",
+    "position": "4",
+    "locationCode": "PB3-19E-4",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25HL4P00200X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "E",
+    "position": "5",
+    "locationCode": "PB3-19E-5",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "25HL4P00300X",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "F",
+    "position": "1",
+    "locationCode": "PB3-19F-1",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "MX3-020",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "F",
+    "position": "2",
+    "locationCode": "PB3-19F-2",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "MX3-25",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "F",
+    "position": "3",
+    "locationCode": "PB3-19F-3",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "MX3-040",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "G",
+    "position": "1",
+    "locationCode": "PB3-19G-1",
+    "shelfCode": "PB-ACE-19"
+  },
+  {
+    "code": "MX3-050",
+    "plant": "PB",
+    "aisle": "3",
+    "shelfNum": "19",
+    "level": "G",
+    "position": "2",
+    "locationCode": "PB3-19G-2",
+    "shelfCode": "PB-ACE-19"
+  }
+]

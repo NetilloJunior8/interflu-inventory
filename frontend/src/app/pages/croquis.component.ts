@@ -108,6 +108,8 @@ export interface LocationAssignerRow {
   cuantoPedir: number;
   statusLabel: string;
   isDirty?: boolean;
+  isSelected?: boolean;
+  isObsolete?: boolean;
 }
 
 @Component({
@@ -1830,6 +1832,23 @@ export interface LocationAssignerRow {
                 >
                   Asignar a Todos
                 </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-bulk-selected"
+                  *ngIf="locationAssignerSelectedCount() > 0"
+                  (click)="applyToSelectedRows()"
+                  title="Aplicar anaquel y nivel a los materiales seleccionados con la casilla"
+                >
+                  Aplicar a Seleccionados ({{ locationAssignerSelectedCount() }})
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-master-catalog"
+                  (click)="autoAssignMasterCatalogForFamily()"
+                  title="Vincular automáticamente anaquel y nivel desde el catálogo maestro físico de Interflu"
+                >
+                  Auto-Asignar Catálogo Maestro
+                </button>
               </div>
             </div>
           </div>
@@ -1877,6 +1896,26 @@ export interface LocationAssignerRow {
               >
                 Con Ubicación ({{ locationAssignerRows().length - locationAssignerPendingCount() }})
               </button>
+              <button
+                type="button"
+                class="btn-filter-tab filter-tab-obsolete"
+                [class.active]="locationAssignerFilter() === 'OBSOLETOS'"
+                (click)="locationAssignerFilter.set('OBSOLETOS')"
+                *ngIf="locationAssignerObsoleteCount() > 0"
+              >
+                Obsoletos / ELIMINAR ({{ locationAssignerObsoleteCount() }})
+              </button>
+            </div>
+
+            <div class="assigner-toolbar-actions" *ngIf="locationAssignerObsoleteCount() > 0">
+              <button
+                type="button"
+                class="btn btn-xs btn-outline-danger"
+                (click)="purgeObsoleteCountsFromSession()"
+                title="Eliminar de la sesión todas las partidas marcadas con ELIMINAR o E"
+              >
+                Depurar Códigos ELIMINAR ({{ locationAssignerObsoleteCount() }})
+              </button>
             </div>
           </div>
 
@@ -1885,6 +1924,15 @@ export interface LocationAssignerRow {
             <table class="assigner-table">
               <thead>
                 <tr>
+                  <th style="width: 36px;" class="text-center">
+                    <input
+                      type="checkbox"
+                      class="checkbox-table-header"
+                      [checked]="areAllAssignerRowsSelected()"
+                      (change)="toggleSelectAllAssignerRows($any($event.target).checked)"
+                      title="Seleccionar o deseleccionar todas las filas visibles"
+                    />
+                  </th>
                   <th style="width: 140px;">Clave SAE</th>
                   <th>Descripción del Material</th>
                   <th style="width: 70px;">Planta</th>
@@ -1899,8 +1947,25 @@ export interface LocationAssignerRow {
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let row of locationAssignerFilteredRows()" [class.row-dirty]="row.isDirty" [class.row-missing]="!row.locationCode || !row.level">
-                  <td class="td-code mono fw-700">{{ row.code }}</td>
+                <tr
+                  *ngFor="let row of locationAssignerFilteredRows()"
+                  [class.row-dirty]="row.isDirty"
+                  [class.row-missing]="!row.locationCode || !row.level"
+                  [class.row-selected]="row.isSelected"
+                  [class.row-obsolete]="row.isObsolete"
+                >
+                  <td class="text-center">
+                    <input
+                      type="checkbox"
+                      class="checkbox-table-row"
+                      [checked]="!!row.isSelected"
+                      (change)="toggleRowSelection(row)"
+                    />
+                  </td>
+                  <td class="td-code mono fw-700">
+                    {{ row.code }}
+                    <span *ngIf="row.isObsolete" class="badge-obsolete-tag" title="Partida marcada para eliminar u obsoleta en SAE">ELIMINAR</span>
+                  </td>
                   <td class="td-desc">
                     <span class="desc-text">{{ row.description }}</span>
                     <span *ngIf="row.isDirty" class="dirty-badge">Sin guardar</span>
@@ -1980,7 +2045,7 @@ export interface LocationAssignerRow {
                 </tr>
 
                 <tr *ngIf="locationAssignerFilteredRows().length === 0">
-                  <td colspan="11" class="text-center text-muted" style="padding: 2.5rem 1rem;">
+                  <td colspan="12" class="text-center text-muted" style="padding: 2.5rem 1rem;">
                     No se encontraron materiales con los filtros seleccionados.
                   </td>
                 </tr>
@@ -2455,6 +2520,22 @@ export interface LocationAssignerRow {
                 </div>
               </div>
 
+              <!-- Obsolete Filter Toggle -->
+              <div class="obsolete-filter-card mt-3">
+                <label class="obsolete-filter-label">
+                  <input
+                    type="checkbox"
+                    class="checkbox checkbox-sm"
+                    [ngModel]="filterObsoleteImport()"
+                    (ngModelChange)="filterObsoleteImport.set($event)"
+                  />
+                  <div class="obsolete-filter-text">
+                    <strong class="font-sm">Omitir automáticamente códigos obsoletos / marcados con "ELIMINAR" o "E" en SAE</strong>
+                    <span class="font-xs text-muted d-block">Detecta partidas discontinuadas o canceladas en SAE para evitar que alteren las existencias reales o el croquis.</span>
+                  </div>
+                </label>
+              </div>
+
               <!-- Drop Area -->
               <div
                 class="file-drop-area mt-3"
@@ -2530,6 +2611,10 @@ export interface LocationAssignerRow {
                 <div class="imp-kpi-card">
                   <span class="imp-kpi-val mono text-indigo">{{ res.withSectionCount ?? 0 }}</span>
                   <span class="imp-kpi-lbl">Con Nivel A-G</span>
+                </div>
+                <div class="imp-kpi-card" *ngIf="res.obsoleteFiltered && res.obsoleteFiltered > 0">
+                  <span class="imp-kpi-val mono text-warning-brand">{{ res.obsoleteFiltered }}</span>
+                  <span class="imp-kpi-lbl">Obsoletos Omitidos</span>
                 </div>
                 <div class="imp-kpi-card">
                   <span class="imp-kpi-val mono">{{ res.totalPieces | number:'1.0-2' }}</span>
@@ -4803,6 +4888,24 @@ export interface LocationAssignerRow {
       color: #475569;
       line-height: 1.35;
     }
+    .obsolete-filter-card {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 0.65rem 0.9rem;
+    }
+    .obsolete-filter-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      cursor: pointer;
+      margin: 0;
+    }
+    .obsolete-filter-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
     .file-drop-area {
       border: 2px dashed #93c5fd;
       background: #f8fafc;
@@ -6601,6 +6704,63 @@ export interface LocationAssignerRow {
       border: 1px dashed #f59e0b;
       color: #fbbf24;
     }
+    .btn-bulk-selected {
+      background: #059669;
+      color: #ffffff;
+      border: 1px solid #10b981;
+      font-weight: 700;
+    }
+    .btn-bulk-selected:hover {
+      background: #047857;
+      color: #ffffff;
+    }
+    .btn-master-catalog {
+      background: #4f46e5;
+      color: #ffffff;
+      border: 1px solid #6366f1;
+      font-weight: 700;
+    }
+    .btn-master-catalog:hover {
+      background: #4338ca;
+      color: #ffffff;
+    }
+    .filter-tab-obsolete {
+      border-color: #ef4444 !important;
+      color: #f87171 !important;
+    }
+    .filter-tab-obsolete.active {
+      background: #ef4444 !important;
+      color: #ffffff !important;
+      border-color: #ef4444 !important;
+    }
+    .assigner-toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .checkbox-table-header, .checkbox-table-row {
+      cursor: pointer;
+      width: 15px;
+      height: 15px;
+      accent-color: #0284c7;
+    }
+    .assigner-table tr.row-selected {
+      background: rgba(56, 189, 248, 0.16) !important;
+    }
+    .assigner-table tr.row-obsolete {
+      background: rgba(239, 68, 68, 0.1) !important;
+    }
+    .badge-obsolete-tag {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 5px;
+      font-size: 0.62rem;
+      font-weight: 800;
+      background: #ef4444;
+      color: #ffffff;
+      border-radius: 4px;
+      letter-spacing: 0.04em;
+    }
 
     /* Shelf Creator & Bulk Editor Modals */
     .shelf-creator-modal {
@@ -6854,6 +7014,7 @@ export class CroquisComponent implements OnInit {
   selectedExcelFile: File | null = null;
   importTargetShelfId = signal<number>(0);
   importMode = signal<'SMART_MERGE' | 'REPLACE_ALL' | 'WEEKLY_UPDATE'>('WEEKLY_UPDATE');
+  filterObsoleteImport = signal<boolean>(true);
   isDraggingFile = signal<boolean>(false);
   downloadingTemplate = signal<boolean>(false);
   importingExcel = signal<boolean>(false);
@@ -6961,7 +7122,7 @@ export class CroquisComponent implements OnInit {
   locationAssignerFamily = signal<SectionStat | null>(null);
   locationAssignerRows = signal<LocationAssignerRow[]>([]);
   locationAssignerSearch = signal<string>('');
-  locationAssignerFilter = signal<'TODOS' | 'PENDIENTES' | 'ASIGNADOS'>('TODOS');
+  locationAssignerFilter = signal<'TODOS' | 'PENDIENTES' | 'ASIGNADOS' | 'OBSOLETOS'>('TODOS');
   savingLocations = signal<boolean>(false);
 
   bulkPlant = signal<'PB' | 'PA'>('PB');
@@ -6970,6 +7131,22 @@ export class CroquisComponent implements OnInit {
   bulkLevel = signal<string>('A');
   bulkPosition = signal<string>('1');
 
+  isObsoleteItem(code?: string, desc?: string): boolean {
+    if (desc) {
+      const d = desc.trim().toUpperCase();
+      if (d === 'ELIMINAR' || d.startsWith('ELIMINAR') || d === 'E' || d === 'OBSOLETO' || d.includes('DESCONTINUADO') || d.includes('NO USAR') || d.includes('CANCELADO')) {
+        return true;
+      }
+    }
+    if (code) {
+      const c = code.trim().toUpperCase();
+      if (c.startsWith('ELIM-') || c.startsWith('OBS-') || c.endsWith('-ELIM')) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   locationAssignerFilteredRows = computed(() => {
     let rows = this.locationAssignerRows();
     const filter = this.locationAssignerFilter();
@@ -6977,6 +7154,8 @@ export class CroquisComponent implements OnInit {
       rows = rows.filter(r => !r.level || !r.shelfNum || !r.aisle || r.shelfId === 0 || !r.locationCode);
     } else if (filter === 'ASIGNADOS') {
       rows = rows.filter(r => !!r.level && !!r.shelfNum && !!r.aisle && r.shelfId !== 0 && !!r.locationCode);
+    } else if (filter === 'OBSOLETOS') {
+      rows = rows.filter(r => this.isObsoleteItem(r.code, r.description));
     }
     const q = this.locationAssignerSearch().trim().toLowerCase();
     if (q) {
@@ -6992,6 +7171,14 @@ export class CroquisComponent implements OnInit {
 
   locationAssignerPendingCount = computed(() => {
     return this.locationAssignerRows().filter(r => !r.level || !r.shelfNum || !r.aisle || r.shelfId === 0 || !r.locationCode).length;
+  });
+
+  locationAssignerObsoleteCount = computed(() => {
+    return this.locationAssignerRows().filter(r => this.isObsoleteItem(r.code, r.description)).length;
+  });
+
+  locationAssignerSelectedCount = computed(() => {
+    return this.locationAssignerRows().filter(r => r.isSelected).length;
   });
 
   locationAssignerDirtyCount = computed(() => {
@@ -8059,14 +8246,16 @@ export class CroquisComponent implements OnInit {
     const shelfParam = this.importTargetShelfId() > 0 ? this.importTargetShelfId() : undefined;
     const mode = this.importMode();
     this.importingExcel.set(true);
-    this.api.importExcelCounts(sessionId, this.selectedExcelFile, shelfParam, mode).subscribe({
+    this.api.importExcelCounts(sessionId, this.selectedExcelFile, shelfParam, mode, this.filterObsoleteImport()).subscribe({
       next: (res) => {
         this.importingExcel.set(false);
         this.importResult = res;
+        const obsMsg = res.obsoleteFiltered ? ` (${res.obsoleteFiltered} obsoletos omitidos)` : '';
         this.toast.success(
-          `Importación exitosa: ${res.addedRecords ?? res.importedRecords} nuevos, ${res.updatedRecords ?? 0} actualizados (${res.totalPieces} pzas).`
+          `Importación exitosa: ${res.addedRecords ?? res.importedRecords} nuevos, ${res.updatedRecords ?? 0} actualizados (${res.totalPieces} pzas)${obsMsg}.`
         );
         this.loadShelves(sessionId);
+        this.refreshFamilyCounts();
         if (this.inspectedShelf) {
           this.loadInspectedShelfMaterials(this.inspectedShelf.shelfId);
         }
@@ -9248,7 +9437,9 @@ export class CroquisComponent implements OnInit {
         maximoObjetivo,
         cuantoPedir,
         statusLabel,
-        isDirty: false
+        isDirty: false,
+        isSelected: false,
+        isObsolete: this.isObsoleteItem(code, desc)
       };
     });
 
@@ -9371,6 +9562,102 @@ export class CroquisComponent implements OnInit {
       error: (err) => {
         this.savingLocations.set(false);
         this.toast.error('Error al guardar ubicaciones: ' + (err.error?.message || err.message || 'Error del servidor'));
+      }
+    });
+  }
+
+  toggleRowSelection(row: LocationAssignerRow) {
+    row.isSelected = !row.isSelected;
+  }
+
+  toggleSelectAllAssignerRows(checked: boolean) {
+    const visibleIds = new Set(this.locationAssignerFilteredRows().map(r => r.id));
+    const current = [...this.locationAssignerRows()];
+    for (const r of current) {
+      if (visibleIds.has(r.id)) {
+        r.isSelected = checked;
+      }
+    }
+    this.locationAssignerRows.set(current);
+  }
+
+  areAllAssignerRowsSelected(): boolean {
+    const visible = this.locationAssignerFilteredRows();
+    if (visible.length === 0) return false;
+    return visible.every(r => r.isSelected);
+  }
+
+  applyToSelectedRows() {
+    const count = this.locationAssignerSelectedCount();
+    if (count === 0) {
+      this.toast.info('No has seleccionado ningún material con las casillas.');
+      return;
+    }
+    const targetShelfId = Number(this.bulkShelfId());
+    const foundShelf = this.familyShelves().find(s => s.shelfId === targetShelfId);
+    const p = this.bulkPlant();
+    const a = this.bulkAisle() || '1';
+    const sNum = foundShelf ? (foundShelf.shelfCode.replace(/^[A-Za-z_-]+/, '') || foundShelf.shelfCode) : '1';
+    const sCode = foundShelf ? foundShelf.shelfCode : '';
+    const lvl = this.bulkLevel();
+    const pos = this.bulkPosition() || '1';
+
+    const currentRows = [...this.locationAssignerRows()];
+    for (const r of currentRows) {
+      if (!r.isSelected) continue;
+      r.plant = p;
+      r.aisle = a;
+      if (foundShelf) {
+        r.shelfId = foundShelf.shelfId;
+        r.shelfCode = sCode;
+        r.shelfNum = sNum;
+      }
+      r.level = lvl;
+      r.position = pos;
+      r.locationCode = this.buildLocationCode(p, a, r.shelfNum, lvl, pos);
+      r.isDirty = true;
+    }
+    this.locationAssignerRows.set(currentRows);
+    this.toast.success(`Se aplicó ${sCode ? 'Anaquel ' + sCode : ''} Nivel ${lvl} a los ${count} materiales seleccionados. Haz clic en Guardar Ubicaciones para confirmar.`);
+  }
+
+  purgeObsoleteCountsFromSession() {
+    const sessId = this.activeSessionId();
+    if (!sessId || sessId === 0) return;
+    const obsCount = this.locationAssignerObsoleteCount();
+    if (!confirm(`Se detectaron ${obsCount} partidas con descripción 'ELIMINAR' o 'E' en el inventario. ¿Deseas depurarlas de la sesión para mantener limpias las existencias?`)) {
+      return;
+    }
+    this.api.purgeObsoleteCounts(sessId).subscribe({
+      next: (res) => {
+        this.toast.success(`Se depuraron ${res.purgedCount} códigos obsoletos exitosamente.`);
+        this.loadShelves(sessId);
+        const fam = this.locationAssignerFamily();
+        if (fam) {
+          const currentCounts = this.allSessionCounts().filter(c => !this.isObsoleteItem(c.capturedCode, c.description));
+          this.allSessionCounts.set(currentCounts);
+          this.openLocationAssignerForFamily(fam);
+        }
+      },
+      error: (err) => {
+        this.toast.error('Error al depurar códigos obsoletos: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  autoAssignMasterCatalogForFamily() {
+    const sessId = this.activeSessionId();
+    const fam = this.locationAssignerFamily();
+    if (!sessId || !fam) return;
+    this.api.autoAssignMasterCatalog(sessId, fam.id).subscribe({
+      next: (res) => {
+        this.toast.success(`Se auto-asignaron ${res.modifiedCount} ubicaciones físicas desde el catálogo maestro.`);
+        this.loadShelves(sessId);
+        this.refreshFamilyCounts();
+        setTimeout(() => this.openLocationAssignerForFamily(fam), 300);
+      },
+      error: (err) => {
+        this.toast.error('Error al auto-asignar catálogo maestro: ' + (err.error?.message || err.message));
       }
     });
   }
