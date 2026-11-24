@@ -216,12 +216,6 @@ public class CountService {
 
         return record;
     }
-
-    /**
-     * Imports already counted Excel (.xlsx / .csv) directly into the session,
-     * automatically mapping Nivel (A-F) to physical shelf sections and supporting
-     * SMART_MERGE (update existing + append new) or REPLACE_ALL modes.
-     */
     private static class ImportedItem {
         String code;
         Double quantity;
@@ -602,6 +596,16 @@ public class CountService {
                 DataFormatter formatter = new DataFormatter();
                 List<Sheet> sheetsToRead = new ArrayList<>();
 
+                // If the workbook has multiple sheets, check if it has individual shelf sheets (e.g. sheets named "1", "2", "3" or containing ESTANTE/UBICACIÓN)
+                boolean hasShelfNumberedSheets = false;
+                for (int s = 0; s < workbook.getNumberOfSheets(); s++) {
+                    String sn = workbook.getSheetName(s).trim();
+                    if (sn.matches("^(?:[1-9]|1[0-9])$") || sn.matches("(?i)^(?:ANAQUEL|ESTANTE)\\s*\\d+$")) {
+                        hasShelfNumberedSheets = true;
+                        break;
+                    }
+                }
+
                 // If the workbook has multiple sheets, read all sheets so multi-shelf workbooks (e.g. 19 sheets) are completely processed
                 if (workbook.getNumberOfSheets() > 1) {
                     for (int s = 0; s < workbook.getNumberOfSheets(); s++) {
@@ -609,6 +613,28 @@ public class CountService {
                         String sName = sh.getSheetName().trim().toUpperCase();
                         if (sName.contains("INSTRUCC") || sName.contains("PORTADA") || sName.contains("LEEME") || sName.contains("README")) {
                             continue;
+                        }
+                        // If this workbook has numbered shelf sheets ('1', '2', ..., '19'), skip any summary sheet like 'Hoja1' that has audit columns (AJUSTE, EXIST SISTEMA)
+                        if (hasShelfNumberedSheets && (sName.startsWith("HOJA") || sName.startsWith("SHEET") || sName.contains("COMPARATIV") || sName.contains("RESUMEN") || sName.contains("DIFERENC"))) {
+                            boolean isAuditSummary = false;
+                            for (int r = 0; r < Math.min(sh.getLastRowNum() + 1, 3); r++) {
+                                Row row = sh.getRow(r);
+                                if (row == null) continue;
+                                for (int c = 0; c < row.getLastCellNum(); c++) {
+                                    Cell cell = row.getCell(c);
+                                    if (cell != null) {
+                                        String cv = cell.toString().trim().toUpperCase();
+                                        if (cv.contains("AJUSTE") || cv.contains("SISTEMA") || cv.contains("TIPO DE ELEMENTO")) {
+                                            isAuditSummary = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (isAuditSummary) break;
+                            }
+                            if (isAuditSummary) {
+                                continue;
+                            }
                         }
                         sheetsToRead.add(sh);
                     }
@@ -621,7 +647,7 @@ public class CountService {
                 for (Sheet sheet : sheetsToRead) {
                     Shelf sheetShelf = defaultShelf;
                     String sName = sheet.getSheetName().trim().toUpperCase();
-                    java.util.regex.Matcher sm = java.util.regex.Pattern.compile("(?:ACEROS?|PB-ACE-|ACE-|ANAQUEL|ESTANTE|HOJA|SHEET)?\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
+                    java.util.regex.Matcher sm = java.util.regex.Pattern.compile("(?:ACEROS?|PB-ACE-|ACE-|ANAQUEL|ESTANTE)?\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
                     if (sm.find()) {
                         try {
                             int num = Integer.parseInt(sm.group(1));

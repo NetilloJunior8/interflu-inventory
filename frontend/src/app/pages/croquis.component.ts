@@ -7013,7 +7013,7 @@ export class CroquisComponent implements OnInit {
   showImportExcelModal = false;
   selectedExcelFile: File | null = null;
   importTargetShelfId = signal<number>(0);
-  importMode = signal<'SMART_MERGE' | 'REPLACE_ALL' | 'WEEKLY_UPDATE'>('WEEKLY_UPDATE');
+  importMode = signal<'SMART_MERGE' | 'REPLACE_ALL' | 'WEEKLY_UPDATE'>('SMART_MERGE');
   filterObsoleteImport = signal<boolean>(true);
   isDraggingFile = signal<boolean>(false);
   downloadingTemplate = signal<boolean>(false);
@@ -8169,7 +8169,7 @@ export class CroquisComponent implements OnInit {
       return;
     }
     this.importTargetShelfId.set(shelfId || 0);
-    this.importMode.set('WEEKLY_UPDATE');
+    this.importMode.set('SMART_MERGE');
     this.selectedExcelFile = null;
     this.importResult = null;
     this.showImportExcelModal = true;
