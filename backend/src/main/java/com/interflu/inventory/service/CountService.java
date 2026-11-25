@@ -576,13 +576,31 @@ public class CountService {
         }
         String sName = rawSheetName.trim().toUpperCase();
 
-        // 1. Direct shelf code in sheet name (e.g. "PB-ACE-02", "PB-KUR-A01", "PA-P1-01")
+        // 1. Direct shelf code in sheet name (e.g. "PB-ACE-02", "PB-KUR-A01", "PA-PVC-01")
         Shelf direct = shelfCache.get(sName);
         if (direct != null) {
             return new SheetHeaderResolution(direct, true);
         }
 
-        // 2. Explicit Acero pattern in sheet name ("ACEROS 5", "PB-ACE-5", "ACE-05")
+        // 2. Kuriyama sheet name ("KUR-A01", "KURIYAMA A1", "KURIYAMA A-01", "PB-KUR-A01")
+        java.util.regex.Matcher mKur = java.util.regex.Pattern.compile("(?:PB-)?(?:KUR|KURIYAMA)-?([AB])-?0*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
+        if (mKur.find()) {
+            String side = mKur.group(1).toUpperCase();
+            int num = Integer.parseInt(mKur.group(2));
+            Shelf s = shelfCache.get(String.format("PB-KUR-%s%02d", side, num));
+            if (s != null) return new SheetHeaderResolution(s, true);
+        }
+
+        // 3. Conexiones Hidráulicas sheet name ("PB-CHID-A01", "CHID-A1", "CONEXIONES A1", "HIDRAULICA A1")
+        java.util.regex.Matcher mChid = java.util.regex.Pattern.compile("(?:PB-)?(?:CHID|CON|HIDRAULIC[AO]S?)-?([ABW])-?0*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
+        if (mChid.find()) {
+            String col = mChid.group(1).toUpperCase();
+            int num = Integer.parseInt(mChid.group(2));
+            Shelf s = shelfCache.get(String.format("PB-CHID-%s%02d", col, num));
+            if (s != null) return new SheetHeaderResolution(s, true);
+        }
+
+        // 4. Explicit Acero pattern in sheet name ("ACEROS 5", "PB-ACE-5", "ACE-05")
         java.util.regex.Matcher mAce = java.util.regex.Pattern.compile("(?:ACEROS?|PB-ACE-|ACE-)\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
         if (mAce.find()) {
             try {
@@ -592,7 +610,7 @@ public class CountService {
             } catch (Exception ignored) {}
         }
 
-        // 3. Explicit YPC pattern in sheet name
+        // 5. Explicit YPC pattern in sheet name ("YPC 5", "PB-YPC-05")
         java.util.regex.Matcher mYpc = java.util.regex.Pattern.compile("(?:PB-)?YPC-?\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
         if (mYpc.find()) {
             try {
@@ -602,7 +620,37 @@ public class CountService {
             } catch (Exception ignored) {}
         }
 
-        // 4. Numbered sheet ("1", "2", ..., "19", "ANAQUEL 3", "ESTANTE 4")
+        // 6. Cybermatics, Dixon, Universal
+        java.util.regex.Matcher mCyb = java.util.regex.Pattern.compile("(?:PB-)?CYB(?:ERMATICS)?-?\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
+        if (mCyb.find()) {
+            Shelf s = shelfCache.get(String.format("PB-CYB-%02d", Integer.parseInt(mCyb.group(1))));
+            if (s != null) return new SheetHeaderResolution(s, true);
+        }
+        java.util.regex.Matcher mDix = java.util.regex.Pattern.compile("(?:PB-)?DIX(?:ON)?-?\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
+        if (mDix.find()) {
+            Shelf s = shelfCache.get(String.format("PB-DIX-%02d", Integer.parseInt(mDix.group(1))));
+            if (s != null) return new SheetHeaderResolution(s, true);
+        }
+        java.util.regex.Matcher mUni = java.util.regex.Pattern.compile("(?:PB-)?UNI(?:VERSAL)?-?\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
+        if (mUni.find()) {
+            Shelf s = shelfCache.get(String.format("PB-UNI-%02d", Integer.parseInt(mUni.group(1))));
+            if (s != null) return new SheetHeaderResolution(s, true);
+        }
+
+        // 7. Planta Alta: PVC, Reserva Acero, Sellos
+        java.util.regex.Matcher mPvc = java.util.regex.Pattern.compile("(?:PA-)?PVC-?\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
+        if (mPvc.find()) {
+            Shelf s = shelfCache.get(String.format("PA-PVC-%02d", Integer.parseInt(mPvc.group(1))));
+            if (s != null) return new SheetHeaderResolution(s, true);
+        }
+        java.util.regex.Matcher mRes = java.util.regex.Pattern.compile("(?:PA-)?RES(?:ERVA)?-?(?:A-?)?0*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
+        if (mRes.find()) {
+            Shelf s = shelfCache.get(String.format("PA-RES-%02d", Integer.parseInt(mRes.group(1))));
+            if (s == null) s = shelfCache.get(String.format("PA-RES-A%02d", Integer.parseInt(mRes.group(1))));
+            if (s != null) return new SheetHeaderResolution(s, true);
+        }
+
+        // 8. Numbered sheet ("1", "2", ..., "19", "ANAQUEL 3", "ESTANTE 4")
         java.util.regex.Matcher mNum = java.util.regex.Pattern.compile("^(?:(?:ANAQUEL|ESTANTE)\\s*)?(\\d{1,2})$", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
         if (mNum.find()) {
             try {
@@ -611,11 +659,16 @@ public class CountService {
                 if (defCode.startsWith("PB-YPC-")) {
                     Shelf s = shelfCache.get(String.format("PB-YPC-%02d", num));
                     if (s != null) return new SheetHeaderResolution(s, true);
-                } else if (defCode.startsWith("PB-CON-")) {
-                    Shelf s = shelfCache.get(String.format("PB-CON-%02d", num));
+                } else if (defCode.startsWith("PB-CHID-") || defCode.startsWith("PB-CON-")) {
+                    Shelf s = shelfCache.get(String.format("PB-CHID-A%02d", num));
+                    if (s == null) s = shelfCache.get(String.format("PB-CHID-B%02d", num));
                     if (s != null) return new SheetHeaderResolution(s, true);
-                } else if (defCode.startsWith("PB-SEL-")) {
-                    Shelf s = shelfCache.get(String.format("PB-SEL-%02d", num));
+                } else if (defCode.startsWith("PB-KUR-")) {
+                    char side = defCode.contains("-B") ? 'B' : 'A';
+                    Shelf s = shelfCache.get(String.format("PB-KUR-%c%02d", side, num));
+                    if (s != null) return new SheetHeaderResolution(s, true);
+                } else if (defCode.startsWith("PA-PVC-")) {
+                    Shelf s = shelfCache.get(String.format("PA-PVC-%02d", num));
                     if (s != null) return new SheetHeaderResolution(s, true);
                 } else if (num >= 1 && num <= 19) {
                     Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
@@ -662,6 +715,66 @@ public class CountService {
                 if (s != null) return s;
             }
 
+            // Kuriyama: PB-KUR-A01, KUR-A1, KURIYAMA A-1, PB4-A1...
+            java.util.regex.Matcher mKur = java.util.regex.Pattern.compile("(?i)^(?:PB-)?(?:KUR|KURIYAMA)-?([AB])-?0*(\\d+)").matcher(candidateCode);
+            if (mKur.find()) {
+                String side = mKur.group(1).toUpperCase();
+                int num = Integer.parseInt(mKur.group(2));
+                Shelf s = shelfCache.get(String.format("PB-KUR-%s%02d", side, num));
+                if (s != null) return s;
+            }
+
+            // Conexiones Hidráulicas: PB-CHID-A01, CHID-A1, CON-A1, HIDRAULICA A1
+            java.util.regex.Matcher mChid = java.util.regex.Pattern.compile("(?i)^(?:PB-)?(?:CHID|CON|HIDRAULIC[AO]S?)-?([ABW])-?0*(\\d+)").matcher(candidateCode);
+            if (mChid.find()) {
+                String col = mChid.group(1).toUpperCase();
+                int num = Integer.parseInt(mChid.group(2));
+                Shelf s = shelfCache.get(String.format("PB-CHID-%s%02d", col, num));
+                if (s != null) return s;
+            }
+
+            // YPC: PB-YPC-01, YPC-1
+            java.util.regex.Matcher mYpc = java.util.regex.Pattern.compile("(?i)^(?:PB-)?YPC-?0*(\\d+)").matcher(candidateCode);
+            if (mYpc.find()) {
+                int num = Integer.parseInt(mYpc.group(1));
+                Shelf s = shelfCache.get(String.format("PB-YPC-%02d", num));
+                if (s != null) return s;
+            }
+
+            // Cybermatics, Dixon, Universal, Parker Inox
+            java.util.regex.Matcher mCyb = java.util.regex.Pattern.compile("(?i)^(?:PB-)?CYB(?:ERMATICS)?-?0*(\\d+)").matcher(candidateCode);
+            if (mCyb.find()) {
+                Shelf s = shelfCache.get(String.format("PB-CYB-%02d", Integer.parseInt(mCyb.group(1))));
+                if (s != null) return s;
+            }
+            java.util.regex.Matcher mDix = java.util.regex.Pattern.compile("(?i)^(?:PB-)?DIX(?:ON)?-?0*(\\d+)").matcher(candidateCode);
+            if (mDix.find()) {
+                Shelf s = shelfCache.get(String.format("PB-DIX-%02d", Integer.parseInt(mDix.group(1))));
+                if (s != null) return s;
+            }
+            java.util.regex.Matcher mUni = java.util.regex.Pattern.compile("(?i)^(?:PB-)?UNI(?:VERSAL)?-?0*(\\d+)").matcher(candidateCode);
+            if (mUni.find()) {
+                Shelf s = shelfCache.get(String.format("PB-UNI-%02d", Integer.parseInt(mUni.group(1))));
+                if (s != null) return s;
+            }
+            if (candidateCode.matches("(?i)^(?:PB-)?(?:INOX|PARKER-?INOX).*")) {
+                Shelf s = shelfCache.get("PB-INOX-01");
+                if (s != null) return s;
+            }
+
+            // Planta Alta: PVC, Reserva
+            java.util.regex.Matcher mPvc = java.util.regex.Pattern.compile("(?i)^(?:PA-)?PVC-?0*(\\d+)").matcher(candidateCode);
+            if (mPvc.find()) {
+                Shelf s = shelfCache.get(String.format("PA-PVC-%02d", Integer.parseInt(mPvc.group(1))));
+                if (s != null) return s;
+            }
+            java.util.regex.Matcher mRes = java.util.regex.Pattern.compile("(?i)^(?:PA-)?RES(?:ERVA)?-?(?:A-?)?0*(\\d+)").matcher(candidateCode);
+            if (mRes.find()) {
+                Shelf s = shelfCache.get(String.format("PA-RES-%02d", Integer.parseInt(mRes.group(1))));
+                if (s == null) s = shelfCache.get(String.format("PA-RES-A%02d", Integer.parseInt(mRes.group(1))));
+                if (s != null) return s;
+            }
+
             // Pattern: PB-01, PB-1, PB01 -> PB-ACE-01..19
             java.util.regex.Matcher mPbDirect = java.util.regex.Pattern.compile("(?i)^PB-?0*(\\d+)$").matcher(candidateCode);
             if (mPbDirect.find()) {
@@ -672,20 +785,29 @@ public class CountService {
                 }
             }
 
-            // Location code pattern: PB3-1A-1, PB3-10B-2, PB1-2A-1
-            java.util.regex.Matcher mLoc = java.util.regex.Pattern.compile("(?i)^(P[BA])(\\d+)-(\\d+)").matcher(candidateCode);
+            // Location code pattern: PB3-1A-1, PB4-A1A-1, PB5-2A-1, PB1-A1A-1
+            java.util.regex.Matcher mLoc = java.util.regex.Pattern.compile("(?i)^(P[BA])(\\d+)-([A-Z])?(\\d+)").matcher(candidateCode);
             if (mLoc.find()) {
+                String plant = mLoc.group(1).toUpperCase();
                 String aisle = mLoc.group(2);
-                int num = Integer.parseInt(mLoc.group(3));
-                if ("3".equals(aisle) && num >= 1 && num <= 19) {
-                    Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
-                    if (s != null) return s;
-                } else if ("1".equals(aisle)) {
-                    Shelf s = shelfCache.get(String.format("PB-CON-%02d", num));
-                    if (s != null) return s;
-                } else if ("2".equals(aisle)) {
-                    Shelf s = shelfCache.get(String.format("PB-SEL-%02d", num));
-                    if (s != null) return s;
+                String sub = mLoc.group(3) != null ? mLoc.group(3).toUpperCase() : "";
+                int num = Integer.parseInt(mLoc.group(4));
+                if ("PB".equals(plant)) {
+                    if ("3".equals(aisle) && num >= 1 && num <= 19) {
+                        Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
+                        if (s != null) return s;
+                    } else if ("4".equals(aisle)) { // Kuriyama
+                        String side = !sub.isEmpty() ? sub : "A";
+                        Shelf s = shelfCache.get(String.format("PB-KUR-%s%02d", side, num));
+                        if (s != null) return s;
+                    } else if ("5".equals(aisle)) { // YPC
+                        Shelf s = shelfCache.get(String.format("PB-YPC-%02d", num));
+                        if (s != null) return s;
+                    } else if ("1".equals(aisle)) { // Conexiones Hidráulicas
+                        String side = !sub.isEmpty() ? sub : "A";
+                        Shelf s = shelfCache.get(String.format("PB-CHID-%s%02d", side, num));
+                        if (s != null) return s;
+                    }
                 }
             }
 
@@ -698,17 +820,19 @@ public class CountService {
                 if ("3".equals(item.aisle) || (item.locationCode != null && item.locationCode.toUpperCase().startsWith("PB3")) || refCode.startsWith("PB-ACE")) {
                     Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
                     if (s != null) return s;
-                } else if ("1".equals(item.aisle) || refCode.startsWith("PB-CON")) {
-                    Shelf s = shelfCache.get(String.format("PB-CON-%02d", num));
-                    if (s != null) return s;
-                } else if ("2".equals(item.aisle) || refCode.startsWith("PB-SEL")) {
-                    Shelf s = shelfCache.get(String.format("PB-SEL-%02d", num));
+                } else if ("1".equals(item.aisle) || refCode.startsWith("PB-CHID") || refCode.startsWith("PB-CON")) {
+                    char side = refCode.contains("-B") ? 'B' : 'A';
+                    Shelf s = shelfCache.get(String.format("PB-CHID-%c%02d", side, num));
                     if (s != null) return s;
                 } else if ("4".equals(item.aisle) || refCode.startsWith("PB-KUR")) {
-                    Shelf s = shelfCache.get(String.format("PB-KUR-A%02d", num));
+                    char side = refCode.contains("-B") ? 'B' : 'A';
+                    Shelf s = shelfCache.get(String.format("PB-KUR-%c%02d", side, num));
                     if (s != null) return s;
                 } else if ("5".equals(item.aisle) || refCode.startsWith("PB-YPC")) {
                     Shelf s = shelfCache.get(String.format("PB-YPC-%02d", num));
+                    if (s != null) return s;
+                } else if (refCode.startsWith("PA-PVC")) {
+                    Shelf s = shelfCache.get(String.format("PA-PVC-%02d", num));
                     if (s != null) return s;
                 } else if (num >= 1 && num <= 19) {
                     Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
