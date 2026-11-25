@@ -2448,14 +2448,18 @@ export interface LocationAssignerRow {
               <!-- Format Banner + 1-Click Official Template Download -->
               <div class="excel-template-banner">
                 <div class="template-banner-info">
-                  <span class="hint-title">Columnas reconocidas automáticamente:</span>
+                  <span class="hint-title">Columnas reconocidas automáticamente (Formato aceros-re conteo y SAE):</span>
                   <div class="format-col-chips mono">
                     <span class="col-chip">CLAVE</span>
-                    <span class="col-chip">EXISTENCIA FÍSICA</span>
-                    <span class="col-chip col-chip-level">NIVEL (S, A-G)</span>
-                    <span class="col-chip col-chip-opt">ANAQUEL / ESTANTE</span>
+                    <span class="col-chip">PLANTA</span>
+                    <span class="col-chip">PASILLO</span>
+                    <span class="col-chip col-chip-opt">ESTANTE / ANAQUEL</span>
+                    <span class="col-chip col-chip-level">NIVEL (S, A-J)</span>
+                    <span class="col-chip">POSICIÓN</span>
+                    <span class="col-chip">UBICACIÓN</span>
+                    <span class="col-chip">EXISTENCIAS FÍSICAS</span>
                   </div>
-                  <span class="font-xs text-muted">Compatible con libros multi-hoja por anaquel y reportes directos de Aspel SAE (.xlsx / .csv).</span>
+                  <span class="font-xs text-muted">Acomodo 100% automático por columna ESTANTE o por hojas multi-hoja ('1'..'19'). Compatible con reportes de Aspel SAE (.xlsx / .csv).</span>
                 </div>
                 <button
                   type="button"

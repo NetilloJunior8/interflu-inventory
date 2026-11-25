@@ -357,6 +357,46 @@ export interface SheetRow {
           </div>
         </div>
 
+        <!-- Cedula Row Filter Strip -->
+        <div class="cedula-filter-strip">
+          <div class="filter-strip-left">
+            <span class="filter-strip-title">Filtrar Cédula:</span>
+            <button
+              type="button"
+              class="cedula-filter-pill"
+              [class.active]="cedulaFilter() === 'TODOS'"
+              (click)="cedulaFilter.set('TODOS')"
+            >
+              Todos ({{ validRowCount() }})
+            </button>
+            <button
+              type="button"
+              class="cedula-filter-pill filter-pill-catalog"
+              [class.active]="cedulaFilter() === 'CATALOGO'"
+              (click)="cedulaFilter.set('CATALOGO')"
+            >
+              En Catálogo ({{ inCatalogCount() }})
+            </button>
+            <button
+              type="button"
+              class="cedula-filter-pill filter-pill-not-in-catalog"
+              [class.active]="cedulaFilter() === 'NO_CATALOGO'"
+              (click)="cedulaFilter.set('NO_CATALOGO')"
+            >
+              No Existen en Catálogo (Amarillo) ({{ notInCatalogCount() }})
+            </button>
+            <button
+              type="button"
+              class="cedula-filter-pill filter-pill-dup"
+              [class.active]="cedulaFilter() === 'REPETIDOS'"
+              (click)="cedulaFilter.set('REPETIDOS')"
+              *ngIf="duplicateCount() > 0"
+            >
+              Repetidos ({{ duplicateCount() }})
+            </button>
+          </div>
+        </div>
+
         <!-- The Spreadsheet Grid Table (DESCRIPCION REMOVED TO MAXIMIZE SPEED) -->
         <div class="table-container" (paste)="onTablePaste($event)">
           <table class="cedula-table">
@@ -377,6 +417,8 @@ export interface SheetRow {
                 [class.row-duplicate]="row.isDuplicate"
                 [class.row-saved]="row.id && !row.isNew"
                 [class.row-focused]="activeRowIndex === i"
+                [class.row-not-in-catalog]="!row.inCatalog && !!row.code && !row.isDuplicate"
+                [style.display]="isRowVisible(row) ? '' : 'none'"
               >
                 <!-- Row Number -->
                 <td class="td-row-num mono">{{ i + 1 }}</td>
@@ -493,8 +535,8 @@ export interface SheetRow {
                   <span *ngIf="!row.isDuplicate && row.inCatalog" class="alert-pill catalog">
                     Catálogo
                   </span>
-                  <span *ngIf="!row.isDuplicate && !row.inCatalog && row.code" class="alert-pill new-code">
-                    Válido
+                  <span *ngIf="!row.isDuplicate && !row.inCatalog && row.code" class="alert-pill not-in-catalog" title="Código nuevo que no existe en el catálogo maestro de Interflu">
+                    No existe en catálogo
                   </span>
                   <span *ngIf="row.similarAlert && !row.isDuplicate && !row.inCatalog" class="alert-pill similar-pill" [title]="row.similarAlert.detail">
                     Similar: {{ row.similarAlert.similarTo }}
@@ -1320,6 +1362,61 @@ export interface SheetRow {
       flex-wrap: wrap;
     }
 
+    .cedula-filter-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.45rem 1rem;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      gap: 0.75rem;
+    }
+    .filter-strip-left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .filter-strip-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .cedula-filter-pill {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.65rem;
+      border-radius: 9999px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .cedula-filter-pill:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+    .cedula-filter-pill.active {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
+      box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+    }
+    .cedula-filter-pill.filter-pill-not-in-catalog.active {
+      background: #eab308;
+      color: #713f12;
+      border-color: #ca8a04;
+      box-shadow: 0 1px 3px rgba(202, 138, 4, 0.3);
+    }
+    .cedula-filter-pill.filter-pill-dup.active {
+      background: #f59e0b;
+      color: #ffffff;
+      border-color: #d97706;
+    }
+
     .table-container {
       overflow-x: auto;
       max-height: 620px;
@@ -1371,6 +1468,14 @@ export interface SheetRow {
 
     .row-duplicate {
       background-color: #fefce8 !important;
+    }
+
+    .row-not-in-catalog {
+      background-color: #fefce8 !important;
+      border-left: 4px solid #eab308 !important;
+    }
+    .row-not-in-catalog:hover {
+      background-color: #fef9c3 !important;
     }
 
     .th-row-num, .td-row-num {
@@ -1564,6 +1669,11 @@ export interface SheetRow {
       background: #f0fdf4;
       color: #15803d;
       border: 1px solid #bbf7d0;
+    }
+    .alert-pill.not-in-catalog {
+      background: #fefce8;
+      color: #854d0e;
+      border: 1px solid #facc15;
     }
     .alert-pill.new-code {
       background: #eff6ff;
@@ -2353,6 +2463,26 @@ export class CaptureComponent implements OnInit {
   duplicateCount = computed(() => {
     return this.rows().filter(r => r.isDuplicate).length;
   });
+
+  cedulaFilter = signal<'TODOS' | 'CATALOGO' | 'NO_CATALOGO' | 'REPETIDOS'>('TODOS');
+
+  inCatalogCount = computed(() => {
+    return this.rows().filter(r => r.code && r.code.trim().length > 0 && r.inCatalog && !r.isDuplicate).length;
+  });
+
+  notInCatalogCount = computed(() => {
+    return this.rows().filter(r => r.code && r.code.trim().length > 0 && !r.inCatalog && !r.isDuplicate).length;
+  });
+
+  isRowVisible(row: SheetRow): boolean {
+    const f = this.cedulaFilter();
+    if (f === 'TODOS') return true;
+    if (!row.code || row.code.trim().length === 0) return false;
+    if (f === 'CATALOGO') return !!row.inCatalog && !row.isDuplicate;
+    if (f === 'NO_CATALOGO') return !row.inCatalog && !row.isDuplicate;
+    if (f === 'REPETIDOS') return !!row.isDuplicate;
+    return true;
+  }
 
   activeRowSimilarAlert = computed(() => {
     const idx = this.activeRowIndex;

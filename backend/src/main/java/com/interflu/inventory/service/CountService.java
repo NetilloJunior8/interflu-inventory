@@ -302,29 +302,37 @@ public class CountService {
                 || cu.equals("PIEZAS") || cu.equals("PIEZA") || cu.equals("PZAS") || cu.equals("PZA")
                 || cu.equals("QTY") || cu.equals("TOTAL") || cu.equals("DISPONIBLE") || cu.equals("SALDO")
                 || cu.equals("EXISTENCIA FÍSICA") || cu.equals("EXISTENCIA FISICA") || cu.equals("FÍSICO") || cu.equals("FISICO")
-                || cu.equals("STOCK") || cu.startsWith("EXISTENCIA") || cu.startsWith("CANTIDAD") || cu.startsWith("PIEZAS") || cu.startsWith("STOCK");
+                || cu.equals("STOCK") || cu.contains("EXISTENCIA") || cu.contains("CANTIDAD") || cu.contains("PIEZAS") || cu.contains("STOCK")
+                || cu.contains("FISIC") || cu.contains("FÍSIC");
     }
 
     private boolean isHeaderSection(String cu) {
         if (cu == null) return false;
         cu = cu.trim().toUpperCase();
+        if (cu.contains("ESQ") || cu.contains("FECHA") || cu.contains("COSTO") || cu.contains("PRECIO")) return false;
         return cu.equals("NIVEL") || cu.equals("SECCION") || cu.equals("SECCIÓN") || cu.equals("SEC")
-                || cu.equals("REPISA") || cu.startsWith("NIVEL ") || cu.startsWith("SECCION ");
+                || cu.equals("REPISA") || cu.contains("NIVEL") || cu.contains("SECCION") || cu.contains("SECCIÓN");
     }
 
     private boolean isHeaderShelf(String cu) {
         if (cu == null) return false;
         cu = cu.trim().toUpperCase();
-        return cu.equals("ANAQUEL") || cu.equals("ESTANTE") || cu.equals("ZONA") || cu.equals("RACK")
-                || cu.startsWith("ANAQUEL ") || cu.startsWith("ESTANTE ");
+        if (cu.contains("ESQ") || cu.contains("FECHA") || cu.contains("COSTO") || cu.contains("PRECIO") || cu.contains("SAT") || cu.contains("DESCRIP")) {
+            return false;
+        }
+        return cu.equals("ANAQUEL") || cu.equals("ESTANTE") || cu.equals("ZONA") || cu.equals("RACK") || cu.equals("SHELF")
+                || cu.contains("ANAQUEL") || cu.contains("ESTANTE") || cu.contains("RACK") || cu.contains("SHELF");
     }
 
     private boolean isHeaderLocationCode(String cu) {
         if (cu == null) return false;
         cu = cu.trim().toUpperCase();
+        if (cu.contains("ESQ") || cu.contains("FECHA") || cu.contains("COSTO") || cu.contains("PRECIO") || cu.contains("SAT")) {
+            return false;
+        }
         return cu.equals("UBICACION") || cu.equals("UBICACIÓN") || cu.equals("UBIC")
                 || cu.equals("CODIGO DE UBICACION") || cu.equals("CODIGO UBICACION") || cu.equals("LOC")
-                || cu.startsWith("UBICACION ") || cu.startsWith("UBICACIÓN ");
+                || cu.contains("UBICAC") || cu.contains("LOCATION");
     }
 
     private boolean isHeaderPosition(String cu) {
@@ -625,14 +633,15 @@ public class CountService {
      * information (e.g., plain Aspel SAE stock export).
      */
     public Shelf resolveExplicitShelf(ImportedItem item, Shelf userSelectedDefaultShelf, Map<String, Shelf> shelfCache) {
-        String candidateCode = null;
+        List<String> candidates = new ArrayList<>();
         if (item.shelfName != null && !item.shelfName.isBlank()) {
-            candidateCode = item.shelfName.trim().toUpperCase();
-        } else if (item.locationCode != null && !item.locationCode.isBlank()) {
-            candidateCode = item.locationCode.trim().toUpperCase();
+            candidates.add(item.shelfName.trim().toUpperCase());
+        }
+        if (item.locationCode != null && !item.locationCode.isBlank()) {
+            candidates.add(item.locationCode.trim().toUpperCase());
         }
 
-        if (candidateCode != null) {
+        for (String candidateCode : candidates) {
             // Direct exact shelf code (PB-ACE-02, PB-KUR-A01, PA-P1-03, etc.)
             Shelf direct = shelfCache.get(candidateCode);
             if (direct != null) return direct;
@@ -653,8 +662,35 @@ public class CountService {
                 if (s != null) return s;
             }
 
-            // Pure number: e.g. "1", "2", "19", "ESTANTE 2"
-            java.util.regex.Matcher mNum = java.util.regex.Pattern.compile("^(?:(?:ESTANTE|ANAQUEL)\\s*)?(\\d+)$", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(candidateCode);
+            // Pattern: PB-01, PB-1, PB01 -> PB-ACE-01..19
+            java.util.regex.Matcher mPbDirect = java.util.regex.Pattern.compile("(?i)^PB-?0*(\\d+)$").matcher(candidateCode);
+            if (mPbDirect.find()) {
+                int num = Integer.parseInt(mPbDirect.group(1));
+                if (num >= 1 && num <= 19) {
+                    Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
+                    if (s != null) return s;
+                }
+            }
+
+            // Location code pattern: PB3-1A-1, PB3-10B-2, PB1-2A-1
+            java.util.regex.Matcher mLoc = java.util.regex.Pattern.compile("(?i)^(P[BA])(\\d+)-(\\d+)").matcher(candidateCode);
+            if (mLoc.find()) {
+                String aisle = mLoc.group(2);
+                int num = Integer.parseInt(mLoc.group(3));
+                if ("3".equals(aisle) && num >= 1 && num <= 19) {
+                    Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
+                    if (s != null) return s;
+                } else if ("1".equals(aisle)) {
+                    Shelf s = shelfCache.get(String.format("PB-CON-%02d", num));
+                    if (s != null) return s;
+                } else if ("2".equals(aisle)) {
+                    Shelf s = shelfCache.get(String.format("PB-SEL-%02d", num));
+                    if (s != null) return s;
+                }
+            }
+
+            // Pure number: e.g. "1", "2", "19", "ESTANTE 2", "ANAQUEL 3"
+            java.util.regex.Matcher mNum = java.util.regex.Pattern.compile("^(?:(?:ESTANTE|ANAQUEL|RACK|SHELF)\\s*)?0*(\\d+)$", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(candidateCode);
             if (mNum.find()) {
                 int num = Integer.parseInt(mNum.group(1));
                 String refCode = item.resolvedShelf != null ? item.resolvedShelf.getCode().toUpperCase()
@@ -1443,8 +1479,8 @@ public class CountService {
             // Header row
             Row header = sheet.createRow(0);
             header.setHeightInPoints(24);
-            String[] cols = {"CLAVE", "EXISTENCIAS", "DESCRIPCIÓN", "NIVEL", "ANAQUEL"};
-            int[] widths = {26 * 256, 18 * 256, 36 * 256, 14 * 256, 18 * 256};
+            String[] cols = {"CLAVE", "PLANTA", "PASILLO", "ESTANTE", "NIVEL", "POSICIÓN", "UBICACIÓN", "EXISTENCIAS FÍSICAS", "DESCRIPCIÓN"};
+            int[] widths = {24 * 256, 12 * 256, 12 * 256, 14 * 256, 12 * 256, 12 * 256, 18 * 256, 20 * 256, 36 * 256};
             for (int c = 0; c < cols.length; c++) {
                 Cell cell = header.createCell(c);
                 cell.setCellValue(cols[c]);
@@ -1452,27 +1488,37 @@ public class CountService {
                 sheet.setColumnWidth(c, widths[c]);
             }
 
-            // Example rows to guide operators
+            // Example rows matching reality (aceros-re conteo)
             Object[][] samples = {
-                {"EJEMPLO-REF-01", 15.0, "Refacción Industrial Ejemplo 1", "A", "PB-ACE-01"},
-                {"EJEMPLO-REF-02", 8.0, "Refacción Industrial Ejemplo 2", "B", "PB-ACE-01"},
-                {"EJEMPLO-REF-03", 24.0, "Refacción Industrial Ejemplo 3", "J", "PB-YPC-13"}
+                {"CG401/2", "PB", 3, 1, "A", 1, "PB3-1A-1", 63.0, "CODO 45 GALV C-40 1/2"},
+                {"RBG1/2X1/8", "PB", 3, 2, "A", 1, "PB3-2A-1", 57.0, "REDUCCION BUSHING GALV 1/2 X 1/8"},
+                {"TMG1/4", "PB", 3, 3, "A", 1, "PB3-3A-1", 125.0, "TEE MACHO GALV 1/4"},
+                {"25KL4P00030X", "PB", 3, 19, "A", 1, "PB3-19A-1", 5.0, "MANOMETRO INDUSTRIAL INOX"}
             };
             for (int r = 0; r < samples.length; r++) {
                 Row row = sheet.createRow(r + 1);
                 row.createCell(0).setCellValue((String) samples[r][0]);
-                row.createCell(1).setCellValue(((Double) samples[r][1]));
-                row.createCell(2).setCellValue((String) samples[r][2]);
-                Cell c3 = row.createCell(3);
-                c3.setCellValue((String) samples[r][3]);
-                c3.setCellStyle(levelStyle);
-                row.createCell(4).setCellValue((String) samples[r][4]);
+                row.createCell(1).setCellValue((String) samples[r][1]);
+                row.createCell(2).setCellValue(String.valueOf(samples[r][2]));
+                row.createCell(3).setCellValue(String.valueOf(samples[r][3]));
+                Cell cLvl = row.createCell(4);
+                cLvl.setCellValue((String) samples[r][4]);
+                cLvl.setCellStyle(levelStyle);
+                row.createCell(5).setCellValue(String.valueOf(samples[r][5]));
+                row.createCell(6).setCellValue((String) samples[r][6]);
+                row.createCell(7).setCellValue(((Double) samples[r][7]));
+                row.createCell(8).setCellValue((String) samples[r][8]);
             }
 
-            // Excel Dropdown Validation for NIVEL column (S, A-J) on rows 2..500
+            // Excel Dropdown Validation for PLANTA column (PB, PA) on rows 2..500
             DataValidationHelper dvHelper = sheet.getDataValidationHelper();
+            DataValidationConstraint dvPlanta = dvHelper.createExplicitListConstraint(new String[]{"PB", "PA"});
+            CellRangeAddressList plantaRange = new CellRangeAddressList(1, 500, 1, 1);
+            sheet.addValidationData(dvHelper.createValidation(dvPlanta, plantaRange));
+
+            // Excel Dropdown Validation for NIVEL column (S, A-J) on rows 2..500
             DataValidationConstraint dvConstraint = dvHelper.createExplicitListConstraint(new String[]{"S", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J"});
-            CellRangeAddressList addressList = new CellRangeAddressList(1, 500, 3, 3);
+            CellRangeAddressList addressList = new CellRangeAddressList(1, 500, 4, 4);
             DataValidation validation = dvHelper.createValidation(dvConstraint, addressList);
             validation.setShowErrorBox(true);
             validation.createErrorBox("Nivel no válido", "Solo se permiten niveles S (Superior) y A a J.");
@@ -1480,16 +1526,24 @@ public class CountService {
 
             // Instructions Sheet
             Sheet info = wb.createSheet("Instrucciones");
-            info.setColumnWidth(0, 95 * 256);
+            info.setColumnWidth(0, 105 * 256);
             String[] tips = {
-                "PLANTILLA OFICIAL INTERFLU INVENTORY - COMPATIBLE CON ASPEL SAE",
+                "PLANTILLA OFICIAL INTERFLU INVENTORY - COMPATIBLE CON ASPEL SAE Y RE-CONTEO",
                 "",
                 "1. Columna CLAVE: Clave o código del producto/refacción (idéntico al SAE).",
-                "2. Columna EXISTENCIAS: Cantidad o número de piezas (idéntico al SAE).",
-                "3. Columna DESCRIPCIÓN: Nombre del producto o descripción (idéntico al SAE).",
-                "4. Columna NIVEL (Opcional): Letra de nivel S (Superior) o A a la J (los anaqueles 13, 14 y 15 cuentan con niveles H, I, J).",
-                "5. Columna ANAQUEL (Opcional): Código de anaquel (ej. PB-ACE-01, PB-YPC-10). Si seleccionas el anaquel en pantalla, se llena automáticamente.",
-                "6. Al importar archivos exportados directamente desde SAE, la app extrae automáticamente Clave, Existencias y Descripción e ignora las columnas sobrantes.",
+                "2. Columna PLANTA: Planta física: PB (Planta Baja) o PA (Planta Alta).",
+                "3. Columna PASILLO: Número o código de pasillo (ej. 3 para pasillo Acero).",
+                "4. Columna ESTANTE: Número de anaquel o estante (ej. 1, 2, ..., 19). ¡En Interflu, ESTANTE es exactamente lo mismo que ANAQUEL!",
+                "5. Columna NIVEL: Nivel del anaquel (S para Nivel Superior, o letras A a la J).",
+                "6. Columna POSICIÓN: Número de casilla o gaveta (ej. 1, 2, 3...).",
+                "7. Columna UBICACIÓN: Conjunto de Planta, Pasillo, Estante, Nivel y Posición (ej. PB3-1A-1, PB3-2A-1).",
+                "8. Columna EXISTENCIAS FÍSICAS: Cantidad o número de piezas contadas físicamente.",
+                "9. Columna DESCRIPCIÓN (Opcional): Nombre o detalle del material.",
+                "",
+                "NOTAS DEL SISTEMA INTELIGENTE DE IMPORTACIÓN:",
+                "- El importador reconoce automáticamente la columna ESTANTE para acomodar cada código en su anaquel correspondiente (ej. Estante 1 va a PB-ACE-01, Estante 2 a PB-ACE-02, etc.).",
+                "- También reconoce libros multi-hoja donde cada hoja lleva el número del estante ('1', '2', ..., '19').",
+                "- Si el archivo contiene códigos sin ubicación definida, se conservan todas sus columnas y se resaltan en amarillo para asignación rápida."
             };
             for (int i = 0; i < tips.length; i++) {
                 Row r = info.createRow(i);

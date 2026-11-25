@@ -50,8 +50,10 @@ RUN cp /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 WORKDIR /app
 
-# Create dedicated directory for persistent SQLite database
+# Create dedicated directory for persistent SQLite database and copy initial db
 RUN mkdir -p /app/data && chmod 777 /app/data
+COPY backend/interflu_inventory.db /app/data/interflu_inventory.db
+RUN chmod 666 /app/data/interflu_inventory.db
 
 # Copy JAR from backend-builder
 COPY --from=backend-builder /build/backend/target/interflu-inventory-*.jar /app/interflu-inventory.jar
