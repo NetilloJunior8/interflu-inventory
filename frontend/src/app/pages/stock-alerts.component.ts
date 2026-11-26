@@ -13,6 +13,10 @@ export interface StockAlertItem {
   puntoReorden: number;
   maximoObjetivo: number;
   cuantoPedir: number;
+  isCustomThresholds?: boolean;
+  customMinStock?: number;
+  customReorderPoint?: number;
+  customMaxStock?: number;
   status: 'CRITICO' | 'POR_REORDENAR' | 'SOBRESTOCK' | 'OPTIMO';
   statusLabel: string;
   severity: 'danger' | 'warning' | 'info' | 'success';
@@ -74,7 +78,29 @@ export interface StockAlertsData {
             <span>Actualizar</span>
           </button>
 
-          <button class="btn-action btn-export" (click)="exportAlertsCsv()" [disabled]="isLoading() || filteredItems().length === 0" title="Exportar a Excel / CSV">
+          <!-- PLANTILLA Button (Punto 9) -->
+          <button class="btn-action btn-plantilla" (click)="downloadPlantilla()" [disabled]="downloadingTemplate()" title="Descargar plantilla oficial Excel con formato para importar">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="12" y1="18" x2="12" y2="12"></line>
+              <line x1="9" y1="15" x2="12" y2="18"></line>
+              <line x1="15" y1="15" x2="12" y2="18"></line>
+            </svg>
+            <span>{{ downloadingTemplate() ? 'Descargando...' : 'PLANTILLA' }}</span>
+          </button>
+
+          <!-- ORDEN DE COMPRA (.xlsx) Button (Punto 3) -->
+          <button class="btn-action btn-po-excel" (click)="downloadPurchaseOrderExcel()" [disabled]="isLoading() || filteredItems().length === 0 || downloadingPo()" title="Descargar reporte oficial en Excel (.xlsx) para generar Orden de Compra en SAE">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <path d="M16 10a4 4 0 0 1-8 0"></path>
+            </svg>
+            <span>{{ downloadingPo() ? 'Generando...' : 'Orden de Compra (.xlsx)' }}</span>
+          </button>
+
+          <button class="btn-action btn-export" (click)="exportAlertsCsv()" [disabled]="isLoading() || filteredItems().length === 0" title="Exportar a CSV">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
               <polyline points="7 10 12 15 17 10"></polyline>
@@ -272,7 +298,10 @@ export interface StockAlertsData {
                   </span>
                   <span class="unit-text">{{ item.unit }}</span>
                 </td>
-                <td class="col-min text-right font-mono">{{ item.minimoSeguridad }}</td>
+                <td class="col-min text-right font-mono">
+                  <span>{{ item.minimoSeguridad }}</span>
+                  <span class="custom-badge" *ngIf="item.isCustomThresholds" title="Umbral personalizado manualmente">M</span>
+                </td>
                 <td class="col-reorder text-right font-mono">{{ item.puntoReorden }}</td>
                 <td class="col-max text-right font-mono">{{ item.maximoObjetivo }}</td>
                 <td class="col-order text-right">
@@ -283,6 +312,12 @@ export interface StockAlertsData {
                 </td>
                 <td class="col-actions text-center">
                   <div class="action-buttons-group">
+                    <button class="btn-sm btn-threshold" (click)="openThresholdEditor(item)" title="Modificar avisos de stock manualmente">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                    </button>
                     <button class="btn-sm btn-detail" (click)="openDetail(item)" title="Ver ficha técnica">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                         <circle cx="12" cy="12" r="10"></circle>
@@ -370,7 +405,10 @@ export interface StockAlertsData {
               </div>
               <div class="detail-item">
                 <span class="detail-label">Mínimo Seguridad</span>
-                <span class="detail-value font-mono">{{ item.minimoSeguridad }} {{ item.unit }}</span>
+                <span class="detail-value font-mono">
+                  {{ item.minimoSeguridad }} {{ item.unit }}
+                  <span class="custom-badge" *ngIf="item.isCustomThresholds">Manual</span>
+                </span>
               </div>
               <div class="detail-item">
                 <span class="detail-label">Punto de Reorden</span>
@@ -404,6 +442,48 @@ export interface StockAlertsData {
               </div>
               <div class="gauge-bar-track">
                 <div class="gauge-bar-fill" [ngClass]="'fill-' + item.severity" [style.width.%]="calcGaugeWidth(item)"></div>
+              </div>
+            </div>
+
+            <!-- Manual Stock Thresholds Editor (Punto 7) -->
+            <div class="thresholds-editor-card">
+              <div class="editor-header">
+                <div class="editor-title">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                  </svg>
+                  <span>Modificar Avisos de Stock Manualmente</span>
+                </div>
+                <span class="badge-custom-tag" *ngIf="item.isCustomThresholds">MODIFICADO MANUAL</span>
+              </div>
+              <p class="editor-help">Establece valores específicos para mínimo, reorden y máximo para este código en lugar del cálculo automático.</p>
+              <div class="editor-inputs-grid">
+                <div class="input-field-col">
+                  <label class="input-lbl">Mínimo de Seguridad:</label>
+                  <input type="number" min="0" step="1" class="num-input" [(ngModel)]="editMinStock" placeholder="Ej. 10" />
+                </div>
+                <div class="input-field-col">
+                  <label class="input-lbl">Punto de Reorden:</label>
+                  <input type="number" min="0" step="1" class="num-input" [(ngModel)]="editReorderPoint" placeholder="Ej. 25" />
+                </div>
+                <div class="input-field-col">
+                  <label class="input-lbl">Máximo Objetivo:</label>
+                  <input type="number" min="0" step="1" class="num-input" [(ngModel)]="editMaxStock" placeholder="Ej. 60" />
+                </div>
+              </div>
+              <div class="editor-actions-row">
+                <button type="button" class="btn-save-thresholds" [disabled]="savingThresholds()" (click)="saveThresholds(item)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" *ngIf="!savingThresholds()">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                  </svg>
+                  <span>{{ savingThresholds() ? 'Guardando...' : 'Guardar Umbrales' }}</span>
+                </button>
+                <button type="button" class="btn-restore-auto" *ngIf="item.isCustomThresholds" [disabled]="savingThresholds()" (click)="restoreAutoThresholds(item)">
+                  ↺ Restaurar a Cálculo Automático
+                </button>
               </div>
             </div>
           </div>
@@ -554,6 +634,28 @@ export interface StockAlertsData {
     .btn-export:hover:not(:disabled) {
       background: #0369a1;
       box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+    }
+
+    .btn-plantilla {
+      background: #059669;
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    .btn-plantilla:hover:not(:disabled) {
+      background: #047857;
+      box-shadow: 0 2px 8px rgba(5, 150, 105, 0.35);
+    }
+
+    .btn-po-excel {
+      background: #7c3aed;
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    .btn-po-excel:hover:not(:disabled) {
+      background: #6d28d9;
+      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
     }
 
     .btn-action:disabled {
@@ -1019,6 +1121,30 @@ export interface StockAlertsData {
       border-color: #0284c7;
     }
 
+    .btn-threshold {
+      color: #7c3aed;
+      border-color: #ddd6fe;
+      background: #f5f3ff;
+    }
+    .btn-threshold:hover {
+      background: #7c3aed !important;
+      color: #ffffff !important;
+      border-color: #7c3aed !important;
+    }
+
+    .custom-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 800;
+      color: #7c3aed;
+      background: #ede9fe;
+      border: 1px solid #c4b5fd;
+      border-radius: 4px;
+      padding: 0 4px;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+
     /* Empty State */
     .empty-state {
       padding: 48px 24px;
@@ -1251,6 +1377,133 @@ export interface StockAlertsData {
     .fill-info { background: #3b82f6; }
     .fill-success { background: #10b981; }
 
+    /* Manual Thresholds Editor */
+    .thresholds-editor-card {
+      margin-top: 14px;
+      background: #faf5ff;
+      border: 1px solid #e9d5ff;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+
+    .editor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .editor-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #581c87;
+    }
+
+    .badge-custom-tag {
+      font-size: 10px;
+      font-weight: 800;
+      color: #7c3aed;
+      background: #ffffff;
+      border: 1px solid #c4b5fd;
+      border-radius: 4px;
+      padding: 2px 6px;
+      letter-spacing: 0.05em;
+    }
+
+    .editor-help {
+      font-size: 11px;
+      color: #6b21a8;
+      margin: 0 0 12px 0;
+      opacity: 0.85;
+    }
+
+    .editor-inputs-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .input-field-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .input-lbl {
+      font-size: 11px;
+      font-weight: 700;
+      color: #4c1d95;
+    }
+
+    .num-input {
+      padding: 7px 10px;
+      border-radius: 6px;
+      border: 1px solid #c4b5fd;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: monospace;
+      color: #0f172a;
+      background: #ffffff;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .num-input:focus {
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+    }
+
+    .editor-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-save-thresholds {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 6px;
+      background: #7c3aed;
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-save-thresholds:hover:not(:disabled) {
+      background: #6d28d9;
+    }
+
+    .btn-save-thresholds:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-restore-auto {
+      padding: 7px 12px;
+      border-radius: 6px;
+      background: #ffffff;
+      color: #6b21a8;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid #c4b5fd;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-restore-auto:hover:not(:disabled) {
+      background: #f3e8ff;
+    }
+
     .modal-footer {
       padding: 14px 22px;
       background: #f8fafc;
@@ -1330,6 +1583,14 @@ export class StockAlertsComponent implements OnInit {
   pageSize = 50;
 
   selectedDetailItem = signal<StockAlertItem | null>(null);
+
+  downloadingTemplate = signal<boolean>(false);
+  downloadingPo = signal<boolean>(false);
+  savingThresholds = signal<boolean>(false);
+
+  editMinStock: number | null = null;
+  editReorderPoint: number | null = null;
+  editMaxStock: number | null = null;
 
   constructor(
     private api: ApiService,
@@ -1444,6 +1705,100 @@ export class StockAlertsComponent implements OnInit {
 
   openDetail(item: StockAlertItem) {
     this.selectedDetailItem.set(item);
+    this.editMinStock = item.customMinStock != null ? item.customMinStock : item.minimoSeguridad;
+    this.editReorderPoint = item.customReorderPoint != null ? item.customReorderPoint : item.puntoReorden;
+    this.editMaxStock = item.customMaxStock != null ? item.customMaxStock : item.maximoObjetivo;
+  }
+
+  openThresholdEditor(item: StockAlertItem) {
+    this.openDetail(item);
+  }
+
+  saveThresholds(item: StockAlertItem) {
+    if (this.editMinStock != null && this.editMinStock < 0) {
+      this.toast.error('El stock mínimo no puede ser negativo.');
+      return;
+    }
+    if (this.editReorderPoint != null && this.editMinStock != null && this.editReorderPoint < this.editMinStock) {
+      this.toast.warning('El punto de reorden debería ser mayor o igual al mínimo de seguridad.');
+    }
+    this.savingThresholds.set(true);
+    this.api.updateStockThresholds(item.code, this.editMinStock, this.editReorderPoint, this.editMaxStock).subscribe({
+      next: (res) => {
+        this.savingThresholds.set(false);
+        this.toast.success(`Umbrales actualizados correctamente para ${item.code}`);
+        item.minimoSeguridad = this.editMinStock != null ? Math.round(this.editMinStock) : item.minimoSeguridad;
+        item.puntoReorden = this.editReorderPoint != null ? Math.round(this.editReorderPoint) : item.puntoReorden;
+        item.maximoObjetivo = this.editMaxStock != null ? Math.round(this.editMaxStock) : item.maximoObjetivo;
+        item.isCustomThresholds = res.isCustomThresholds;
+        item.customMinStock = res.minStock;
+        item.customReorderPoint = res.reorderPoint;
+        item.customMaxStock = res.maxStock;
+        this.loadData();
+      },
+      error: (err) => {
+        this.savingThresholds.set(false);
+        this.toast.error('Error al guardar umbrales: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  restoreAutoThresholds(item: StockAlertItem) {
+    this.savingThresholds.set(true);
+    this.api.updateStockThresholds(item.code, null, null, null).subscribe({
+      next: () => {
+        this.savingThresholds.set(false);
+        this.toast.success(`Se restauró el cálculo automático para ${item.code}`);
+        this.loadData();
+        this.selectedDetailItem.set(null);
+      },
+      error: (err) => {
+        this.savingThresholds.set(false);
+        this.toast.error('Error al restaurar: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  downloadPlantilla() {
+    this.downloadingTemplate.set(true);
+    this.api.downloadImportTemplate().subscribe({
+      next: (blob) => {
+        this.downloadingTemplate.set(false);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Plantilla_Interflu_Conteo_Por_Nivel.xlsx';
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.toast.success('Plantilla oficial Excel descargada.');
+      },
+      error: (err) => {
+        this.downloadingTemplate.set(false);
+        this.toast.error('Error al descargar plantilla: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  downloadPurchaseOrderExcel() {
+    this.downloadingPo.set(true);
+    const sid = this.selectedSessionId() || undefined;
+    this.api.downloadPurchaseOrderExcel(sid).subscribe({
+      next: (blob) => {
+        this.downloadingPo.set(false);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const folio = this.data()?.sessionFolio || 'ACTUAL';
+        a.href = url;
+        a.download = `Orden_De_Compra_Interflu_${folio}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.toast.success('Orden de Compra (.xlsx) descargada con éxito.');
+      },
+      error: (err) => {
+        this.downloadingPo.set(false);
+        this.toast.error('Error al generar Orden de Compra: ' + (err.error?.message || err.message));
+      }
+    });
   }
 
   goToCroquis(item: StockAlertItem) {

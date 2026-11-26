@@ -113,6 +113,6 @@ public class InventorySession {
     public void setReopenReason(String reopenReason) { this.reopenReason = reopenReason; }
 
     public boolean isEditable() {
-        return status == Status.BORRADOR || status == Status.EN_CONTEO || status == Status.REABIERTO;
+        return status == Status.BORRADOR || status == Status.EN_CONTEO || status == Status.REABIERTO || status == Status.POR_VALIDAR;
     }
 }

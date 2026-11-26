@@ -376,8 +376,8 @@ public class CountService {
         int plantCol = -1;
         int headerRowIdx = -1;
 
-        // 1. Detect header row in first 10 rows
-        for (int r = 0; r < Math.min(rows.size(), 10); r++) {
+        // 1. Detect header row in first 25 rows
+        for (int r = 0; r < Math.min(rows.size(), 25); r++) {
             String[] row = rows.get(r);
             boolean hasCode = false;
             boolean hasQty = false;
@@ -954,6 +954,10 @@ public class CountService {
         if (!session.isEditable()) {
             throw new IllegalStateException("El inventario está cerrado. Debe reabrirse para importar conteos.");
         }
+        if (session.getStatus() == InventorySession.Status.POR_VALIDAR) {
+            session.setStatus(InventorySession.Status.EN_CONTEO);
+            sessionRepo.save(session);
+        }
 
         String modeUpper = importMode != null ? importMode.trim().toUpperCase() : "SMART_MERGE";
         String mode = "SMART_MERGE";
@@ -1091,8 +1095,20 @@ public class CountService {
                 }
             }
         } else {
-            // CSV / TXT fallback
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
+            // CSV / TXT fallback with UTF-8 / Windows-1252 auto-detection
+            byte[] fileBytes = file.getBytes();
+            java.nio.charset.Charset charset = StandardCharsets.UTF_8;
+            try {
+                java.nio.charset.CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
+                decoder.decode(java.nio.ByteBuffer.wrap(fileBytes));
+            } catch (Exception e) {
+                try {
+                    charset = java.nio.charset.Charset.forName("Windows-1252");
+                } catch (Exception ignored) {
+                    charset = StandardCharsets.ISO_8859_1;
+                }
+            }
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(new java.io.ByteArrayInputStream(fileBytes), charset))) {
                 List<String[]> csvRows = new ArrayList<>();
                 String line;
                 while ((line = reader.readLine()) != null) {
@@ -1302,8 +1318,13 @@ public class CountService {
                     continue;
                 }
 
-                // Brand new or unlocated SAE SKU -> place on explicit userSelectedDefaultShelf (if chosen) OR pendingShelf (NO DEFINIDO)
-                Shelf targetShelf = (userSelectedDefaultShelf != null) ? userSelectedDefaultShelf : pendingShelf;
+                // Brand new or unlocated SAE SKU:
+                // NEVER pollute physical shelves (e.g. Acero 18,015 pcs, Kuriyama, etc.) with random unlocated SAE items!
+                // Only place on userSelectedDefaultShelf if user explicitly selected a Pending / General buffer shelf.
+                boolean userShelfIsPending = userSelectedDefaultShelf != null &&
+                        (userSelectedDefaultShelf.getCode().contains("PEN") || userSelectedDefaultShelf.getCode().contains("GEN") || "Pendiente".equalsIgnoreCase(userSelectedDefaultShelf.getZone()));
+                Shelf targetShelf = userShelfIsPending ? userSelectedDefaultShelf : pendingShelf;
+                if (targetShelf == null) targetShelf = pendingShelf;
                 if (targetShelf == null) continue;
 
                 Product product = productCache.get(code);
@@ -2143,10 +2164,44 @@ public class CountService {
 
             if (desc == null) desc = parseIndustrialDescription(code);
 
+            Product prod = null;
+            for (CountRecord r : records) {
+                if (r.getProduct() != null) {
+                    prod = r.getProduct();
+                    break;
+                }
+            }
+            if (prod == null) {
+                prod = productRepo.findByCode(code).orElse(null);
+            }
+
             long monthlyDemandAvg = Math.max(12, Math.round((totalQty > 0 ? totalQty : 25) * 1.25));
-            long minimoSeguridad = Math.max(5, Math.round(monthlyDemandAvg * 0.5));
-            long puntoReorden = Math.max(10, Math.round(monthlyDemandAvg * 0.833));
-            long maximoObjetivo = Math.max(25, Math.round(monthlyDemandAvg * 1.833));
+            boolean isCustom = false;
+            long minimoSeguridad;
+            long puntoReorden;
+            long maximoObjetivo;
+
+            if (prod != null && prod.getMinStock() != null) {
+                minimoSeguridad = Math.round(prod.getMinStock());
+                isCustom = true;
+            } else {
+                minimoSeguridad = Math.max(5, Math.round(monthlyDemandAvg * 0.5));
+            }
+
+            if (prod != null && prod.getReorderPoint() != null) {
+                puntoReorden = Math.round(prod.getReorderPoint());
+                isCustom = true;
+            } else {
+                puntoReorden = Math.max(10, Math.round(monthlyDemandAvg * 0.833));
+            }
+
+            if (prod != null && prod.getMaxStock() != null) {
+                maximoObjetivo = Math.round(prod.getMaxStock());
+                isCustom = true;
+            } else {
+                maximoObjetivo = Math.max(25, Math.round(monthlyDemandAvg * 1.833));
+            }
+
             long packageSize = monthlyDemandAvg > 50 ? 10 : 5;
 
             String status;
@@ -2186,6 +2241,10 @@ public class CountService {
             itemMap.put("puntoReorden", puntoReorden);
             itemMap.put("maximoObjetivo", maximoObjetivo);
             itemMap.put("cuantoPedir", cuantoPedir);
+            itemMap.put("isCustomThresholds", isCustom);
+            itemMap.put("customMinStock", prod != null ? prod.getMinStock() : null);
+            itemMap.put("customReorderPoint", prod != null ? prod.getReorderPoint() : null);
+            itemMap.put("customMaxStock", prod != null ? prod.getMaxStock() : null);
             itemMap.put("status", status);
             itemMap.put("statusLabel", statusLabel);
             itemMap.put("severity", severity);
@@ -2225,6 +2284,274 @@ public class CountService {
         if ("POR_REORDENAR".equals(status)) return 2;
         if ("SOBRESTOCK".equals(status)) return 3;
         return 4;
+    }
+
+    @Transactional
+    public Map<String, Object> updateStockThresholds(String code, Double minStock, Double reorderPoint, Double maxStock, User user) {
+        if (code == null || code.trim().isEmpty()) {
+            throw new IllegalArgumentException("El código de producto es obligatorio.");
+        }
+        String cleanCode = code.trim().toUpperCase();
+        Product prod = productRepo.findByCode(cleanCode).orElse(null);
+        if (prod == null) {
+            String desc = parseIndustrialDescription(cleanCode);
+            prod = new Product(cleanCode, desc, "PZA", "GENERAL", "PB-PEN-01", 0.0);
+        }
+        prod.setMinStock(minStock != null && minStock >= 0 ? minStock : null);
+        prod.setReorderPoint(reorderPoint != null && reorderPoint >= 0 ? reorderPoint : null);
+        prod.setMaxStock(maxStock != null && maxStock >= 0 ? maxStock : null);
+        prod.setUpdatedAt(LocalDateTime.now());
+        prod = productRepo.save(prod);
+
+        auditService.log(null, null, user.getUsername(), user.getFullName(),
+                "ACTUALIZAR_UMBRALES_STOCK", "Product", prod.getId(),
+                null, String.format("Min: %s, Reorden: %s, Max: %s", minStock, reorderPoint, maxStock),
+                String.format("Umbrales de stock actualizados manualmente para refacción %s", cleanCode));
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("code", prod.getCode());
+        res.put("minStock", prod.getMinStock());
+        res.put("reorderPoint", prod.getReorderPoint());
+        res.put("maxStock", prod.getMaxStock());
+        res.put("isCustomThresholds", prod.getMinStock() != null || prod.getReorderPoint() != null || prod.getMaxStock() != null);
+        return res;
+    }
+
+    public byte[] generatePurchaseOrderXlsx(Long sessionId) throws Exception {
+        Map<String, Object> alertsData = getStockAlerts(sessionId);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> allItems = (List<Map<String, Object>>) alertsData.getOrDefault("items", Collections.emptyList());
+
+        // Prioritize items that need ordering (cuantoPedir > 0 or CRITICO or POR_REORDENAR)
+        List<Map<String, Object>> poItems = allItems.stream()
+                .filter(i -> {
+                    Number pedir = (Number) i.get("cuantoPedir");
+                    String status = (String) i.get("status");
+                    return (pedir != null && pedir.doubleValue() > 0) || "CRITICO".equals(status) || "POR_REORDENAR".equals(status);
+                })
+                .toList();
+
+        if (poItems.isEmpty()) {
+            poItems = allItems;
+        }
+
+        try (XSSFWorkbook wb = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = wb.createSheet("Orden_De_Compra");
+            sheet.setDisplayGridlines(true);
+
+            CellStyle titleStyle = wb.createCellStyle();
+            Font titleFont = wb.createFont();
+            titleFont.setBold(true);
+            titleFont.setFontHeightInPoints((short) 16);
+            titleFont.setColor(IndexedColors.DARK_BLUE.getIndex());
+            titleStyle.setFont(titleFont);
+
+            CellStyle subStyle = wb.createCellStyle();
+            Font subFont = wb.createFont();
+            subFont.setItalic(true);
+            subFont.setFontHeightInPoints((short) 10);
+            subFont.setColor(IndexedColors.GREY_50_PERCENT.getIndex());
+            subStyle.setFont(subFont);
+
+            CellStyle headerStyle = wb.createCellStyle();
+            Font headerFont = wb.createFont();
+            headerFont.setBold(true);
+            headerFont.setColor(IndexedColors.WHITE.getIndex());
+            headerFont.setFontHeightInPoints((short) 11);
+            headerStyle.setFont(headerFont);
+            headerStyle.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            headerStyle.setAlignment(HorizontalAlignment.CENTER);
+            headerStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+            headerStyle.setBorderBottom(BorderStyle.MEDIUM);
+            headerStyle.setBorderTop(BorderStyle.THIN);
+            headerStyle.setBorderLeft(BorderStyle.THIN);
+            headerStyle.setBorderRight(BorderStyle.THIN);
+
+            CellStyle criticalHeaderStyle = wb.createCellStyle();
+            criticalHeaderStyle.cloneStyleFrom(headerStyle);
+            criticalHeaderStyle.setFillForegroundColor(IndexedColors.RED.getIndex());
+
+            CellStyle normalCell = wb.createCellStyle();
+            normalCell.setBorderBottom(BorderStyle.THIN);
+            normalCell.setBorderTop(BorderStyle.THIN);
+            normalCell.setBorderLeft(BorderStyle.THIN);
+            normalCell.setBorderRight(BorderStyle.THIN);
+
+            CellStyle centerCell = wb.createCellStyle();
+            centerCell.cloneStyleFrom(normalCell);
+            centerCell.setAlignment(HorizontalAlignment.CENTER);
+
+            CellStyle rightCell = wb.createCellStyle();
+            rightCell.cloneStyleFrom(normalCell);
+            rightCell.setAlignment(HorizontalAlignment.RIGHT);
+
+            CellStyle qtyBoldCell = wb.createCellStyle();
+            qtyBoldCell.cloneStyleFrom(rightCell);
+            Font boldFont = wb.createFont();
+            boldFont.setBold(true);
+            qtyBoldCell.setFont(boldFont);
+
+            CellStyle criticalBadgeCell = wb.createCellStyle();
+            criticalBadgeCell.cloneStyleFrom(centerCell);
+            Font critFont = wb.createFont();
+            critFont.setBold(true);
+            critFont.setColor(IndexedColors.DARK_RED.getIndex());
+            criticalBadgeCell.setFont(critFont);
+            criticalBadgeCell.setFillForegroundColor(IndexedColors.ROSE.getIndex());
+            criticalBadgeCell.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+            CellStyle warningBadgeCell = wb.createCellStyle();
+            warningBadgeCell.cloneStyleFrom(centerCell);
+            Font warnFont = wb.createFont();
+            warnFont.setBold(true);
+            warnFont.setColor(IndexedColors.ORANGE.getIndex());
+            warningBadgeCell.setFont(warnFont);
+            warningBadgeCell.setFillForegroundColor(IndexedColors.LIGHT_YELLOW.getIndex());
+            warningBadgeCell.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+            Row r0 = sheet.createRow(0);
+            Cell c0 = r0.createCell(0);
+            c0.setCellValue("INTERFLU CONTROL DE SURTIDO - ORDEN DE COMPRA SUGERIDA");
+            c0.setCellStyle(titleStyle);
+
+            Row r1 = sheet.createRow(1);
+            Cell c1 = r1.createCell(0);
+            String folio = (String) alertsData.getOrDefault("sessionFolio", "GENERAL");
+            c1.setCellValue(String.format("Folio de Inventario: %s | Fecha Emisión: %s | Total Partidas: %d",
+                    folio, LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")), poItems.size()));
+            c1.setCellStyle(subStyle);
+
+            String[] headers = {
+                "PARTIDA",
+                "CLAVE SAE",
+                "DESCRIPCIÓN DEL MATERIAL",
+                "CANTIDAD A PEDIR",
+                "UNIDAD",
+                "EXISTENCIA ACTUAL",
+                "MÍNIMO SEGURIDAD",
+                "PTO. REORDEN",
+                "MÁXIMO OBJETIVO",
+                "PRIORIDAD / ESTADO",
+                "ANAQUEL / DESTINO",
+                "FAMILIA / ZONA",
+                "TIPO UMBRAL"
+            };
+
+            Row headerRow = sheet.createRow(3);
+            headerRow.setHeightInPoints(24);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(i == 3 ? criticalHeaderStyle : headerStyle);
+            }
+
+            int rowIdx = 4;
+            double totalPedir = 0.0;
+            for (int i = 0; i < poItems.size(); i++) {
+                Map<String, Object> item = poItems.get(i);
+                Row row = sheet.createRow(rowIdx++);
+
+                Cell cPartida = row.createCell(0);
+                cPartida.setCellValue(i + 1);
+                cPartida.setCellStyle(centerCell);
+
+                Cell cClave = row.createCell(1);
+                cClave.setCellValue(String.valueOf(item.getOrDefault("code", "")));
+                cClave.setCellStyle(centerCell);
+
+                Cell cDesc = row.createCell(2);
+                cDesc.setCellValue(String.valueOf(item.getOrDefault("description", "")));
+                cDesc.setCellStyle(normalCell);
+
+                Cell cPedir = row.createCell(3);
+                Number pedir = (Number) item.getOrDefault("cuantoPedir", 0);
+                double pedirVal = pedir != null ? pedir.doubleValue() : 0.0;
+                totalPedir += pedirVal;
+                cPedir.setCellValue(pedirVal);
+                cPedir.setCellStyle(qtyBoldCell);
+
+                Cell cUnidad = row.createCell(4);
+                cUnidad.setCellValue(String.valueOf(item.getOrDefault("unit", "PZA")));
+                cUnidad.setCellStyle(centerCell);
+
+                Cell cStock = row.createCell(5);
+                Number stock = (Number) item.getOrDefault("stockActual", 0);
+                cStock.setCellValue(stock != null ? stock.doubleValue() : 0.0);
+                cStock.setCellStyle(rightCell);
+
+                Cell cMin = row.createCell(6);
+                Number min = (Number) item.getOrDefault("minimoSeguridad", 0);
+                cMin.setCellValue(min != null ? min.doubleValue() : 0.0);
+                cMin.setCellStyle(rightCell);
+
+                Cell cReorder = row.createCell(7);
+                Number reo = (Number) item.getOrDefault("puntoReorden", 0);
+                cReorder.setCellValue(reo != null ? reo.doubleValue() : 0.0);
+                cReorder.setCellStyle(rightCell);
+
+                Cell cMax = row.createCell(8);
+                Number max = (Number) item.getOrDefault("maximoObjetivo", 0);
+                cMax.setCellValue(max != null ? max.doubleValue() : 0.0);
+                cMax.setCellStyle(rightCell);
+
+                Cell cStatus = row.createCell(9);
+                String status = String.valueOf(item.getOrDefault("status", ""));
+                String statusLabel = String.valueOf(item.getOrDefault("statusLabel", status));
+                cStatus.setCellValue(statusLabel);
+                if ("CRITICO".equals(status)) {
+                    cStatus.setCellStyle(criticalBadgeCell);
+                } else if ("POR_REORDENAR".equals(status)) {
+                    cStatus.setCellStyle(warningBadgeCell);
+                } else {
+                    cStatus.setCellStyle(centerCell);
+                }
+
+                Cell cShelf = row.createCell(10);
+                cShelf.setCellValue(String.valueOf(item.getOrDefault("shelfCode", "")));
+                cShelf.setCellStyle(centerCell);
+
+                Cell cZone = row.createCell(11);
+                cZone.setCellValue(String.valueOf(item.getOrDefault("zone", "")));
+                cZone.setCellStyle(normalCell);
+
+                Cell cCustom = row.createCell(12);
+                Boolean custom = (Boolean) item.getOrDefault("isCustomThresholds", false);
+                cCustom.setCellValue(Boolean.TRUE.equals(custom) ? "Manual / Modificado" : "Fórmula Automática");
+                cCustom.setCellStyle(centerCell);
+            }
+
+            Row totalRow = sheet.createRow(rowIdx);
+            Cell totLabel = totalRow.createCell(2);
+            totLabel.setCellValue("TOTAL PIEZAS SUGERIDAS A COMPRAR:");
+            CellStyle totLabelStyle = wb.createCellStyle();
+            Font totFont = wb.createFont();
+            totFont.setBold(true);
+            totLabelStyle.setFont(totFont);
+            totLabelStyle.setAlignment(HorizontalAlignment.RIGHT);
+            totLabel.setCellStyle(totLabelStyle);
+
+            Cell totVal = totalRow.createCell(3);
+            totVal.setCellValue(totalPedir);
+            totVal.setCellStyle(qtyBoldCell);
+
+            sheet.setColumnWidth(0, 10 * 256);
+            sheet.setColumnWidth(1, 20 * 256);
+            sheet.setColumnWidth(2, 45 * 256);
+            sheet.setColumnWidth(3, 18 * 256);
+            sheet.setColumnWidth(4, 10 * 256);
+            sheet.setColumnWidth(5, 18 * 256);
+            sheet.setColumnWidth(6, 18 * 256);
+            sheet.setColumnWidth(7, 16 * 256);
+            sheet.setColumnWidth(8, 18 * 256);
+            sheet.setColumnWidth(9, 24 * 256);
+            sheet.setColumnWidth(10, 20 * 256);
+            sheet.setColumnWidth(11, 20 * 256);
+            sheet.setColumnWidth(12, 20 * 256);
+
+            wb.write(out);
+            return out.toByteArray();
+        }
     }
 }
 

@@ -50,6 +50,9 @@ public class DataInitializer implements CommandLineRunner {
         try {
             jdbcTemplate.queryForObject("PRAGMA journal_mode=WAL;", String.class);
             jdbcTemplate.update("UPDATE count_records SET version = 0 WHERE version IS NULL;");
+            try { jdbcTemplate.execute("ALTER TABLE products ADD COLUMN min_stock REAL;"); } catch (Exception ignored) {}
+            try { jdbcTemplate.execute("ALTER TABLE products ADD COLUMN reorder_point REAL;"); } catch (Exception ignored) {}
+            try { jdbcTemplate.execute("ALTER TABLE products ADD COLUMN max_stock REAL;"); } catch (Exception ignored) {}
         } catch (Exception ignored) {}
 
         // Sanitize any legacy SQLite string timestamps to epoch milliseconds for Hibernate SQLiteDialect compatibility

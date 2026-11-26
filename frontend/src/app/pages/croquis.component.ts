@@ -302,6 +302,24 @@ export interface LocationAssignerRow {
             </svg>
             Levantamiento Semanal SAE
           </button>
+
+          <!-- PLANTILLA Button (Punto 9) -->
+          <button
+            type="button"
+            class="btn btn-download-template"
+            [disabled]="downloadingTemplate()"
+            (click)="downloadExcelTemplate()"
+            title="Descargar formato oficial Excel (.xlsx) con columnas ESTANTE, NIVEL y UBICACIÓN para importar"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="12" y1="18" x2="12" y2="12"></line>
+              <line x1="9" y1="15" x2="12" y2="18"></line>
+              <line x1="15" y1="15" x2="12" y2="18"></line>
+            </svg>
+            <span>{{ downloadingTemplate() ? 'Descargando...' : 'PLANTILLA' }}</span>
+          </button>
         </div>
       </div>
 
@@ -2463,17 +2481,19 @@ export interface LocationAssignerRow {
                 </div>
                 <button
                   type="button"
-                  class="btn btn-sm btn-outline"
+                  class="btn btn-sm btn-download-template"
                   [disabled]="downloadingTemplate()"
                   (click)="downloadExcelTemplate()"
-                  title="Descargar archivo Excel oficial"
+                  title="Descargar archivo Excel oficial con formato compatible"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                    <line x1="9" y1="15" x2="12" y2="18"></line>
+                    <line x1="15" y1="15" x2="12" y2="18"></line>
                   </svg>
-                  <span>{{ downloadingTemplate() ? 'Generando...' : 'Plantilla (.xlsx)' }}</span>
+                  <span class="font-bold">{{ downloadingTemplate() ? 'Generando...' : 'PLANTILLA (.xlsx)' }}</span>
                 </button>
               </div>
 
@@ -4718,6 +4738,20 @@ export interface LocationAssignerRow {
     .btn-weekly-import:hover {
       background: #0284c7;
       color: #ffffff;
+    }
+    .btn-download-template {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      background: #ecfdf5;
+      border: 1px solid #10b981;
+      color: #065f46;
+    }
+    .btn-download-template:hover:not(:disabled) {
+      background: #10b981;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
     }
     .btn-rename-fam-shelf {
       display: inline-flex;

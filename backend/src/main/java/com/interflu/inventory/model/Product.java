@@ -43,6 +43,15 @@ public class Product {
     @Column(length = 50)
     private String barcode;
 
+    @Column
+    private Double minStock;
+
+    @Column
+    private Double reorderPoint;
+
+    @Column
+    private Double maxStock;
+
     private boolean active = true;
 
     private LocalDateTime updatedAt = LocalDateTime.now();
@@ -83,6 +92,15 @@ public class Product {
 
     public String getBarcode() { return barcode; }
     public void setBarcode(String barcode) { this.barcode = barcode; }
+
+    public Double getMinStock() { return minStock; }
+    public void setMinStock(Double minStock) { this.minStock = minStock; }
+
+    public Double getReorderPoint() { return reorderPoint; }
+    public void setReorderPoint(Double reorderPoint) { this.reorderPoint = reorderPoint; }
+
+    public Double getMaxStock() { return maxStock; }
+    public void setMaxStock(Double maxStock) { this.maxStock = maxStock; }
 
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }

@@ -196,6 +196,37 @@ public class CountController {
         return ResponseEntity.ok(countService.getStockAlerts(sessionId));
     }
 
+    @PutMapping("/stock-alerts/thresholds")
+    public ResponseEntity<?> updateStockThresholds(@RequestBody Map<String, Object> req) {
+        User currentUser = userHelper.getCurrentUser();
+        try {
+            String code = req.get("code") != null ? String.valueOf(req.get("code")) : null;
+            Double minStock = req.get("minStock") != null ? ((Number) req.get("minStock")).doubleValue() : null;
+            Double reorderPoint = req.get("reorderPoint") != null ? ((Number) req.get("reorderPoint")).doubleValue() : null;
+            Double maxStock = req.get("maxStock") != null ? ((Number) req.get("maxStock")).doubleValue() : null;
+
+            Map<String, Object> res = countService.updateStockThresholds(code, minStock, reorderPoint, maxStock, currentUser);
+            return ResponseEntity.ok(res);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/purchase-order-excel")
+    public ResponseEntity<byte[]> downloadPurchaseOrderExcel(@RequestParam(required = false) Long sessionId) {
+        try {
+            byte[] data = countService.generatePurchaseOrderXlsx(sessionId);
+            return ResponseEntity.ok()
+                    .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"Orden_De_Compra_Interflu.xlsx\"")
+                    .contentType(org.springframework.http.MediaType.parseMediaType(
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(data);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
     private Map<String, Object> toDto(CountRecord r) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", r.getId());
@@ -214,6 +245,9 @@ public class CountController {
         map.put("userName", r.getUser().getFullName());
         map.put("validationStatus", r.getValidationStatus().name());
         map.put("notes", r.getNotes());
+        map.put("isSaeExtra", r.getNotes() != null && r.getNotes().contains("SAE_EXTRA"));
+        map.put("isUnlocated", (r.getShelf() != null && "PB-PEN-01".equalsIgnoreCase(r.getShelf().getCode()))
+                || (r.getNotes() != null && (r.getNotes().contains("SIN_UBICAR") || r.getNotes().contains("SIN_DEFINIR"))));
         map.put("countedAt", r.getCountedAt());
         map.put("updatedAt", r.getUpdatedAt());
         return map;

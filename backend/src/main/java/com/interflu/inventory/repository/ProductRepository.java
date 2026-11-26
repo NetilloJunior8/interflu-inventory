@@ -18,6 +18,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
         return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
     }
 
+    default Optional<Product> findByCode(String code) {
+        return findByCodeIgnoreCase(code);
+    }
+
     @Query("""
         SELECT p FROM Product p
         WHERE p.active = true AND (

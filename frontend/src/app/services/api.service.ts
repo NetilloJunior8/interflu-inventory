@@ -112,6 +112,8 @@ export interface CountRecordDto {
   userName: string;
   validationStatus: string;
   notes?: string;
+  isSaeExtra?: boolean;
+  isUnlocated?: boolean;
   countedAt: string;
   updatedAt: string;
 }
@@ -447,6 +449,21 @@ export class ApiService {
     const params: any = {};
     if (sessionId && sessionId > 0) params.sessionId = sessionId;
     return this.http.get<any>(`${this.baseUrl}/counts/stock-alerts`, { params });
+  }
+
+  updateStockThresholds(code: string, minStock?: number | null, reorderPoint?: number | null, maxStock?: number | null): Observable<any> {
+    return this.http.put<any>(`${this.baseUrl}/counts/stock-alerts/thresholds`, {
+      code,
+      minStock,
+      reorderPoint,
+      maxStock
+    });
+  }
+
+  downloadPurchaseOrderExcel(sessionId?: number): Observable<Blob> {
+    const params: any = {};
+    if (sessionId && sessionId > 0) params.sessionId = sessionId;
+    return this.http.get(`${this.baseUrl}/counts/purchase-order-excel`, { params, responseType: 'blob' });
   }
 
   // Material QR Downloads
