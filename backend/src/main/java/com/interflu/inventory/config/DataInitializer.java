@@ -52,6 +52,11 @@ public class DataInitializer implements CommandLineRunner {
             jdbcTemplate.update("UPDATE count_records SET version = 0 WHERE version IS NULL;");
         } catch (Exception ignored) {}
 
+        // Sanitize any legacy SQLite string timestamps to epoch milliseconds for Hibernate SQLiteDialect compatibility
+        try {
+            sanitizeSqliteTimestamps();
+        } catch (Exception ignored) {}
+
         // 1. Seed Authorized Users: Osiris (220704), Alexis (888888), and Sistemas (admin8888)
         User osiris = userRepo.findByUsername("Osiris").orElse(null);
         if (osiris == null) {
@@ -345,4 +350,50 @@ public class DataInitializer implements CommandLineRunner {
             new Shelf("PA-SEL-W-06", "Sellos", "Sellos Muro Este 6", "1", "Planta Alta", 1276.0, 404.5, 54.0, 52.0)
         );
     }
+
+    private void sanitizeSqliteTimestamps() {
+        String[] tables = {"count_records", "shelf_assignments", "products", "inventory_sessions", "audit_logs"};
+        for (String table : tables) {
+            try {
+                List<Map<String, Object>> columns = jdbcTemplate.queryForList("PRAGMA table_info(" + table + ")");
+                for (Map<String, Object> col : columns) {
+                    String colName = (String) col.get("name");
+                    if (colName != null && (colName.endsWith("_at") || colName.contains("time") || colName.contains("date"))) {
+                        List<Map<String, Object>> textRows = jdbcTemplate.queryForList(
+                                "SELECT id, " + colName + " FROM " + table + " WHERE typeof(" + colName + ") = 'text'");
+                        for (Map<String, Object> row : textRows) {
+                            Object id = row.get("id");
+                            Object val = row.get(colName);
+                            if (val != null) {
+                                Long epochMs = parseToEpochMs(val.toString());
+                                if (epochMs != null) {
+                                    jdbcTemplate.update("UPDATE " + table + " SET " + colName + " = ? WHERE id = ?", epochMs, id);
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+    }
+
+    private Long parseToEpochMs(String str) {
+        if (str == null || str.isBlank()) return null;
+        try {
+            return Long.parseLong(str.trim());
+        } catch (NumberFormatException ignored) {}
+
+        String s = str.trim().replace(' ', 'T');
+        try {
+            return java.time.LocalDateTime.parse(s).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+        } catch (Exception ignored) {}
+        try {
+            if (!s.contains(".")) {
+                return java.time.LocalDateTime.parse(s, java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                        .atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
 }
+
