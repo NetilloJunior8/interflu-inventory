@@ -67,8 +67,8 @@ import { ToastService } from '../services/toast.service';
           <button class="tab-btn" [class.active]="filterStatus === 'EN_ATENCION'" (click)="setFilter('EN_ATENCION')">
             En Atención ({{ countByStatus('EN_ATENCION') }})
           </button>
-          <button class="tab-btn" [class.active]="filterStatus === 'RESUELTO'" (click)="setFilter('RESUELTO')">
-            Resueltos ({{ countByStatus('RESUELTO') }})
+          <button class="tab-btn" [class.active]="filterStatus === 'RESUELTO' || filterStatus === 'COMPLETADO'" (click)="setFilter('COMPLETADO')">
+            Completados ({{ countCompleted() }})
           </button>
         </div>
       </div>
@@ -110,17 +110,23 @@ import { ToastService } from '../services/toast.service';
                   <span class="sub-user">({{ t.authorUsername }})</span>
                 </td>
                 <td>
-                  <span class="status-badge" [ngClass]="'status-' + t.status.toLowerCase()">
+                  <span class="status-badge" [ngClass]="t.status === 'COMPLETADO' || t.status === 'RESUELTO' ? 'status-completado' : 'status-' + t.status.toLowerCase()">
                     {{ statusLabel(t.status) }}
                   </span>
                 </td>
                 <td class="font-xs text-muted">{{ t.createdAt | slice:0:16 | date:'dd/MM/yyyy HH:mm' }}</td>
-                <td>
-                  <button *ngIf="auth.isSistemas()" class="btn btn-sm btn-outline-primary" (click)="openInspectModal(t)">
-                    Atender Ticket
+                <td style="white-space: nowrap;">
+                  <button class="btn btn-sm btn-outline-primary" (click)="openInspectModal(t)">
+                    {{ auth.isSistemas() ? 'Atender Ticket' : 'Ver Detalle' }}
                   </button>
-                  <button *ngIf="!auth.isSistemas()" class="btn btn-sm btn-ghost" (click)="openInspectModal(t)">
-                    Ver Detalle
+                  <button
+                    *ngIf="t.status !== 'COMPLETADO' && t.status !== 'RESUELTO'"
+                    class="btn btn-sm btn-success"
+                    (click)="quickCompleteTicket(t)"
+                    title="Marcar inmediatamente como Completado"
+                    style="margin-left: 5px; font-weight: 700;"
+                  >
+                    ✓ Completar
                   </button>
                 </td>
               </tr>
@@ -231,10 +237,10 @@ import { ToastService } from '../services/toast.service';
                 <button
                   type="button"
                   class="btn-status-toggle status-resolved"
-                  [class.active]="selectedNewStatus === 'RESUELTO'"
-                  (click)="selectedNewStatus = 'RESUELTO'"
+                  [class.active]="selectedNewStatus === 'COMPLETADO' || selectedNewStatus === 'RESUELTO'"
+                  (click)="selectedNewStatus = 'COMPLETADO'"
                 >
-                  Resuelto
+                  ✓ Completado
                 </button>
               </div>
 
@@ -563,6 +569,55 @@ import { ToastService } from '../services/toast.service';
       border-color: #10b981;
       color: #047857;
     }
+    .status-completado {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+    }
+
+    @media (max-width: 768px) {
+      .support-page {
+        padding: 0.75rem !important;
+        overflow-x: hidden !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+      }
+      .page-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+      }
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.5rem !important;
+      }
+      .filter-bar {
+        overflow-x: auto !important;
+        width: 100% !important;
+        padding-bottom: 4px !important;
+      }
+      .tabs {
+        width: 100% !important;
+        overflow-x: auto !important;
+      }
+      .table-card {
+        border-radius: 8px !important;
+        overflow-x: hidden !important;
+      }
+      .table-wrap {
+        width: 100% !important;
+        overflow-x: auto !important;
+      }
+      .modal-box {
+        max-width: 95vw !important;
+        padding: 1rem !important;
+      }
+      .status-options-row {
+        flex-direction: column !important;
+        gap: 0.4rem !important;
+      }
+    }
   `]
 })
 export class SupportComponent implements OnInit, OnDestroy {
@@ -632,6 +687,9 @@ export class SupportComponent implements OnInit, OnDestroy {
 
   filteredTickets(): SupportTicketDto[] {
     if (this.filterStatus === 'TODOS') return this.tickets();
+    if (this.filterStatus === 'COMPLETADO' || this.filterStatus === 'RESUELTO') {
+      return this.tickets().filter(t => t.status === 'COMPLETADO' || t.status === 'RESUELTO');
+    }
     return this.tickets().filter(t => t.status === this.filterStatus);
   }
 
@@ -639,11 +697,28 @@ export class SupportComponent implements OnInit, OnDestroy {
     return this.tickets().filter(t => t.status === st).length;
   }
 
+  countCompleted(): number {
+    return this.tickets().filter(t => t.status === 'COMPLETADO' || t.status === 'RESUELTO').length;
+  }
+
   statusLabel(st: string): string {
     if (st === 'PENDIENTE') return 'Pendiente';
     if (st === 'EN_ATENCION') return 'En Atención';
-    if (st === 'RESUELTO') return 'Resuelto';
+    if (st === 'RESUELTO' || st === 'COMPLETADO') return 'Completado';
     return st;
+  }
+
+  quickCompleteTicket(t: SupportTicketDto) {
+    this.api.updateSupportTicketStatus(t.id, {
+      status: 'COMPLETADO',
+      adminNotes: 'Marcado como completado en sistemas.'
+    }).subscribe({
+      next: () => {
+        this.toast.success(`Ticket ${t.folio} marcado como COMPLETADO.`);
+        this.loadTickets();
+      },
+      error: (err) => this.toast.error('Error al actualizar ticket: ' + (err.error?.message || err.message))
+    });
   }
 
   openNewTicketModal() {
@@ -678,7 +753,7 @@ export class SupportComponent implements OnInit, OnDestroy {
 
   openInspectModal(t: SupportTicketDto) {
     this.inspectingTicket = t;
-    this.selectedNewStatus = t.status;
+    this.selectedNewStatus = (t.status === 'RESUELTO') ? 'COMPLETADO' : t.status;
     this.adminNotesText = t.adminNotes || '';
   }
 

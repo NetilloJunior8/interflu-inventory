@@ -4116,6 +4116,13 @@ export interface LocationAssignerRow {
     }
     .rack-sec-pvc .rack-code-text { color: #0e7490 !important; }
 
+    .rack-sec-pendiente {
+      background: #f8fafc !important;
+      border-color: #64748b !important;
+    }
+    .rack-sec-pendiente .rack-code-text { color: #334155 !important; }
+    .rack-sec-pendiente .rack-qty-text { color: #64748b !important; }
+
     /* 3. PENDIENTES O SIN ASIGNAR: TOTALMENTE SIN COLOR (NEUTRAL LIMPIO) */
     .rack-sec-default {
       background: #ffffff !important;
@@ -7258,25 +7265,52 @@ export interface LocationAssignerRow {
         padding: 0.25rem !important;
         overflow-x: hidden !important;
         width: 100% !important;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
       }
       .croquis-header {
         flex-direction: column !important;
         align-items: stretch !important;
         gap: 10px !important;
+        width: 100% !important;
+        max-width: 100% !important;
       }
       .croquis-top-actions {
         flex-wrap: wrap !important;
         gap: 6px !important;
         justify-content: flex-start !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .plant-metrics-bar {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 6px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+      }
+      .plant-search-bar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .search-box {
+        max-width: 100% !important;
+        width: 100% !important;
       }
       .croquis-main-layout {
         flex-direction: column !important;
         gap: 12px !important;
         width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
       }
       .croquis-canvas-col {
         width: 100% !important;
         max-width: 100% !important;
+        overflow-x: hidden !important;
         flex: 1 1 100% !important;
       }
       .sections-progress-sidebar {
@@ -7287,9 +7321,18 @@ export interface LocationAssignerRow {
         position: static !important;
       }
       .blueprint-canvas-wrap {
+        width: 100% !important;
+        max-width: 100% !important;
         padding: 0.25rem !important;
         touch-action: pan-x pan-y pinch-zoom;
         -webkit-overflow-scrolling: touch;
+        box-sizing: border-box !important;
+      }
+      .floating-cad-palette {
+        right: 8px !important;
+        bottom: 8px !important;
+        width: calc(100vw - 16px) !important;
+        max-width: calc(100vw - 16px) !important;
       }
       .shelf-inspector-body {
         grid-template-columns: 1fr !important;
@@ -7685,8 +7728,7 @@ export class CroquisComponent implements OnInit {
     const p = this.selectedPlant();
     return this.allShelves().filter(s => {
       if (s.shelfCode === 'PA-DOC-01' || s.shelfCode?.startsWith('PA-DOC')) return false;
-      const sc = (s.shelfCode || '').toUpperCase();
-      if (sc.includes('PEN') || sc.includes('GEN')) return false;
+      if (s.shelfCode === 'PB-BANDEJA-01' || s.shelfCode?.startsWith('PB-BANDEJA')) return false;
       const plant = (s.plant || '').trim();
       if (p === 'Planta Baja') return plant === 'Planta Baja';
       return plant === 'Planta Alta';
@@ -7755,6 +7797,7 @@ export class CroquisComponent implements OnInit {
     if (code.includes('CHID') || code.includes('HID') || zone.includes('HIDR')) return 'chid';
     if (code.includes('CYB') || code.includes('UNI') || zone.includes('CYBER') || zone.includes('UNIVERSAL')) return 'cyber';
     if (code.includes('INOX') || zone.includes('INOX')) return 'inox';
+    if (code.includes('PEN') || zone.includes('PENDIENTE')) return 'pendiente';
 
     // Planta Alta: Sellos TODOS con el mismo color unificado (P4, P5, Muro Este)
     if (code.includes('SEL') || code.includes('PA-P4') || code.includes('PA-P5') || zone.includes('SELLOS')) return 'sellos';

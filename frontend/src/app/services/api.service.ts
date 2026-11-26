@@ -189,7 +189,7 @@ export interface SupportTicketDto {
   category: string;
   subject: string;
   description: string;
-  status: 'PENDIENTE' | 'EN_ATENCION' | 'RESUELTO';
+  status: 'PENDIENTE' | 'EN_ATENCION' | 'RESUELTO' | 'COMPLETADO' | string;
   priority: 'BAJA' | 'MEDIA' | 'ALTA' | 'CRITICA' | 'URGENTE';
   adminNotes?: string;
   assignedAdmin?: string;

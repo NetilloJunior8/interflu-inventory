@@ -50,7 +50,8 @@ public class SupportTicket {
     public enum Status {
         PENDIENTE,
         EN_ATENCION,
-        RESUELTO
+        RESUELTO,
+        COMPLETADO
     }
 
     public enum Priority {

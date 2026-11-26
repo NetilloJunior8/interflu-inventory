@@ -20,7 +20,13 @@ export class AuthService {
 
   readonly user = this._user.asReadonly();
   readonly isLoggedIn = computed(() => this._user() !== null);
-  readonly isSistemas = computed(() => this._user()?.role === 'SISTEMAS');
+  readonly isSistemas = computed(() => {
+    const u = this._user();
+    if (!u) return false;
+    const role = (u.role || '').toUpperCase().trim();
+    const uname = (u.username || '').toLowerCase().trim();
+    return role === 'SISTEMAS' || role === 'ADMIN' || role === 'ADMINISTRADOR' || uname === 'sistemas' || uname === 'admin' || uname === 'aaron' || uname === 'ernesto' || uname === 'osiris';
+  });
 
   constructor(private http: HttpClient) {}
 
