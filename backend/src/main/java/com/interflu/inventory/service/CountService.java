@@ -345,13 +345,13 @@ public class CountService {
     private boolean isHeaderAisle(String cu) {
         if (cu == null) return false;
         cu = cu.trim().toUpperCase();
-        return cu.equals("PASILLO") || cu.equals("AISLE") || cu.equals("PAS");
+        return cu.equals("PASILLO") || cu.equals("AISLE") || cu.equals("PAS") || cu.contains("PASILLO") || cu.contains("AISLE");
     }
 
     private boolean isHeaderPlant(String cu) {
         if (cu == null) return false;
         cu = cu.trim().toUpperCase();
-        return cu.equals("PLANTA") || cu.equals("PISO");
+        return cu.equals("PLANTA") || cu.equals("PISO") || cu.contains("PLANTA") || cu.contains("PISO");
     }
 
     private boolean isHeaderDesc(String cu) {
@@ -570,7 +570,96 @@ public class CountService {
         }
     }
 
-    private SheetHeaderResolution resolveSheetHeaderShelf(String rawSheetName, Shelf userSelectedDefaultShelf, Map<String, Shelf> shelfCache) {
+    public Shelf getOrCreateShelf(String canonicalCode, String zone, String desc, String plant, Double posX, Double posY, Double width, Double height, InventorySession session, Map<String, Shelf> shelfCache) {
+        String cleanCode = canonicalCode.trim().toUpperCase();
+        Shelf cached = shelfCache.get(cleanCode);
+        if (cached != null) return cached;
+
+        Optional<Shelf> existing = shelfRepo.findByCodeIgnoreCase(cleanCode);
+        if (existing.isPresent()) {
+            shelfCache.put(cleanCode, existing.get());
+            return existing.get();
+        }
+
+        // Check legacy aliases in db (e.g. for PB-ACE-02: PB3-02, PB-3-02, ACE-02, PB3-2, ACE-2)
+        if (cleanCode.startsWith("PB-ACE-")) {
+            try {
+                int num = Integer.parseInt(cleanCode.replace("PB-ACE-", ""));
+                for (String cand : List.of(
+                        String.format("PB3-%02d", num),
+                        String.format("PB-3-%02d", num),
+                        String.format("PB3-%d", num),
+                        String.format("PB-3-%d", num),
+                        String.format("ACE-%02d", num),
+                        String.format("ACE-%d", num))) {
+                    Optional<Shelf> leg = shelfRepo.findByCodeIgnoreCase(cand);
+                    if (leg.isPresent()) {
+                        Shelf ls = leg.get();
+                        ls.setCode(cleanCode);
+                        ls.setZone("Acero");
+                        ls = shelfRepo.save(ls);
+                        shelfCache.put(cleanCode, ls);
+                        return ls;
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // If not found in DB at all, auto-create it with official specs
+        Shelf s = new Shelf(cleanCode, zone != null ? zone : "GENERAL", desc != null ? desc : cleanCode, "1", plant != null ? plant : "Planta Baja", posX != null ? posX : 810.0, posY != null ? posY : 200.0, width != null ? width : 25.0, height != null ? height : 54.0);
+        s.setActive(true);
+        s = shelfRepo.save(s);
+        shelfCache.put(cleanCode, s);
+
+        if (session != null) {
+            Optional<ShelfAssignment> saOpt = assignmentRepo.findBySessionIdAndShelfId(session.getId(), s.getId());
+            if (saOpt.isEmpty()) {
+                ShelfAssignment sa = new ShelfAssignment(session, s, null);
+                sa.setStatus(ShelfAssignment.Status.PENDIENTE);
+                assignmentRepo.save(sa);
+            }
+        }
+        return s;
+    }
+
+    public Shelf getOrCreateAceroShelf(int num, InventorySession session, Map<String, Shelf> shelfCache) {
+        String canonicalCode = String.format("PB-ACE-%02d", num);
+        Shelf s = shelfCache.get(canonicalCode);
+        if (s != null) return s;
+        // Blueprint coordinates for Acero 1..19
+        double posX = (num == 11) ? 880.4 : 810.0;
+        double posY = (num == 1) ? 104.0 : (144.0 + (num - 2) * 59.5);
+        double w = (num == 1) ? 95.4 : 25.0;
+        double h = (num == 1) ? 34.0 : 54.0;
+        String desc = (num == 1) ? "Acero 1 - Fondo Pasillo" : ("Pasillo Acero " + num);
+        return getOrCreateShelf(canonicalCode, "Acero", desc, "Planta Baja", posX, posY, w, h, session, shelfCache);
+    }
+
+    public Shelf getOrCreateKuriyamaShelf(String side, int num, InventorySession session, Map<String, Shelf> shelfCache) {
+        String sUpper = (side != null && side.equalsIgnoreCase("B")) ? "B" : "A";
+        String canonicalCode = String.format("PB-KUR-%s%02d", sUpper, num);
+        double posX = sUpper.equals("A") ? 686.6 : 714.5;
+        double posY = 263.1 + ((num - 1) * 58.8);
+        return getOrCreateShelf(canonicalCode, "Kuriyama", "Kuriyama Pasillo " + sUpper + " M" + num, "Planta Baja", posX, posY, 25.0, 54.0, session, shelfCache);
+    }
+
+    public Shelf getOrCreateChidShelf(String side, int num, InventorySession session, Map<String, Shelf> shelfCache) {
+        String sUpper = (side != null && !side.isBlank()) ? side.toUpperCase() : "A";
+        String canonicalCode = String.format("PB-CHID-%s%02d", sUpper, num);
+        return getOrCreateShelf(canonicalCode, "Conexiones Hidraulicas", "Conexiones " + sUpper + num, "Planta Baja", 450.0, 200.0 + (num * 40.0), 25.0, 54.0, session, shelfCache);
+    }
+
+    public Shelf getOrCreateYpcShelf(int num, InventorySession session, Map<String, Shelf> shelfCache) {
+        String canonicalCode = String.format("PB-YPC-%02d", num);
+        return getOrCreateShelf(canonicalCode, "YPC", "Estantería YPC " + num, "Planta Baja", 907.0, 144.0 + ((num - 1) * 50.0), 25.0, 54.0, session, shelfCache);
+    }
+
+    public Shelf getOrCreatePvcShelf(int num, InventorySession session, Map<String, Shelf> shelfCache) {
+        String canonicalCode = String.format("PA-PVC-%02d", num);
+        return getOrCreateShelf(canonicalCode, "Planta Alta PVC", "PVC Pasillo " + num, "Planta Alta", 300.0, 150.0 + ((num - 1) * 45.0), 25.0, 54.0, session, shelfCache);
+    }
+
+    private SheetHeaderResolution resolveSheetHeaderShelf(String rawSheetName, Shelf userSelectedDefaultShelf, InventorySession session, Map<String, Shelf> shelfCache) {
         if (rawSheetName == null || rawSheetName.isBlank()) {
             return new SheetHeaderResolution(userSelectedDefaultShelf, false);
         }
@@ -587,8 +676,7 @@ public class CountService {
         if (mKur.find()) {
             String side = mKur.group(1).toUpperCase();
             int num = Integer.parseInt(mKur.group(2));
-            Shelf s = shelfCache.get(String.format("PB-KUR-%s%02d", side, num));
-            if (s != null) return new SheetHeaderResolution(s, true);
+            return new SheetHeaderResolution(getOrCreateKuriyamaShelf(side, num, session, shelfCache), true);
         }
 
         // 3. Conexiones Hidráulicas sheet name ("PB-CHID-A01", "CHID-A1", "CONEXIONES A1", "HIDRAULICA A1")
@@ -596,17 +684,15 @@ public class CountService {
         if (mChid.find()) {
             String col = mChid.group(1).toUpperCase();
             int num = Integer.parseInt(mChid.group(2));
-            Shelf s = shelfCache.get(String.format("PB-CHID-%s%02d", col, num));
-            if (s != null) return new SheetHeaderResolution(s, true);
+            return new SheetHeaderResolution(getOrCreateChidShelf(col, num, session, shelfCache), true);
         }
 
-        // 4. Explicit Acero pattern in sheet name ("ACEROS 5", "PB-ACE-5", "ACE-05")
-        java.util.regex.Matcher mAce = java.util.regex.Pattern.compile("(?:ACEROS?|PB-ACE-|ACE-)\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
+        // 4. Explicit Acero pattern in sheet name ("ACEROS 5", "PB-ACE-5", "ACE-05", "PB3-05")
+        java.util.regex.Matcher mAce = java.util.regex.Pattern.compile("(?:ACEROS?|PB-ACE-|ACE-|PB-?3-?)\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
         if (mAce.find()) {
             try {
                 int num = Integer.parseInt(mAce.group(1));
-                Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
-                if (s != null) return new SheetHeaderResolution(s, true);
+                return new SheetHeaderResolution(getOrCreateAceroShelf(num, session, shelfCache), true);
             } catch (Exception ignored) {}
         }
 
@@ -615,64 +701,60 @@ public class CountService {
         if (mYpc.find()) {
             try {
                 int num = Integer.parseInt(mYpc.group(1));
-                Shelf s = shelfCache.get(String.format("PB-YPC-%02d", num));
-                if (s != null) return new SheetHeaderResolution(s, true);
+                return new SheetHeaderResolution(getOrCreateYpcShelf(num, session, shelfCache), true);
             } catch (Exception ignored) {}
         }
 
         // 6. Cybermatics, Dixon, Universal
         java.util.regex.Matcher mCyb = java.util.regex.Pattern.compile("(?:PB-)?CYB(?:ERMATICS)?-?\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
         if (mCyb.find()) {
-            Shelf s = shelfCache.get(String.format("PB-CYB-%02d", Integer.parseInt(mCyb.group(1))));
-            if (s != null) return new SheetHeaderResolution(s, true);
+            int num = Integer.parseInt(mCyb.group(1));
+            String code = String.format("PB-CYB-%02d", num);
+            return new SheetHeaderResolution(getOrCreateShelf(code, "Cybermatics", "Cybermatics " + num, "Planta Baja", null, null, null, null, session, shelfCache), true);
         }
         java.util.regex.Matcher mDix = java.util.regex.Pattern.compile("(?:PB-)?DIX(?:ON)?-?\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
         if (mDix.find()) {
-            Shelf s = shelfCache.get(String.format("PB-DIX-%02d", Integer.parseInt(mDix.group(1))));
-            if (s != null) return new SheetHeaderResolution(s, true);
+            int num = Integer.parseInt(mDix.group(1));
+            String code = String.format("PB-DIX-%02d", num);
+            return new SheetHeaderResolution(getOrCreateShelf(code, "Dixon", "Dixon " + num, "Planta Baja", null, null, null, null, session, shelfCache), true);
         }
         java.util.regex.Matcher mUni = java.util.regex.Pattern.compile("(?:PB-)?UNI(?:VERSAL)?-?\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
         if (mUni.find()) {
-            Shelf s = shelfCache.get(String.format("PB-UNI-%02d", Integer.parseInt(mUni.group(1))));
-            if (s != null) return new SheetHeaderResolution(s, true);
+            int num = Integer.parseInt(mUni.group(1));
+            String code = String.format("PB-UNI-%02d", num);
+            return new SheetHeaderResolution(getOrCreateShelf(code, "Universal", "Universal " + num, "Planta Baja", null, null, null, null, session, shelfCache), true);
         }
 
         // 7. Planta Alta: PVC, Reserva Acero, Sellos
         java.util.regex.Matcher mPvc = java.util.regex.Pattern.compile("(?:PA-)?PVC-?\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
         if (mPvc.find()) {
-            Shelf s = shelfCache.get(String.format("PA-PVC-%02d", Integer.parseInt(mPvc.group(1))));
-            if (s != null) return new SheetHeaderResolution(s, true);
+            int num = Integer.parseInt(mPvc.group(1));
+            return new SheetHeaderResolution(getOrCreatePvcShelf(num, session, shelfCache), true);
         }
         java.util.regex.Matcher mRes = java.util.regex.Pattern.compile("(?:PA-)?RES(?:ERVA)?-?(?:A-?)?0*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
         if (mRes.find()) {
-            Shelf s = shelfCache.get(String.format("PA-RES-%02d", Integer.parseInt(mRes.group(1))));
-            if (s == null) s = shelfCache.get(String.format("PA-RES-A%02d", Integer.parseInt(mRes.group(1))));
-            if (s != null) return new SheetHeaderResolution(s, true);
+            int num = Integer.parseInt(mRes.group(1));
+            String code = String.format("PA-RES-%02d", num);
+            return new SheetHeaderResolution(getOrCreateShelf(code, "Reserva Acero", "Reserva Acero " + num, "Planta Alta", null, null, null, null, session, shelfCache), true);
         }
 
         // 8. Numbered sheet ("1", "2", ..., "19", "ANAQUEL 3", "ESTANTE 4")
-        java.util.regex.Matcher mNum = java.util.regex.Pattern.compile("^(?:(?:ANAQUEL|ESTANTE)\\s*)?(\\d{1,2})$", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
+        java.util.regex.Matcher mNum = java.util.regex.Pattern.compile("^(?:(?:ANAQUEL|ESTANTE)\\s*)?0*(\\d{1,2})$", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
         if (mNum.find()) {
             try {
                 int num = Integer.parseInt(mNum.group(1));
                 String defCode = userSelectedDefaultShelf != null ? userSelectedDefaultShelf.getCode().toUpperCase() : "";
                 if (defCode.startsWith("PB-YPC-")) {
-                    Shelf s = shelfCache.get(String.format("PB-YPC-%02d", num));
-                    if (s != null) return new SheetHeaderResolution(s, true);
+                    return new SheetHeaderResolution(getOrCreateYpcShelf(num, session, shelfCache), true);
                 } else if (defCode.startsWith("PB-CHID-") || defCode.startsWith("PB-CON-")) {
-                    Shelf s = shelfCache.get(String.format("PB-CHID-A%02d", num));
-                    if (s == null) s = shelfCache.get(String.format("PB-CHID-B%02d", num));
-                    if (s != null) return new SheetHeaderResolution(s, true);
+                    return new SheetHeaderResolution(getOrCreateChidShelf("A", num, session, shelfCache), true);
                 } else if (defCode.startsWith("PB-KUR-")) {
                     char side = defCode.contains("-B") ? 'B' : 'A';
-                    Shelf s = shelfCache.get(String.format("PB-KUR-%c%02d", side, num));
-                    if (s != null) return new SheetHeaderResolution(s, true);
+                    return new SheetHeaderResolution(getOrCreateKuriyamaShelf(String.valueOf(side), num, session, shelfCache), true);
                 } else if (defCode.startsWith("PA-PVC-")) {
-                    Shelf s = shelfCache.get(String.format("PA-PVC-%02d", num));
-                    if (s != null) return new SheetHeaderResolution(s, true);
+                    return new SheetHeaderResolution(getOrCreatePvcShelf(num, session, shelfCache), true);
                 } else if (num >= 1 && num <= 19) {
-                    Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
-                    if (s != null) return new SheetHeaderResolution(s, true);
+                    return new SheetHeaderResolution(getOrCreateAceroShelf(num, session, shelfCache), true);
                 }
             } catch (Exception ignored) {}
         }
@@ -680,12 +762,15 @@ public class CountService {
         return new SheetHeaderResolution(userSelectedDefaultShelf, false);
     }
 
-    /**
-     * Resolves an explicit shelf from either row columns (ESTANTE, ANAQUEL, UBICACION, PASILLO)
-     * or an explicit numbered shelf sheet (1..19). Returns null when the row carries no location
-     * information (e.g., plain Aspel SAE stock export).
-     */
+    private SheetHeaderResolution resolveSheetHeaderShelf(String rawSheetName, Shelf userSelectedDefaultShelf, Map<String, Shelf> shelfCache) {
+        return resolveSheetHeaderShelf(rawSheetName, userSelectedDefaultShelf, null, shelfCache);
+    }
+
     public Shelf resolveExplicitShelf(ImportedItem item, Shelf userSelectedDefaultShelf, Map<String, Shelf> shelfCache) {
+        return resolveExplicitShelf(item, userSelectedDefaultShelf, null, shelfCache);
+    }
+
+    public Shelf resolveExplicitShelf(ImportedItem item, Shelf userSelectedDefaultShelf, InventorySession session, Map<String, Shelf> shelfCache) {
         List<String> candidates = new ArrayList<>();
         if (item.shelfName != null && !item.shelfName.isBlank()) {
             candidates.add(item.shelfName.trim().toUpperCase());
@@ -700,19 +785,17 @@ public class CountService {
             if (direct != null) return direct;
 
             // Pattern: PB3-01, PB3-1, PB3-1A-1, PB-3-01 -> PB-ACE-01..19
-            java.util.regex.Matcher mPb3 = java.util.regex.Pattern.compile("(?i)^PB-?3-?(\\d+)").matcher(candidateCode);
+            java.util.regex.Matcher mPb3 = java.util.regex.Pattern.compile("(?i)^PB-?3-?0*(\\d+)").matcher(candidateCode);
             if (mPb3.find()) {
                 int num = Integer.parseInt(mPb3.group(1));
-                Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
-                if (s != null) return s;
+                return getOrCreateAceroShelf(num, session, shelfCache);
             }
 
             // Pattern: PB-ACE-01, PB-ACE-1, ACE-01, ACE-1
-            java.util.regex.Matcher mAce = java.util.regex.Pattern.compile("(?i)^(?:PB-)?ACE-?(\\d+)").matcher(candidateCode);
+            java.util.regex.Matcher mAce = java.util.regex.Pattern.compile("(?i)^(?:PB-)?ACE-?0*(\\d+)").matcher(candidateCode);
             if (mAce.find()) {
                 int num = Integer.parseInt(mAce.group(1));
-                Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
-                if (s != null) return s;
+                return getOrCreateAceroShelf(num, session, shelfCache);
             }
 
             // Kuriyama: PB-KUR-A01, KUR-A1, KURIYAMA A-1, PB4-A1...
@@ -720,8 +803,7 @@ public class CountService {
             if (mKur.find()) {
                 String side = mKur.group(1).toUpperCase();
                 int num = Integer.parseInt(mKur.group(2));
-                Shelf s = shelfCache.get(String.format("PB-KUR-%s%02d", side, num));
-                if (s != null) return s;
+                return getOrCreateKuriyamaShelf(side, num, session, shelfCache);
             }
 
             // Conexiones Hidráulicas: PB-CHID-A01, CHID-A1, CON-A1, HIDRAULICA A1
@@ -729,50 +811,50 @@ public class CountService {
             if (mChid.find()) {
                 String col = mChid.group(1).toUpperCase();
                 int num = Integer.parseInt(mChid.group(2));
-                Shelf s = shelfCache.get(String.format("PB-CHID-%s%02d", col, num));
-                if (s != null) return s;
+                return getOrCreateChidShelf(col, num, session, shelfCache);
             }
 
             // YPC: PB-YPC-01, YPC-1
             java.util.regex.Matcher mYpc = java.util.regex.Pattern.compile("(?i)^(?:PB-)?YPC-?0*(\\d+)").matcher(candidateCode);
             if (mYpc.find()) {
                 int num = Integer.parseInt(mYpc.group(1));
-                Shelf s = shelfCache.get(String.format("PB-YPC-%02d", num));
-                if (s != null) return s;
+                return getOrCreateYpcShelf(num, session, shelfCache);
             }
 
             // Cybermatics, Dixon, Universal, Parker Inox
             java.util.regex.Matcher mCyb = java.util.regex.Pattern.compile("(?i)^(?:PB-)?CYB(?:ERMATICS)?-?0*(\\d+)").matcher(candidateCode);
             if (mCyb.find()) {
-                Shelf s = shelfCache.get(String.format("PB-CYB-%02d", Integer.parseInt(mCyb.group(1))));
-                if (s != null) return s;
+                int num = Integer.parseInt(mCyb.group(1));
+                String code = String.format("PB-CYB-%02d", num);
+                return getOrCreateShelf(code, "Cybermatics", "Cybermatics " + num, "Planta Baja", null, null, null, null, session, shelfCache);
             }
             java.util.regex.Matcher mDix = java.util.regex.Pattern.compile("(?i)^(?:PB-)?DIX(?:ON)?-?0*(\\d+)").matcher(candidateCode);
             if (mDix.find()) {
-                Shelf s = shelfCache.get(String.format("PB-DIX-%02d", Integer.parseInt(mDix.group(1))));
-                if (s != null) return s;
+                int num = Integer.parseInt(mDix.group(1));
+                String code = String.format("PB-DIX-%02d", num);
+                return getOrCreateShelf(code, "Dixon", "Dixon " + num, "Planta Baja", null, null, null, null, session, shelfCache);
             }
             java.util.regex.Matcher mUni = java.util.regex.Pattern.compile("(?i)^(?:PB-)?UNI(?:VERSAL)?-?0*(\\d+)").matcher(candidateCode);
             if (mUni.find()) {
-                Shelf s = shelfCache.get(String.format("PB-UNI-%02d", Integer.parseInt(mUni.group(1))));
-                if (s != null) return s;
+                int num = Integer.parseInt(mUni.group(1));
+                String code = String.format("PB-UNI-%02d", num);
+                return getOrCreateShelf(code, "Universal", "Universal " + num, "Planta Baja", null, null, null, null, session, shelfCache);
             }
             if (candidateCode.matches("(?i)^(?:PB-)?(?:INOX|PARKER-?INOX).*")) {
-                Shelf s = shelfCache.get("PB-INOX-01");
-                if (s != null) return s;
+                return getOrCreateShelf("PB-INOX-01", "Parker Inox", "Parker Inox", "Planta Baja", null, null, null, null, session, shelfCache);
             }
 
             // Planta Alta: PVC, Reserva
             java.util.regex.Matcher mPvc = java.util.regex.Pattern.compile("(?i)^(?:PA-)?PVC-?0*(\\d+)").matcher(candidateCode);
             if (mPvc.find()) {
-                Shelf s = shelfCache.get(String.format("PA-PVC-%02d", Integer.parseInt(mPvc.group(1))));
-                if (s != null) return s;
+                int num = Integer.parseInt(mPvc.group(1));
+                return getOrCreatePvcShelf(num, session, shelfCache);
             }
             java.util.regex.Matcher mRes = java.util.regex.Pattern.compile("(?i)^(?:PA-)?RES(?:ERVA)?-?(?:A-?)?0*(\\d+)").matcher(candidateCode);
             if (mRes.find()) {
-                Shelf s = shelfCache.get(String.format("PA-RES-%02d", Integer.parseInt(mRes.group(1))));
-                if (s == null) s = shelfCache.get(String.format("PA-RES-A%02d", Integer.parseInt(mRes.group(1))));
-                if (s != null) return s;
+                int num = Integer.parseInt(mRes.group(1));
+                String code = String.format("PA-RES-%02d", num);
+                return getOrCreateShelf(code, "Reserva Acero", "Reserva Acero " + num, "Planta Alta", null, null, null, null, session, shelfCache);
             }
 
             // Pattern: PB-01, PB-1, PB01 -> PB-ACE-01..19
@@ -780,13 +862,12 @@ public class CountService {
             if (mPbDirect.find()) {
                 int num = Integer.parseInt(mPbDirect.group(1));
                 if (num >= 1 && num <= 19) {
-                    Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
-                    if (s != null) return s;
+                    return getOrCreateAceroShelf(num, session, shelfCache);
                 }
             }
 
             // Location code pattern: PB3-1A-1, PB4-A1A-1, PB5-2A-1, PB1-A1A-1
-            java.util.regex.Matcher mLoc = java.util.regex.Pattern.compile("(?i)^(P[BA])(\\d+)-([A-Z])?(\\d+)").matcher(candidateCode);
+            java.util.regex.Matcher mLoc = java.util.regex.Pattern.compile("(?i)^(P[BA])(\\d+)-([A-Z])?0*(\\d+)").matcher(candidateCode);
             if (mLoc.find()) {
                 String plant = mLoc.group(1).toUpperCase();
                 String aisle = mLoc.group(2);
@@ -794,49 +875,42 @@ public class CountService {
                 int num = Integer.parseInt(mLoc.group(4));
                 if ("PB".equals(plant)) {
                     if ("3".equals(aisle) && num >= 1 && num <= 19) {
-                        Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
-                        if (s != null) return s;
+                        return getOrCreateAceroShelf(num, session, shelfCache);
                     } else if ("4".equals(aisle)) { // Kuriyama
                         String side = !sub.isEmpty() ? sub : "A";
-                        Shelf s = shelfCache.get(String.format("PB-KUR-%s%02d", side, num));
-                        if (s != null) return s;
+                        return getOrCreateKuriyamaShelf(side, num, session, shelfCache);
                     } else if ("5".equals(aisle)) { // YPC
-                        Shelf s = shelfCache.get(String.format("PB-YPC-%02d", num));
-                        if (s != null) return s;
+                        return getOrCreateYpcShelf(num, session, shelfCache);
                     } else if ("1".equals(aisle)) { // Conexiones Hidráulicas
                         String side = !sub.isEmpty() ? sub : "A";
-                        Shelf s = shelfCache.get(String.format("PB-CHID-%s%02d", side, num));
-                        if (s != null) return s;
+                        return getOrCreateChidShelf(side, num, session, shelfCache);
                     }
+                } else if ("PA".equals(plant)) {
+                    return getOrCreatePvcShelf(num, session, shelfCache);
                 }
             }
 
-            // Pure number: e.g. "1", "2", "19", "ESTANTE 2", "ANAQUEL 3"
-            java.util.regex.Matcher mNum = java.util.regex.Pattern.compile("^(?:(?:ESTANTE|ANAQUEL|RACK|SHELF)\\s*)?0*(\\d+)$", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(candidateCode);
+            // Pure number / Estante / Anaquel: e.g. "1", "2", "19", "1.0", "ESTANTE 2", "ANAQUEL 3"
+            java.util.regex.Matcher mNum = java.util.regex.Pattern.compile("^(?:(?:ESTANTE|ANAQUEL|RACK|SHELF)\\s*)?0*(\\d+)(?:\\.0+)?$", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(candidateCode);
             if (mNum.find()) {
                 int num = Integer.parseInt(mNum.group(1));
                 String refCode = item.resolvedShelf != null ? item.resolvedShelf.getCode().toUpperCase()
                         : (userSelectedDefaultShelf != null ? userSelectedDefaultShelf.getCode().toUpperCase() : "");
-                if ("3".equals(item.aisle) || (item.locationCode != null && item.locationCode.toUpperCase().startsWith("PB3")) || refCode.startsWith("PB-ACE")) {
-                    Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
-                    if (s != null) return s;
+                if ("3".equals(item.aisle) || (item.locationCode != null && item.locationCode.toUpperCase().startsWith("PB3"))
+                        || refCode.startsWith("PB-ACE") || refCode.startsWith("PB3") || refCode.contains("ACERO")) {
+                    return getOrCreateAceroShelf(num, session, shelfCache);
                 } else if ("1".equals(item.aisle) || refCode.startsWith("PB-CHID") || refCode.startsWith("PB-CON")) {
                     char side = refCode.contains("-B") ? 'B' : 'A';
-                    Shelf s = shelfCache.get(String.format("PB-CHID-%c%02d", side, num));
-                    if (s != null) return s;
+                    return getOrCreateChidShelf(String.valueOf(side), num, session, shelfCache);
                 } else if ("4".equals(item.aisle) || refCode.startsWith("PB-KUR")) {
                     char side = refCode.contains("-B") ? 'B' : 'A';
-                    Shelf s = shelfCache.get(String.format("PB-KUR-%c%02d", side, num));
-                    if (s != null) return s;
+                    return getOrCreateKuriyamaShelf(String.valueOf(side), num, session, shelfCache);
                 } else if ("5".equals(item.aisle) || refCode.startsWith("PB-YPC")) {
-                    Shelf s = shelfCache.get(String.format("PB-YPC-%02d", num));
-                    if (s != null) return s;
+                    return getOrCreateYpcShelf(num, session, shelfCache);
                 } else if (refCode.startsWith("PA-PVC")) {
-                    Shelf s = shelfCache.get(String.format("PA-PVC-%02d", num));
-                    if (s != null) return s;
+                    return getOrCreatePvcShelf(num, session, shelfCache);
                 } else if (num >= 1 && num <= 19) {
-                    Shelf s = shelfCache.get(String.format("PB-ACE-%02d", num));
-                    if (s != null) return s;
+                    return getOrCreateAceroShelf(num, session, shelfCache);
                 }
             }
         }
@@ -844,6 +918,14 @@ public class CountService {
         // Explicit numbered/shelf sheet fallback
         if (item.sheetFromExplicitRack && item.resolvedShelf != null) {
             return item.resolvedShelf;
+        }
+
+        // Final fallback: if aisle is 3 and we have a numeric hint anywhere
+        if ("3".equals(item.aisle) && item.shelfName != null && item.shelfName.matches("^0*(\\d+)(?:\\.0+)?$")) {
+            try {
+                int num = Integer.parseInt(item.shelfName.replaceAll("\\.0+$", ""));
+                return getOrCreateAceroShelf(num, session, shelfCache);
+            } catch (Exception ignored) {}
         }
 
         return null;
@@ -966,7 +1048,7 @@ public class CountService {
                 }
 
                 for (Sheet sheet : sheetsToRead) {
-                    SheetHeaderResolution sheetRes = resolveSheetHeaderShelf(sheet.getSheetName(), effectiveDefaultShelf, shelfCache);
+                    SheetHeaderResolution sheetRes = resolveSheetHeaderShelf(sheet.getSheetName(), effectiveDefaultShelf, session, shelfCache);
 
                     List<String[]> sheetRows = new ArrayList<>();
                     for (Row row : sheet) {
@@ -1044,7 +1126,7 @@ public class CountService {
 
         for (ImportedItem item : itemsToProcess) {
             rowCountPerCodeInFile.merge(item.code, 1, Integer::sum);
-            Shelf s = resolveExplicitShelf(item, effectiveDefaultShelf, shelfCache);
+            Shelf s = resolveExplicitShelf(item, effectiveDefaultShelf, session, shelfCache);
             if (s != null) {
                 explicitShelfMap.put(item, s);
                 explicitShelfIds.add(s.getId());

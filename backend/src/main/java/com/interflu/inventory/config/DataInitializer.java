@@ -103,10 +103,72 @@ public class DataInitializer implements CommandLineRunner {
             sessionRepo.deleteAll();
         }
 
-        // 3. Seed Shelves based on the real blueprints of Planta Baja (87) and Planta Alta (83) -> Total 170 Oficiales
-        if (shelfRepo.count() == 0) {
-            shelfRepo.saveAll(buildRealBlueprintShelves());
+        // 3. Ensure all 170 real blueprint shelves exist and migrate any legacy codes (e.g. PB3-01 -> PB-ACE-01)
+        List<Shelf> blueprintShelves = buildRealBlueprintShelves();
+        for (Shelf official : blueprintShelves) {
+            String canonicalCode = official.getCode().toUpperCase();
+            Optional<Shelf> existing = shelfRepo.findByCodeIgnoreCase(canonicalCode);
+            if (existing.isEmpty()) {
+                // Check if a legacy code exists in db (e.g. PB3-01, PB-3-01, PB3-1 for PB-ACE-01)
+                Optional<Shelf> legacyShelf = Optional.empty();
+                if (canonicalCode.startsWith("PB-ACE-")) {
+                    try {
+                        int num = Integer.parseInt(canonicalCode.replace("PB-ACE-", ""));
+                        for (String cand : List.of(
+                                String.format("PB3-%02d", num),
+                                String.format("PB-3-%02d", num),
+                                String.format("PB3-%d", num),
+                                String.format("PB-3-%d", num),
+                                String.format("ACE-%02d", num),
+                                String.format("ACE-%d", num))) {
+                            legacyShelf = shelfRepo.findByCodeIgnoreCase(cand);
+                            if (legacyShelf.isPresent()) break;
+                        }
+                    } catch (Exception ignored) {}
+                }
+                if (legacyShelf.isPresent()) {
+                    Shelf s = legacyShelf.get();
+                    s.setCode(official.getCode());
+                    s.setZone(official.getZone());
+                    s.setDescription(official.getDescription());
+                    s.setPlant(official.getPlant());
+                    s.setWarehouseCode(official.getWarehouseCode());
+                    s.setPosX(official.getPosX());
+                    s.setPosY(official.getPosY());
+                    s.setWidth(official.getWidth());
+                    s.setHeight(official.getHeight());
+                    s.setActive(true);
+                    shelfRepo.save(s);
+                } else {
+                    shelfRepo.save(official);
+                }
+            }
         }
+
+        // Migrate any leftover phantom PB3-* shelves to canonical PB-ACE-*
+        try {
+            List<Shelf> allShelves = shelfRepo.findAll();
+            for (Shelf sh : allShelves) {
+                String sc = sh.getCode().toUpperCase();
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("^(?:PB-?3-?|ACE-?)0*(\\d+)$").matcher(sc);
+                if (m.find()) {
+                    int num = Integer.parseInt(m.group(1));
+                    String targetCode = String.format("PB-ACE-%02d", num);
+                    Optional<Shelf> target = shelfRepo.findByCodeIgnoreCase(targetCode);
+                    if (target.isPresent() && !target.get().getId().equals(sh.getId())) {
+                        Long oldId = sh.getId();
+                        Long newId = target.get().getId();
+                        jdbcTemplate.update("UPDATE count_records SET shelf_id = ? WHERE shelf_id = ?", newId, oldId);
+                        jdbcTemplate.update("DELETE FROM shelf_assignments WHERE shelf_id = ?", oldId);
+                        jdbcTemplate.update("DELETE FROM shelves WHERE id = ?", oldId);
+                    } else if (target.isEmpty()) {
+                        sh.setCode(targetCode);
+                        sh.setZone("Acero");
+                        shelfRepo.save(sh);
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
 
         // Guarantee that all sessions have assignments for all shelves without altering shelf data
         try {

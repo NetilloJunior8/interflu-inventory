@@ -148,17 +148,11 @@ public class ShelfController {
 
     @DeleteMapping("/{id}")
     @Transactional
-    public ResponseEntity<?> deleteShelf(@PathVariable Long id) {
+    public ResponseEntity<?> deleteShelf(@PathVariable Long id, @RequestParam(defaultValue = "false") boolean force) {
         User currentUser = userHelper.getCurrentUser();
         Shelf s = shelfRepo.findById(id).orElseThrow(() -> new IllegalArgumentException("Anaquel no encontrado"));
 
-        long countRecords = countRepo.findByShelfId(id).size();
-        if (countRecords > 0) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "message", "No se puede eliminar el anaquel " + s.getCode() + " porque tiene " + countRecords + " partidas contadas registradas en el inventario. Desaloje o reasigne los materiales primero."
-            ));
-        }
-
+        countRepo.deleteByShelfId(id);
         assignmentRepo.deleteByShelfId(id);
 
         s.setActive(false);
