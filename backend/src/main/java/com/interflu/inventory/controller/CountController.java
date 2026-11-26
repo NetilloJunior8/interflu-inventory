@@ -92,6 +92,27 @@ public class CountController {
         }
     }
 
+    @GetMapping("/session/{sessionId}/pending-codes")
+    public ResponseEntity<?> getPendingCodes(@PathVariable Long sessionId) {
+        try {
+            List<Map<String, Object>> result = countService.getPendingUnassignedCodes(sessionId);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/session/{sessionId}/pending-codes")
+    public ResponseEntity<?> clearPendingCodes(@PathVariable Long sessionId) {
+        User currentUser = userHelper.getCurrentUser();
+        try {
+            Map<String, Object> result = countService.clearPendingUnassignedCodes(sessionId, currentUser);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     @PostMapping("/session/{sessionId}/auto-assign-master")
     public ResponseEntity<?> autoAssignMasterCatalog(@PathVariable Long sessionId,
                                                      @RequestParam(defaultValue = "ACERO") String family) {

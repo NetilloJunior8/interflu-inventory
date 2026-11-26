@@ -320,6 +320,24 @@ export interface LocationAssignerRow {
             </svg>
             <span>{{ downloadingTemplate() ? 'Descargando...' : 'PLANTILLA' }}</span>
           </button>
+
+          <!-- Pendientes de Códigos Button (Bandeja Aparte) -->
+          <button
+            type="button"
+            class="btn btn-outline-warning btn-pending-codes"
+            (click)="openPendingCodesModal()"
+            title="Ver y administrar códigos pendientes no ubicados del levantamiento o SAE"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span>Pendientes Códigos</span>
+            <span class="badge-count-warning" *ngIf="pendingCodesList().length > 0">
+              {{ pendingCodesList().length }}
+            </span>
+          </button>
         </div>
       </div>
 
@@ -2647,19 +2665,71 @@ export interface LocationAssignerRow {
                 </div>
                 <div class="imp-kpi-card">
                   <span class="imp-kpi-val mono text-primary-brand">{{ res.updatedRecords ?? 0 }}</span>
-                  <span class="imp-kpi-lbl">Actualizados</span>
+                  <span class="imp-kpi-lbl">Actualizados en Anaquel</span>
                 </div>
                 <div class="imp-kpi-card">
                   <span class="imp-kpi-val mono text-indigo">{{ res.withSectionCount ?? 0 }}</span>
                   <span class="imp-kpi-lbl">Con Nivel S, A-J</span>
                 </div>
-                <div class="imp-kpi-card" *ngIf="res.obsoleteFiltered && res.obsoleteFiltered > 0">
-                  <span class="imp-kpi-val mono text-warning-brand">{{ res.obsoleteFiltered }}</span>
-                  <span class="imp-kpi-lbl">Marcados ELIMINAR</span>
+                <div class="imp-kpi-card" *ngIf="res.pendingItemsCount && res.pendingItemsCount > 0">
+                  <span class="imp-kpi-val mono text-warning-brand">{{ res.pendingItemsCount }}</span>
+                  <span class="imp-kpi-lbl">No Ubicados (Aparte)</span>
                 </div>
                 <div class="imp-kpi-card">
                   <span class="imp-kpi-val mono">{{ res.totalPieces | number:'1.0-2' }}</span>
-                  <span class="imp-kpi-lbl">Piezas del Archivo</span>
+                  <span class="imp-kpi-lbl">Piezas Físicas Contadas</span>
+                </div>
+              </div>
+
+              <!-- Unlocated / Pending Codes Notice -->
+              <div class="pending-unlocated-banner" *ngIf="res.pendingItemsCount && res.pendingItemsCount > 0" style="margin: 12px 0; padding: 10px 14px; background: #fffbeb; border: 1px solid #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                <div class="pub-content" style="font-size: 13px; color: #92400e;">
+                  <strong>⚠️ {{ res.pendingItemsCount }} códigos no ubicados fueron guardados en la bandeja de Pendientes.</strong>
+                  <div style="font-size: 12px; color: #b45309; margin-top: 2px;">Estos códigos no se suman al inventario físico de anaqueles. Puedes verlos o eliminarlos cuando gustes.</div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-warning" (click)="closeCroquisImportModal(); openPendingCodesModal()">
+                  Administrar Pendientes
+                </button>
+              </div>
+
+              <!-- Collapsible Updated Movements Section -->
+              <div class="import-movements-section" *ngIf="res.updatedMovements && res.updatedMovements.length > 0" style="margin: 14px 0;">
+                <button type="button" class="btn btn-sm btn-outline movements-toggle-btn" (click)="showMovementsExpanded.set(!showMovementsExpanded())" style="display: flex; align-items: center; gap: 6px; width: 100%; justify-content: center;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                  <span>{{ showMovementsExpanded() ? 'Ocultar' : 'Ver' }} Detalle de Movimientos Actualizados ({{ res.updatedMovements.length }} Partidas)</span>
+                </button>
+
+                <div class="movements-table-card" *ngIf="showMovementsExpanded()" style="max-height: 240px; overflow-y: auto; margin-top: 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                  <table class="table movements-table" style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                    <thead style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">
+                      <tr>
+                        <th style="padding: 6px 10px;">Clave</th>
+                        <th style="padding: 6px 10px;">Descripción</th>
+                        <th style="padding: 6px 10px;">Anaquel</th>
+                        <th style="padding: 6px 10px;">Nivel</th>
+                        <th style="padding: 6px 10px; text-align: right;">Previa</th>
+                        <th style="padding: 6px 10px; text-align: right;">Nueva</th>
+                        <th style="padding: 6px 10px; text-align: center;">Cambio</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let m of res.updatedMovements">
+                        <td class="mono fw-700 text-primary-brand" style="padding: 4px 10px;">{{ m.code }}</td>
+                        <td class="font-xs text-muted" style="padding: 4px 10px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ m.description }}</td>
+                        <td class="mono font-xs fw-700" style="padding: 4px 10px;">{{ m.shelfCode }}</td>
+                        <td style="padding: 4px 10px;"><span class="badge badge-outline-indigo">{{ m.section }}</span></td>
+                        <td class="mono text-right text-muted" style="padding: 4px 10px;">{{ m.oldQuantity | number:'1.0-2' }}</td>
+                        <td class="mono text-right fw-700 text-success" style="padding: 4px 10px;">{{ m.newQuantity | number:'1.0-2' }}</td>
+                        <td class="mono text-center" style="padding: 4px 10px;">
+                          <span class="badge" [ngClass]="m.diff > 0 ? 'badge-success' : (m.diff < 0 ? 'badge-danger' : 'badge-secondary')">
+                            {{ m.diff > 0 ? '+' : '' }}{{ m.diff | number:'1.0-2' }}
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
@@ -3114,6 +3184,140 @@ export interface LocationAssignerRow {
             <button class="btn btn-secondary" (click)="showBulkShelfEditorModal.set(false)" [disabled]="savingBulkShelves()">Cancelar</button>
             <button class="btn btn-success" (click)="submitBulkShelvesSave()" [disabled]="savingBulkShelves()">
               {{ savingBulkShelves() ? 'Guardando en Base de Datos...' : 'Guardar Todos los Cambios (' + bulkEditorShelves.length + ' Anaqueles)' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Bandeja de Códigos Pendientes y No Ubicados (Aparte) -->
+      <div class="modal-backdrop pending-codes-backdrop" *ngIf="showPendingCodesModal()" (click)="closePendingCodesModal()">
+        <div class="modal-box pending-codes-modal" (click)="$event.stopPropagation()">
+          <div class="pending-modal-header">
+            <div class="import-header-title-wrap">
+              <div class="import-header-icon" style="background: rgba(245, 158, 11, 0.25);">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fef08a" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </div>
+              <div>
+                <h3 style="margin: 0; color: #fff; font-size: 1.15rem; font-weight: 800;">
+                  Bandeja de Códigos Fuera de Anaquel / Pendientes
+                </h3>
+                <div style="font-size: 0.78rem; color: #fef08a;">
+                  Partidas del archivo SAE o Levantamiento sin anaquel físico oficial asignado
+                </div>
+              </div>
+            </div>
+            <button class="modal-close-icon-btn" (click)="closePendingCodesModal()" title="Cerrar" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">✕</button>
+          </div>
+
+          <div class="modal-body pending-modal-body" style="padding: 1.25rem 1.5rem; max-height: 72vh; overflow-y: auto;">
+            <!-- Informational Banner -->
+            <div style="background: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px;">
+              <div style="font-weight: 700; color: #92400e; font-size: 0.88rem; display: flex; align-items: center; gap: 8px;">
+                <span>🛡️ Aislamiento de Códigos No Contabilizados en Anaqueles Físicos</span>
+              </div>
+              <p style="margin: 4px 0 0; color: #78350f; font-size: 0.8rem; line-height: 1.4;">
+                Estas partidas fueron detectadas en archivos de importación pero <strong>no corresponden a ningún anaquel físico</strong> o tienen ubicación indeterminada. 
+                Están resguardadas aquí para consulta y <strong>NO se suman</strong> al total de piezas del croquis ni a los 87 anaqueles oficiales.
+              </p>
+            </div>
+
+            <!-- Toolbar: Search + KPI + Action Buttons -->
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 260px;">
+                <input
+                  type="text"
+                  class="input input-sm"
+                  [(ngModel)]="pendingCodesSearch"
+                  placeholder="Buscar por clave, descripción o notas..."
+                  style="width: 100%; font-size: 0.85rem;"
+                />
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="badge" style="background: #f1f5f9; color: #334155; font-size: 0.8rem; padding: 6px 12px; font-weight: 700;">
+                  Total: {{ filteredPendingCodes().length }} partidas ({{ totalPendingPiecesComputed() | number:'1.0-2' }} pzas)
+                </span>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-danger"
+                  (click)="confirmClearPendingCodes()"
+                  [disabled]="pendingCodesList().length === 0 || clearingPendingCodes()"
+                  style="display: flex; align-items: center; gap: 6px;"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                  <span>{{ clearingPendingCodes() ? 'Eliminando...' : 'Eliminar Todos los Pendientes' }}</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Table of Pending Items -->
+            <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
+              <div *ngIf="loadingPendingCodes()" style="padding: 24px; text-align: center; color: #64748b; font-size: 0.85rem;">
+                Cargando partidas pendientes...
+              </div>
+
+              <div *ngIf="!loadingPendingCodes() && filteredPendingCodes().length === 0" style="padding: 32px; text-align: center; color: #94a3b8;">
+                <div style="font-size: 1.5rem; margin-bottom: 6px;">✨</div>
+                <div style="font-weight: 600; color: #475569;">No hay códigos pendientes en esta sesión</div>
+                <div style="font-size: 0.8rem; margin-top: 4px;">Todos los códigos importados pertenecen a anaqueles físicos oficiales del almacén.</div>
+              </div>
+
+              <div *ngIf="!loadingPendingCodes() && filteredPendingCodes().length > 0" style="max-height: 400px; overflow-y: auto;">
+                <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                  <thead style="position: sticky; top: 0; background: #f8fafc; border-bottom: 2px solid #e2e8f0; z-index: 2;">
+                    <tr>
+                      <th style="padding: 8px 12px; text-align: left;">Clave</th>
+                      <th style="padding: 8px 12px; text-align: left;">Descripción</th>
+                      <th style="padding: 8px 12px; text-align: right;">Piezas</th>
+                      <th style="padding: 8px 12px; text-align: center;">Nivel/Secc</th>
+                      <th style="padding: 8px 12px; text-align: left;">Notas / Ubic. Original</th>
+                      <th style="padding: 8px 12px; text-align: center; width: 60px;">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let item of filteredPendingCodes()" style="border-bottom: 1px solid #f1f5f9;">
+                      <td class="mono fw-700" style="padding: 6px 12px; color: #0a2472;">{{ item.code }}</td>
+                      <td style="padding: 6px 12px; color: #334155; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {{ item.description || '-' }}
+                      </td>
+                      <td class="mono fw-700" style="padding: 6px 12px; text-align: right; color: #059669;">
+                        {{ item.quantity | number:'1.0-2' }}
+                      </td>
+                      <td style="padding: 6px 12px; text-align: center;">
+                        <span class="badge" style="background: #f3f4f6; color: #4b5563; font-size: 0.75rem;">
+                          {{ item.section || 'SIN_NIVEL' }}
+                        </span>
+                      </td>
+                      <td style="padding: 6px 12px; color: #64748b; font-size: 0.78rem; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {{ item.notes || item.shelfCode || '-' }}
+                      </td>
+                      <td style="padding: 6px 12px; text-align: center;">
+                        <button
+                          type="button"
+                          class="btn btn-xs btn-outline-danger"
+                          (click)="deleteSinglePendingCode(item)"
+                          title="Eliminar partida"
+                          style="padding: 2px 6px; font-size: 0.75rem;"
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer" style="padding: 12px 18px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" (click)="closePendingCodesModal()">
+              Cerrar
             </button>
           </div>
         </div>
@@ -5158,6 +5362,49 @@ export interface LocationAssignerRow {
       font-weight: 700;
     }
 
+    /* Pending Codes Modal & Button */
+    .pending-codes-modal {
+      max-width: 880px !important;
+      width: 95vw;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.25);
+    }
+    .pending-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.1rem 1.4rem;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      color: #ffffff;
+      border-bottom: 2px solid #f59e0b;
+    }
+    .btn-pending-codes {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      color: #d97706;
+      border-color: #f59e0b;
+      background: #fffbeb;
+      padding: 6px 12px;
+      border-radius: 8px;
+      transition: all 0.15s ease;
+    }
+    .btn-pending-codes:hover {
+      background: #fef3c7;
+      color: #b45309;
+      border-color: #d97706;
+    }
+    .badge-count-warning {
+      background: #f59e0b;
+      color: #ffffff;
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 0.72rem;
+      font-weight: 800;
+    }
+
     .compact-kpi-strip {
       display: flex;
       align-items: center;
@@ -7117,6 +7364,14 @@ export class CroquisComponent implements OnInit {
   downloadingTemplate = signal<boolean>(false);
   importingExcel = signal<boolean>(false);
   importResult: any = null;
+  showMovementsExpanded = signal<boolean>(false);
+
+  // Pending Codes Bucket State (Códigos no ubicados / fuera de anaquel)
+  showPendingCodesModal = signal<boolean>(false);
+  pendingCodesList = signal<any[]>([]);
+  loadingPendingCodes = signal<boolean>(false);
+  pendingCodesSearch = signal<string>('');
+  clearingPendingCodes = signal<boolean>(false);
 
   // Physical Rack Blueprint & Quick Section Assignment State (Niveles S, A-J)
   rackLevels: string[] = ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
@@ -7430,6 +7685,8 @@ export class CroquisComponent implements OnInit {
     const p = this.selectedPlant();
     return this.allShelves().filter(s => {
       if (s.shelfCode === 'PA-DOC-01' || s.shelfCode?.startsWith('PA-DOC')) return false;
+      const sc = (s.shelfCode || '').toUpperCase();
+      if (sc.includes('PEN') || sc.includes('GEN')) return false;
       const plant = (s.plant || '').trim();
       if (p === 'Planta Baja') return plant === 'Planta Baja';
       return plant === 'Planta Alta';
@@ -7465,6 +7722,24 @@ export class CroquisComponent implements OnInit {
 
   totalPlantPieces = computed(() => {
     return this.plantShelves().reduce((sum, s) => sum + (s.totalPieces || 0), 0);
+  });
+
+  filteredPendingCodes = computed(() => {
+    let list = this.pendingCodesList();
+    const q = this.pendingCodesSearch().trim().toLowerCase();
+    if (q) {
+      list = list.filter(r =>
+        (r.code || '').toLowerCase().includes(q) ||
+        (r.description || '').toLowerCase().includes(q) ||
+        (r.notes || '').toLowerCase().includes(q) ||
+        (r.shelfCode || '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  });
+
+  totalPendingPiecesComputed = computed(() => {
+    return this.pendingCodesList().reduce((sum, r) => sum + (r.quantity || 0), 0);
   });
 
   getSectionType(s: ShelfAssignmentDto): string {
@@ -7706,7 +7981,10 @@ export class CroquisComponent implements OnInit {
 
   loadShelves(sessionId: number) {
     this.api.getSessionShelves(sessionId).subscribe({
-      next: (data) => this.allShelves.set(data.filter(s => s.shelfCode !== 'PA-DOC-01' && !s.shelfCode?.startsWith('PA-DOC'))),
+      next: (data) => {
+        this.allShelves.set(data.filter(s => s.shelfCode !== 'PA-DOC-01' && !s.shelfCode?.startsWith('PA-DOC')));
+        this.loadPendingCodes();
+      },
       error: (err: any) => this.toast.error('Error al cargar anaqueles: ' + (err.error?.message || err.message))
     });
   }
@@ -8300,6 +8578,70 @@ export class CroquisComponent implements OnInit {
     this.selectedExcelFile = null;
     this.importResult = null;
     this.isDraggingFile.set(false);
+  }
+
+  openPendingCodesModal() {
+    this.loadPendingCodes();
+    this.showPendingCodesModal.set(true);
+  }
+
+  closePendingCodesModal() {
+    this.showPendingCodesModal.set(false);
+  }
+
+  loadPendingCodes() {
+    const sId = this.activeSessionId();
+    if (!sId || sId === 0) return;
+    this.loadingPendingCodes.set(true);
+    this.api.getPendingCodes(sId).subscribe({
+      next: (data) => {
+        this.pendingCodesList.set(data || []);
+        this.loadingPendingCodes.set(false);
+      },
+      error: () => {
+        this.loadingPendingCodes.set(false);
+      }
+    });
+  }
+
+  confirmClearPendingCodes() {
+    const count = this.pendingCodesList().length;
+    if (count === 0) return;
+    if (!confirm(`¿Confirmas que deseas eliminar todas las ${count} partidas pendientes no ubicadas? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    const sId = this.activeSessionId();
+    if (!sId || sId === 0) return;
+    this.clearingPendingCodes.set(true);
+    this.api.clearPendingCodes(sId).subscribe({
+      next: (res) => {
+        this.clearingPendingCodes.set(false);
+        this.toast.success(`Se eliminaron ${res.deletedCount || 0} partidas pendientes (${res.deletedPieces || 0} piezas).`);
+        this.pendingCodesList.set([]);
+        this.loadShelves(sId);
+      },
+      error: (err: any) => {
+        this.clearingPendingCodes.set(false);
+        this.toast.error('Error al limpiar códigos pendientes: ' + (err.error?.message || err.message));
+      }
+    });
+  }
+
+  deleteSinglePendingCode(item: any) {
+    if (!confirm(`¿Eliminar partida pendiente "${item.code}" (${item.quantity} piezas)?`)) {
+      return;
+    }
+    this.api.deleteCount(item.id).subscribe({
+      next: () => {
+        this.toast.success(`Partida ${item.code} eliminada.`);
+        this.pendingCodesList.update(list => list.filter(r => r.id !== item.id));
+        const sId = this.activeSessionId();
+        if (sId) this.loadShelves(sId);
+      },
+      error: (err: any) => {
+        this.toast.error('Error al eliminar partida: ' + (err.error?.message || err.message));
+      }
+    });
   }
 
   downloadExcelTemplate() {

@@ -174,6 +174,28 @@ public class DataInitializer implements CommandLineRunner {
             }
         } catch (Exception ignored) {}
 
+        // Purge any rogue / unmapped shelves created by older test imports (so PB has strictly 87 shelves and PA has 83)
+        try {
+            java.util.Set<String> blueprintCodes = blueprintShelves.stream()
+                    .map(s -> s.getCode().toUpperCase())
+                    .collect(java.util.stream.Collectors.toSet());
+            Optional<Shelf> penShelfOpt = shelfRepo.findByCodeIgnoreCase("PB-PEN-01");
+            Long fallbackPenId = penShelfOpt.map(Shelf::getId).orElse(null);
+
+            List<Shelf> currentShelves = shelfRepo.findAll();
+            for (Shelf sh : currentShelves) {
+                String sc = sh.getCode().toUpperCase();
+                if (!blueprintCodes.contains(sc)) {
+                    Long rogueId = sh.getId();
+                    if (fallbackPenId != null && !rogueId.equals(fallbackPenId)) {
+                        jdbcTemplate.update("UPDATE count_records SET shelf_id = ? WHERE shelf_id = ?", fallbackPenId, rogueId);
+                    }
+                    jdbcTemplate.update("DELETE FROM shelf_assignments WHERE shelf_id = ?", rogueId);
+                    jdbcTemplate.update("DELETE FROM shelves WHERE id = ?", rogueId);
+                }
+            }
+        } catch (Exception ignored) {}
+
         // Guarantee that all sessions have assignments for all shelves without altering shelf data
         try {
             // Clean up any duplicate shelf_assignments and enforce unique index

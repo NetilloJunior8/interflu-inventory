@@ -621,6 +621,16 @@ public class CountService {
             } catch (Exception ignored) {}
         }
 
+        // Only auto-create if it matches an official warehouse blueprint pattern; otherwise route to PB-PEN-01
+        boolean isOfficialPattern = cleanCode.matches("^(?:PB3-|PB-KUR-|PB-CHID-|PB-YPC-|PB-DIX-|PB-CYB-|PB-UNI-|PB-INOX-|PB-PEN-|PA-).*");
+        if (!isOfficialPattern) {
+            Optional<Shelf> pen = shelfRepo.findByCodeIgnoreCase("PB-PEN-01");
+            if (pen.isPresent()) {
+                shelfCache.put(cleanCode, pen.get());
+                return pen.get();
+            }
+        }
+
         // If not found in DB at all, auto-create it with official specs
         Shelf s = new Shelf(cleanCode, zone != null ? zone : "GENERAL", desc != null ? desc : cleanCode, "1", plant != null ? plant : "Planta Baja", posX != null ? posX : 810.0, posY != null ? posY : 200.0, width != null ? width : 25.0, height != null ? height : 54.0);
         s.setActive(true);
@@ -1245,6 +1255,9 @@ public class CountService {
         int withSectionCount = 0;
         int obsoleteFilteredCount = 0;
         double totalPiecesImported = 0.0;
+        double totalPendingPiecesImported = 0.0;
+        List<Map<String, Object>> updatedMovements = new ArrayList<>();
+        List<Map<String, Object>> pendingMovements = new ArrayList<>();
         Set<Long> affectedShelves = new LinkedHashSet<>();
         Set<Long> claimedPreexistingIds = new HashSet<>();
 
@@ -1273,7 +1286,7 @@ public class CountService {
                 for (CountRecord r : existingMatches) {
                     if (r.getId() != null && claimedPreexistingIds.contains(r.getId())) continue;
                     String sc = r.getShelf() != null ? r.getShelf().getCode().toUpperCase() : "";
-                    if (sc.contains("PEN") || sc.contains("GEN") || sc.matches("^PB-?3-?\\d+$")) {
+                    if (sc.contains("PEN") || sc.contains("GEN")) {
                         pendingMatches.add(r);
                     } else {
                         physicalMatches.add(r);
@@ -1287,9 +1300,11 @@ public class CountService {
                     for (int i = 0; i < physicalMatches.size(); i++) {
                         CountRecord rec = physicalMatches.get(i);
                         if (rec.getVersion() == null) rec.setVersion(0L);
+                        double oldQty = (rec.getQuantity() != null) ? rec.getQuantity() : 0.0;
+                        double newQty = (singleSaeSummaryForCode && i > 0) ? 0.0 : qty;
                         if (item.hasExplicitQuantity) {
-                            rec.setPreviousQuantity(rec.getQuantity());
-                            rec.setQuantity((singleSaeSummaryForCode && i > 0) ? 0.0 : qty);
+                            rec.setPreviousQuantity(oldQty);
+                            rec.setQuantity(newQty);
                         }
                         if (item.description != null && !item.description.isBlank() && rec.getProduct() != null) {
                             rec.getProduct().setDescription(item.description);
@@ -1320,6 +1335,18 @@ public class CountService {
                             sa.setStatus(ShelfAssignment.Status.EN_CONTEO);
                         }
                         assignmentsToSave.put(sh.getId(), sa);
+
+                        Map<String, Object> movement = new LinkedHashMap<>();
+                        movement.put("code", code);
+                        movement.put("shelfCode", sh.getCode());
+                        movement.put("section", rec.getSection() != null ? rec.getSection() : "A");
+                        movement.put("description", rec.getProduct() != null ? rec.getProduct().getDescription() : item.description);
+                        movement.put("oldQuantity", oldQty);
+                        movement.put("newQuantity", newQty);
+                        movement.put("diff", newQty - oldQty);
+                        movement.put("status", "ACTUALIZADO_POR_COINCIDENCIA");
+                        updatedMovements.add(movement);
+
                         if (singleSaeSummaryForCode) break; // primary bin holds full quantity; secondary zeroed only if more exist
                     }
                     // If singleSaeSummaryForCode had secondary physical bins, zero them to prevent double stock inflation
@@ -1424,7 +1451,19 @@ public class CountService {
                 assignmentsToSave.put(targetShelf.getId(), sa);
                 affectedShelves.add(targetShelf.getId());
                 importedCount++;
-                if (item.hasExplicitQuantity) totalPiecesImported += qty;
+                if (isPendingBucket) {
+                    if (item.hasExplicitQuantity) totalPendingPiecesImported += qty;
+                    Map<String, Object> pMov = new LinkedHashMap<>();
+                    pMov.put("code", code);
+                    pMov.put("shelfCode", targetShelf.getCode());
+                    pMov.put("section", normalizedSec != null ? normalizedSec : "SIN_ASIGNAR");
+                    pMov.put("description", product != null ? product.getDescription() : item.description);
+                    pMov.put("quantity", qty);
+                    pMov.put("status", "PENDIENTE_NO_UBICADO");
+                    pendingMovements.add(pMov);
+                } else {
+                    if (item.hasExplicitQuantity) totalPiecesImported += qty;
+                }
                 continue;
             }
 
@@ -1494,8 +1533,10 @@ public class CountService {
             if (rec != null) {
                 if (rec.getVersion() == null) rec.setVersion(0L);
                 rec.setShelf(finalShelf);
-                rec.setPreviousQuantity(rec.getQuantity());
-                rec.setQuantity(item.hasExplicitQuantity ? qty : 0.0);
+                double oldQty = (rec.getQuantity() != null) ? rec.getQuantity() : 0.0;
+                double newQty = item.hasExplicitQuantity ? qty : 0.0;
+                rec.setPreviousQuantity(oldQty);
+                rec.setQuantity(newQty);
                 if (item.description != null && !item.description.isBlank() && rec.getProduct() != null) {
                     rec.getProduct().setDescription(item.description);
                     productCache.put(code, rec.getProduct());
@@ -1513,6 +1554,17 @@ public class CountService {
                 if (rec.getId() != null) claimedPreexistingIds.add(rec.getId());
                 updatedRecords++;
                 if (rec.getSection() != null && !rec.getSection().isBlank()) withSectionCount++;
+
+                Map<String, Object> movement = new LinkedHashMap<>();
+                movement.put("code", code);
+                movement.put("shelfCode", finalShelf.getCode());
+                movement.put("section", normalizedSec != null ? normalizedSec : "A");
+                movement.put("description", rec.getProduct() != null ? rec.getProduct().getDescription() : item.description);
+                movement.put("oldQuantity", oldQty);
+                movement.put("newQuantity", newQty);
+                movement.put("diff", newQty - oldQty);
+                movement.put("status", "ACTUALIZADO_POR_COINCIDENCIA");
+                updatedMovements.add(movement);
             } else {
                 rec = new CountRecord();
                 rec.setSession(session);
@@ -1531,7 +1583,8 @@ public class CountService {
                 addedRecords++;
             }
 
-            if (finalShelf.getCode().toUpperCase().contains("PEN")) {
+            boolean isPendingBucket = finalShelf.getCode().toUpperCase().contains("PEN") || finalShelf.getCode().toUpperCase().contains("GEN");
+            if (isPendingBucket) {
                 if (sa.getStatus() == ShelfAssignment.Status.PENDIENTE) {
                     sa.setStatus(ShelfAssignment.Status.EN_CONTEO);
                 }
@@ -1544,7 +1597,11 @@ public class CountService {
             affectedShelves.add(finalShelf.getId());
             importedCount++;
             if (item.hasExplicitQuantity) {
-                totalPiecesImported += qty;
+                if (isPendingBucket) {
+                    totalPendingPiecesImported += qty;
+                } else {
+                    totalPiecesImported += qty;
+                }
             }
         }
 
@@ -1588,8 +1645,8 @@ public class CountService {
         auditService.log(session.getId(), session.getFolio(), user.getUsername(), user.getFullName(),
                 "IMPORTAR_CONTEOS_EXCEL", "CountRecord", null,
                 mode, String.valueOf(importedCount),
-                String.format("Importación (%s): %d partidas (%d nuevas, %d actualizadas, %d con nivel S/A-J, %.2f pzas, %d obsoletas identificadas) en %d anaqueles desde %s",
-                        mode, importedCount, addedRecords, updatedRecords, withSectionCount, totalPiecesImported, obsoleteFilteredCount, affectedShelves.size(), file.getOriginalFilename()));
+                String.format("Importación (%s): %d partidas (%d nuevas, %d actualizadas, %d con nivel S/A-J, %.2f pzas físicas, %.2f pzas pendientes, %d obsoletas) en %d anaqueles desde %s",
+                        mode, importedCount, addedRecords, updatedRecords, withSectionCount, totalPiecesImported, totalPendingPiecesImported, obsoleteFilteredCount, affectedShelves.size(), file.getOriginalFilename()));
 
         Map<String, Object> resp = new HashMap<>();
         resp.put("importedRecords", importedCount);
@@ -1597,12 +1654,68 @@ public class CountService {
         resp.put("updatedRecords", updatedRecords);
         resp.put("withSectionCount", withSectionCount);
         resp.put("totalPieces", totalPiecesImported);
+        resp.put("pendingPieces", totalPendingPiecesImported);
+        resp.put("pendingItemsCount", pendingMovements.size());
+        resp.put("updatedMovements", updatedMovements);
+        resp.put("pendingMovements", pendingMovements);
         resp.put("sessionTotalPieces", sessionTotalPieces);
         resp.put("shelvesUpdated", affectedShelves.size());
         resp.put("affectedShelves", affectedCodes);
         resp.put("obsoleteFiltered", obsoleteFilteredCount);
         resp.put("importMode", mode);
         return resp;
+    }
+
+    public List<Map<String, Object>> getPendingUnassignedCodes(Long sessionId) {
+        InventorySession session = sessionRepo.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Sesión no encontrada"));
+        List<CountRecord> all = countRepo.findBySessionIdOrderByUpdatedAtDesc(session.getId());
+        List<Map<String, Object>> res = new ArrayList<>();
+        for (CountRecord r : all) {
+            String sc = r.getShelf() != null ? r.getShelf().getCode().toUpperCase() : "";
+            boolean isPending = sc.contains("PEN") || sc.contains("GEN") || (r.getNotes() != null && r.getNotes().contains("SIN_DEFINIR"));
+            if (isPending) {
+                Map<String, Object> map = new LinkedHashMap<>();
+                map.put("id", r.getId());
+                map.put("code", r.getCapturedCode());
+                map.put("description", r.getProduct() != null ? r.getProduct().getDescription() : "");
+                map.put("quantity", r.getQuantity() != null ? r.getQuantity() : 0.0);
+                map.put("shelfCode", sc);
+                map.put("section", r.getSection() != null ? r.getSection() : "SIN_ASIGNAR");
+                map.put("notes", r.getNotes());
+                map.put("countedAt", r.getCountedAt() != null ? r.getCountedAt().toString() : null);
+                res.add(map);
+            }
+        }
+        return res;
+    }
+
+    @Transactional
+    public Map<String, Object> clearPendingUnassignedCodes(Long sessionId, User user) {
+        InventorySession session = sessionRepo.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Sesión no encontrada"));
+        List<CountRecord> all = countRepo.findBySessionIdOrderByUpdatedAtDesc(session.getId());
+        List<CountRecord> toDelete = new ArrayList<>();
+        double piecesDeleted = 0.0;
+        for (CountRecord r : all) {
+            String sc = r.getShelf() != null ? r.getShelf().getCode().toUpperCase() : "";
+            boolean isPending = sc.contains("PEN") || sc.contains("GEN") || (r.getNotes() != null && r.getNotes().contains("SIN_DEFINIR"));
+            if (isPending) {
+                toDelete.add(r);
+                if (r.getQuantity() != null) piecesDeleted += r.getQuantity();
+            }
+        }
+        if (!toDelete.isEmpty()) {
+            countRepo.deleteAll(toDelete);
+        }
+        auditService.log(session.getId(), session.getFolio(), user.getUsername(), user.getFullName(),
+                "ELIMINAR_CODIGOS_PENDIENTES", "CountRecord", null,
+                null, String.valueOf(toDelete.size()),
+                String.format("Se eliminaron %d partidas pendientes/no asignadas (%.2f pzas)", toDelete.size(), piecesDeleted));
+        Map<String, Object> res = new HashMap<>();
+        res.put("deletedCount", toDelete.size());
+        res.put("deletedPieces", piecesDeleted);
+        return res;
     }
 
     @Transactional

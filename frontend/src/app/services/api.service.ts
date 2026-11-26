@@ -391,6 +391,26 @@ export class ApiService {
     updatedRecords?: number;
     withSectionCount?: number;
     totalPieces: number;
+    pendingPieces?: number;
+    pendingItemsCount?: number;
+    updatedMovements?: Array<{
+      code: string;
+      shelfCode: string;
+      section: string;
+      description: string;
+      oldQuantity: number;
+      newQuantity: number;
+      diff: number;
+      status: string;
+    }>;
+    pendingMovements?: Array<{
+      code: string;
+      shelfCode: string;
+      section: string;
+      description: string;
+      quantity: number;
+      status: string;
+    }>;
     sessionTotalPieces?: number;
     shelvesUpdated: number;
     affectedShelves?: string[];
@@ -405,18 +425,24 @@ export class ApiService {
     formData.append('filterObsolete', String(filterObsolete));
     if (targetFamily) formData.append('targetFamily', targetFamily);
     formData.append('file', file);
-    return this.http.post<{
-      importedRecords: number;
-      addedRecords?: number;
-      updatedRecords?: number;
-      withSectionCount?: number;
-      totalPieces: number;
-      sessionTotalPieces?: number;
-      shelvesUpdated: number;
-      affectedShelves?: string[];
-      importMode?: string;
-      obsoleteFiltered?: number;
-    }>(`${this.baseUrl}/counts/import-excel`, formData);
+    return this.http.post<any>(`${this.baseUrl}/counts/import-excel`, formData);
+  }
+
+  getPendingCodes(sessionId: number): Observable<Array<{
+    id: number;
+    code: string;
+    description: string;
+    quantity: number;
+    shelfCode: string;
+    section: string;
+    notes: string;
+    countedAt: string;
+  }>> {
+    return this.http.get<any[]>(`${this.baseUrl}/counts/session/${sessionId}/pending-codes`);
+  }
+
+  clearPendingCodes(sessionId: number): Observable<{ deletedCount: number; deletedPieces: number }> {
+    return this.http.delete<any>(`${this.baseUrl}/counts/session/${sessionId}/pending-codes`);
   }
 
   purgeObsoleteCounts(sessionId: number): Observable<{ purgedCount: number; remainingCount: number }> {
