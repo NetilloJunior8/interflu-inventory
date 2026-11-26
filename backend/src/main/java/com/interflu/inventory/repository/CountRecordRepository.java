@@ -2,8 +2,10 @@ package com.interflu.inventory.repository;
 
 import com.interflu.inventory.model.CountRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,4 +48,19 @@ public interface CountRecordRepository extends JpaRepository<CountRecord, Long> 
     List<Object[]> getShelfStatsBySessionId(@Param("sessionId") Long sessionId);
 
     List<CountRecord> findByShelfId(Long shelfId);
+ 
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM CountRecord c WHERE c.session.id = :sessionId")
+    int deleteBySessionId(@Param("sessionId") Long sessionId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM CountRecord c WHERE c.session.id = :sessionId AND c.shelf.id = :shelfId")
+    int deleteBySessionIdAndShelfId(@Param("sessionId") Long sessionId, @Param("shelfId") Long shelfId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM CountRecord c WHERE c.shelf.id = :shelfId")
+    int deleteByShelfId(@Param("shelfId") Long shelfId);
 }

@@ -297,10 +297,7 @@ public class InventorySessionService {
         assignmentRepo.save(sa);
 
         if (clearRecords) {
-            List<CountRecord> records = countRepo.findBySessionIdAndShelfId(sessionId, shelfId);
-            for (CountRecord r : records) {
-                countRepo.delete(r);
-            }
+            countRepo.deleteBySessionIdAndShelfId(sessionId, shelfId);
         }
 
         auditService.log(sessionId, sa.getSession().getFolio(), user.getUsername(), user.getFullName(),

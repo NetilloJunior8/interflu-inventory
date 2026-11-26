@@ -2,8 +2,10 @@ package com.interflu.inventory.repository;
 
 import com.interflu.inventory.model.ShelfAssignment;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,5 +30,15 @@ public interface ShelfAssignmentRepository extends JpaRepository<ShelfAssignment
 
     @Query("SELECT sa FROM ShelfAssignment sa WHERE sa.shelf.id = :shelfId")
     List<ShelfAssignment> findByShelfId(@Param("shelfId") Long shelfId);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE ShelfAssignment sa SET sa.status = com.interflu.inventory.model.ShelfAssignment.Status.PENDIENTE, sa.completedAt = null WHERE sa.session.id = :sessionId")
+    int resetAllBySessionId(@Param("sessionId") Long sessionId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM ShelfAssignment sa WHERE sa.shelf.id = :shelfId")
+    int deleteByShelfId(@Param("shelfId") Long shelfId);
 }
 

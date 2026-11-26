@@ -1074,10 +1074,7 @@ public class CountService {
         // In REPLACE_ALL mode, wipe affected shelves BEFORE indexing pre-existing records
         if ("REPLACE_ALL".equals(mode)) {
             for (Long sId : fullPhysicalShelfIds) {
-                List<CountRecord> oldShelfRecords = countRepo.findBySessionIdAndShelfId(session.getId(), sId);
-                if (!oldShelfRecords.isEmpty()) {
-                    countRepo.deleteAll(oldShelfRecords);
-                }
+                countRepo.deleteBySessionIdAndShelfId(session.getId(), sId);
             }
             if (!fullPhysicalShelfIds.isEmpty()) {
                 countRepo.flush();
@@ -1684,19 +1681,13 @@ public class CountService {
         InventorySession session = sessionRepo.findById(sessionId)
                 .orElseThrow(() -> new IllegalArgumentException("Sesión no encontrada"));
 
-        List<CountRecord> records = countRepo.findBySessionIdOrderByUpdatedAtDesc(sessionId);
-        int deletedCount = records.size();
         Double totalPieces = countRepo.sumQuantityBySessionId(sessionId);
         double pieces = totalPieces != null ? totalPieces : 0.0;
+        long deletedCount = countRepo.countBySessionId(sessionId);
 
-        countRepo.deleteAll(records);
-
-        List<ShelfAssignment> assignments = assignmentRepo.findBySessionIdOrderByShelfCodeAsc(sessionId);
-        for (ShelfAssignment sa : assignments) {
-            sa.setStatus(ShelfAssignment.Status.PENDIENTE);
-            sa.setCompletedAt(null);
-            assignmentRepo.save(sa);
-        }
+        // Fast atomic bulk delete and reset (instantaneous in SQLite)
+        countRepo.deleteBySessionId(sessionId);
+        assignmentRepo.resetAllBySessionId(sessionId);
 
         auditService.log(session.getId(), session.getFolio(), user.getUsername(), user.getFullName(),
                 "ELIMINAR_CONTEOS_IMPORTADOS", "InventorySession", session.getId(),

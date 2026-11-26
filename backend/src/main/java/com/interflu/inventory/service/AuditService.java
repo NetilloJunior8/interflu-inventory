@@ -21,9 +21,13 @@ public class AuditService {
     public void log(Long sessionId, String sessionFolio, String username, String userFullName,
                     String action, String entityName, Long entityId,
                     String oldValue, String newValue, String details) {
-        AuditLog log = new AuditLog(sessionId, sessionFolio, username, userFullName,
-                action, entityName, entityId, oldValue, newValue, details);
-        auditLogRepository.save(log);
+        try {
+            AuditLog log = new AuditLog(sessionId, sessionFolio, username, userFullName,
+                    action, entityName, entityId, oldValue, newValue, details);
+            auditLogRepository.save(log);
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(AuditService.class).warn("AuditLog save skipped due to transient db state: {}", e.getMessage());
+        }
     }
 
     @Transactional(readOnly = true)

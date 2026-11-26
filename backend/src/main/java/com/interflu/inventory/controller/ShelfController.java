@@ -67,6 +67,9 @@ public class ShelfController {
         if (shelf.getPlant() == null || shelf.getPlant().isBlank()) {
             shelf.setPlant("Planta Baja");
         }
+        if (shelf.getZone() == null || shelf.getZone().isBlank()) {
+            shelf.setZone("GENERAL");
+        }
         if (shelf.getWarehouseCode() == null || shelf.getWarehouseCode().isBlank()) {
             shelf.setWarehouseCode("1");
         }
@@ -156,8 +159,7 @@ public class ShelfController {
             ));
         }
 
-        List<ShelfAssignment> assignments = assignmentRepo.findByShelfId(id);
-        assignmentRepo.deleteAll(assignments);
+        assignmentRepo.deleteByShelfId(id);
 
         s.setActive(false);
         shelfRepo.delete(s);
