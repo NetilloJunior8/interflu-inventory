@@ -106,19 +106,20 @@ public class DataInitializer implements CommandLineRunner {
             sessionRepo.deleteAll();
         }
 
-        // 3. Ensure all 170 real blueprint shelves exist and migrate any legacy codes (e.g. PB3-01 -> PB-ACE-01)
+        // 3. Ensure all 170 real blueprint shelves exist and migrate any legacy codes (e.g. PB-ACE-01 -> PB3-01)
         List<Shelf> blueprintShelves = buildRealBlueprintShelves();
         for (Shelf official : blueprintShelves) {
             String canonicalCode = official.getCode().toUpperCase();
             Optional<Shelf> existing = shelfRepo.findByCodeIgnoreCase(canonicalCode);
             if (existing.isEmpty()) {
-                // Check if a legacy code exists in db (e.g. PB3-01, PB-3-01, PB3-1 for PB-ACE-01)
+                // Check if a legacy code exists in db (e.g. PB-ACE-01, PB-3-01, PB3-1 for PB3-01)
                 Optional<Shelf> legacyShelf = Optional.empty();
-                if (canonicalCode.startsWith("PB-ACE-")) {
+                if (canonicalCode.startsWith("PB3-")) {
                     try {
-                        int num = Integer.parseInt(canonicalCode.replace("PB-ACE-", ""));
+                        int num = Integer.parseInt(canonicalCode.replace("PB3-", ""));
                         for (String cand : List.of(
-                                String.format("PB3-%02d", num),
+                                String.format("PB-ACE-%02d", num),
+                                String.format("PB-ACE-%d", num),
                                 String.format("PB-3-%02d", num),
                                 String.format("PB3-%d", num),
                                 String.format("PB-3-%d", num),
@@ -148,15 +149,15 @@ public class DataInitializer implements CommandLineRunner {
             }
         }
 
-        // Migrate any leftover phantom PB3-* shelves to canonical PB-ACE-*
+        // Migrate any leftover PB-ACE-* or ACE-* shelves to canonical PB3-*
         try {
             List<Shelf> allShelves = shelfRepo.findAll();
             for (Shelf sh : allShelves) {
                 String sc = sh.getCode().toUpperCase();
-                java.util.regex.Matcher m = java.util.regex.Pattern.compile("^(?:PB-?3-?|ACE-?)0*(\\d+)$").matcher(sc);
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("^(?:PB-ACE-|ACE-)0*(\\d+)$").matcher(sc);
                 if (m.find()) {
                     int num = Integer.parseInt(m.group(1));
-                    String targetCode = String.format("PB-ACE-%02d", num);
+                    String targetCode = String.format("PB3-%02d", num);
                     Optional<Shelf> target = shelfRepo.findByCodeIgnoreCase(targetCode);
                     if (target.isPresent() && !target.get().getId().equals(sh.getId())) {
                         Long oldId = sh.getId();
@@ -235,41 +236,41 @@ public class DataInitializer implements CommandLineRunner {
             new Shelf("PB-KUR-A07", "Kuriyama", "Kuriyama Pasillo A M7", "1", "Planta Baja", 686.6, 615.9, 25.0, 54.0),
             new Shelf("PB-KUR-B07", "Kuriyama", "Kuriyama Pasillo B M7", "1", "Planta Baja", 714.5, 615.9, 25.0, 54.0),
             new Shelf("PB-PEN-01", "Pendiente", "Bahía Pendiente 1", "1", "Planta Baja", 783.3, 144.0, 25.0, 54.0),
-            new Shelf("PB-ACE-01", "Acero", "Acero 1 - Fondo Pasillo", "1", "Planta Baja", 810.0, 104.0, 95.4, 34.0),
-            new Shelf("PB-ACE-02", "Acero", "Pasillo Acero 2", "1", "Planta Baja", 810.0, 144.0, 25.0, 54.0),
+            new Shelf("PB3-01", "Acero", "Acero 1 - Fondo Pasillo", "1", "Planta Baja", 810.0, 104.0, 95.4, 34.0),
+            new Shelf("PB3-02", "Acero", "Pasillo Acero 2", "1", "Planta Baja", 810.0, 144.0, 25.0, 54.0),
             new Shelf("PB-PEN-02", "Pendiente", "Bahía Pendiente 2", "1", "Planta Baja", 783.3, 203.4, 25.0, 54.0),
-            new Shelf("PB-ACE-03", "Acero", "Pasillo Acero 3", "1", "Planta Baja", 810.0, 203.4, 25.0, 54.0),
+            new Shelf("PB3-03", "Acero", "Pasillo Acero 3", "1", "Planta Baja", 810.0, 203.4, 25.0, 54.0),
             new Shelf("PB-PEN-03", "Pendiente", "Bahía Pendiente 3", "1", "Planta Baja", 783.3, 263.1, 25.0, 54.0),
-            new Shelf("PB-ACE-04", "Acero", "Pasillo Acero 4", "1", "Planta Baja", 810.0, 263.1, 25.0, 54.0),
+            new Shelf("PB3-04", "Acero", "Pasillo Acero 4", "1", "Planta Baja", 810.0, 263.1, 25.0, 54.0),
             new Shelf("PB-PEN-04", "Pendiente", "Bahía Pendiente 4", "1", "Planta Baja", 783.3, 321.8, 25.0, 54.0),
-            new Shelf("PB-ACE-05", "Acero", "Pasillo Acero 5", "1", "Planta Baja", 810.0, 321.8, 25.0, 54.0),
+            new Shelf("PB3-05", "Acero", "Pasillo Acero 5", "1", "Planta Baja", 810.0, 321.8, 25.0, 54.0),
             new Shelf("PB-PEN-05", "Pendiente", "Bahía Pendiente 5", "1", "Planta Baja", 783.3, 381.3, 25.0, 54.0),
-            new Shelf("PB-ACE-06", "Acero", "Pasillo Acero 6", "1", "Planta Baja", 810.0, 381.3, 25.0, 54.0),
+            new Shelf("PB3-06", "Acero", "Pasillo Acero 6", "1", "Planta Baja", 810.0, 381.3, 25.0, 54.0),
             new Shelf("PB-PEN-06", "Pendiente", "Bahía Pendiente 6", "1", "Planta Baja", 783.3, 440.2, 25.0, 54.0),
-            new Shelf("PB-ACE-07", "Acero", "Pasillo Acero 7", "1", "Planta Baja", 810.0, 440.2, 25.0, 54.0),
+            new Shelf("PB3-07", "Acero", "Pasillo Acero 7", "1", "Planta Baja", 810.0, 440.2, 25.0, 54.0),
             new Shelf("PB-PEN-07", "Pendiente", "Bahía Pendiente 7", "1", "Planta Baja", 783.3, 499.5, 25.0, 54.0),
-            new Shelf("PB-ACE-08", "Acero", "Pasillo Acero 8", "1", "Planta Baja", 810.0, 499.5, 25.0, 54.0),
+            new Shelf("PB3-08", "Acero", "Pasillo Acero 8", "1", "Planta Baja", 810.0, 499.5, 25.0, 54.0),
             new Shelf("PB-PEN-08", "Pendiente", "Bahía Pendiente 8", "1", "Planta Baja", 783.3, 558.9, 25.0, 54.0),
-            new Shelf("PB-ACE-09", "Acero", "Pasillo Acero 9", "1", "Planta Baja", 810.0, 558.9, 25.0, 54.0),
+            new Shelf("PB3-09", "Acero", "Pasillo Acero 9", "1", "Planta Baja", 810.0, 558.9, 25.0, 54.0),
             new Shelf("PB-PEN-09", "Pendiente", "Bahía Pendiente 9", "1", "Planta Baja", 783.3, 618.3, 25.0, 54.0),
-            new Shelf("PB-ACE-10", "Acero", "Pasillo Acero 10", "1", "Planta Baja", 810.0, 618.3, 25.0, 54.0),
-            new Shelf("PB-ACE-11", "Acero", "Pasillo Acero 11", "1", "Planta Baja", 880.4, 618.3, 25.0, 54.0),
+            new Shelf("PB3-10", "Acero", "Pasillo Acero 10", "1", "Planta Baja", 810.0, 618.3, 25.0, 54.0),
+            new Shelf("PB3-11", "Acero", "Pasillo Acero 11", "1", "Planta Baja", 880.4, 618.3, 25.0, 54.0),
             new Shelf("PB-YPC-01", "YPC", "Estantería YPC A1", "1", "Planta Baja", 907.0, 144.0, 25.0, 54.0),
-            new Shelf("PB-ACE-12", "Acero", "Pasillo Acero 12", "1", "Planta Baja", 880.4, 558.9, 25.0, 54.0),
+            new Shelf("PB3-12", "Acero", "Pasillo Acero 12", "1", "Planta Baja", 880.4, 558.9, 25.0, 54.0),
             new Shelf("PB-YPC-02", "YPC", "Estantería YPC A2", "1", "Planta Baja", 907.0, 203.4, 25.0, 54.0),
-            new Shelf("PB-ACE-13", "Acero", "Pasillo Acero 13", "1", "Planta Baja", 880.4, 499.5, 25.0, 54.0),
+            new Shelf("PB3-13", "Acero", "Pasillo Acero 13", "1", "Planta Baja", 880.4, 499.5, 25.0, 54.0),
             new Shelf("PB-YPC-03", "YPC", "Estantería YPC A3", "1", "Planta Baja", 907.0, 261.6, 25.0, 54.0),
-            new Shelf("PB-ACE-14", "Acero", "Pasillo Acero 14", "1", "Planta Baja", 880.4, 440.2, 25.0, 54.0),
+            new Shelf("PB3-14", "Acero", "Pasillo Acero 14", "1", "Planta Baja", 880.4, 440.2, 25.0, 54.0),
             new Shelf("PB-YPC-04", "YPC", "Estantería YPC A4", "1", "Planta Baja", 907.0, 321.3, 25.0, 54.0),
-            new Shelf("PB-ACE-15", "Acero", "Pasillo Acero 15", "1", "Planta Baja", 880.4, 381.3, 25.0, 54.0),
+            new Shelf("PB3-15", "Acero", "Pasillo Acero 15", "1", "Planta Baja", 880.4, 381.3, 25.0, 54.0),
             new Shelf("PB-YPC-05", "YPC", "Estantería YPC A5", "1", "Planta Baja", 907.0, 381.3, 25.0, 54.0),
-            new Shelf("PB-ACE-16", "Acero", "Pasillo Acero 16", "1", "Planta Baja", 880.4, 321.3, 25.0, 54.0),
+            new Shelf("PB3-16", "Acero", "Pasillo Acero 16", "1", "Planta Baja", 880.4, 321.3, 25.0, 54.0),
             new Shelf("PB-YPC-06", "YPC", "Estantería YPC A6", "1", "Planta Baja", 907.0, 440.2, 25.0, 54.0),
-            new Shelf("PB-ACE-17", "Acero", "Pasillo Acero 17", "1", "Planta Baja", 880.4, 261.6, 25.0, 54.0),
+            new Shelf("PB3-17", "Acero", "Pasillo Acero 17", "1", "Planta Baja", 880.4, 261.6, 25.0, 54.0),
             new Shelf("PB-YPC-07", "YPC", "Estantería YPC A7", "1", "Planta Baja", 907.0, 499.5, 25.0, 54.0),
-            new Shelf("PB-ACE-18", "Acero", "Pasillo Acero 18", "1", "Planta Baja", 880.4, 203.4, 25.0, 54.0),
+            new Shelf("PB3-18", "Acero", "Pasillo Acero 18", "1", "Planta Baja", 880.4, 203.4, 25.0, 54.0),
             new Shelf("PB-YPC-08", "YPC", "Estantería YPC A8", "1", "Planta Baja", 907.0, 558.9, 25.0, 54.0),
-            new Shelf("PB-ACE-19", "Acero", "Pasillo Acero 19", "1", "Planta Baja", 880.4, 144.0, 25.0, 54.0),
+            new Shelf("PB3-19", "Acero", "Pasillo Acero 19", "1", "Planta Baja", 880.4, 144.0, 25.0, 54.0),
             new Shelf("PB-YPC-09", "YPC", "Estantería YPC A9", "1", "Planta Baja", 907.0, 618.3, 25.0, 54.0),
             new Shelf("PB-YPC-10", "YPC", "Estantería YPC B0 - Fondo Pasillo", "1", "Planta Baja", 948.0, 104.0, 76.0, 34.0),
             new Shelf("PB-YPC-11", "YPC", "Estantería YPC B1", "1", "Planta Baja", 1001.2, 145.1, 25.0, 54.0),

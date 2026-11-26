@@ -581,12 +581,13 @@ public class CountService {
             return existing.get();
         }
 
-        // Check legacy aliases in db (e.g. for PB-ACE-02: PB3-02, PB-3-02, ACE-02, PB3-2, ACE-2)
-        if (cleanCode.startsWith("PB-ACE-")) {
+        // Check legacy aliases in db (e.g. for PB3-02: PB-ACE-02, PB-ACE-2, PB-3-02, ACE-02, PB3-2)
+        if (cleanCode.startsWith("PB3-")) {
             try {
-                int num = Integer.parseInt(cleanCode.replace("PB-ACE-", ""));
+                int num = Integer.parseInt(cleanCode.replace("PB3-", ""));
                 for (String cand : List.of(
-                        String.format("PB3-%02d", num),
+                        String.format("PB-ACE-%02d", num),
+                        String.format("PB-ACE-%d", num),
                         String.format("PB-3-%02d", num),
                         String.format("PB3-%d", num),
                         String.format("PB-3-%d", num),
@@ -599,8 +600,23 @@ public class CountService {
                         ls.setZone("Acero");
                         ls = shelfRepo.save(ls);
                         shelfCache.put(cleanCode, ls);
+                        shelfCache.put(cand, ls);
                         return ls;
                     }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // Backward compatibility: If looking up PB-ACE-XX, redirect to PB3-XX if present
+        if (cleanCode.startsWith("PB-ACE-")) {
+            try {
+                int num = Integer.parseInt(cleanCode.replace("PB-ACE-", ""));
+                String pb3 = String.format("PB3-%02d", num);
+                Optional<Shelf> pb3Shelf = shelfRepo.findByCodeIgnoreCase(pb3);
+                if (pb3Shelf.isPresent()) {
+                    shelfCache.put(cleanCode, pb3Shelf.get());
+                    shelfCache.put(pb3, pb3Shelf.get());
+                    return pb3Shelf.get();
                 }
             } catch (Exception ignored) {}
         }
@@ -623,16 +639,22 @@ public class CountService {
     }
 
     public Shelf getOrCreateAceroShelf(int num, InventorySession session, Map<String, Shelf> shelfCache) {
-        String canonicalCode = String.format("PB-ACE-%02d", num);
+        String canonicalCode = String.format("PB3-%02d", num);
         Shelf s = shelfCache.get(canonicalCode);
         if (s != null) return s;
         // Blueprint coordinates for Acero 1..19
-        double posX = (num == 11) ? 880.4 : 810.0;
+        double posX = (num >= 11) ? 880.4 : 810.0;
         double posY = (num == 1) ? 104.0 : (144.0 + (num - 2) * 59.5);
         double w = (num == 1) ? 95.4 : 25.0;
         double h = (num == 1) ? 34.0 : 54.0;
         String desc = (num == 1) ? "Acero 1 - Fondo Pasillo" : ("Pasillo Acero " + num);
-        return getOrCreateShelf(canonicalCode, "Acero", desc, "Planta Baja", posX, posY, w, h, session, shelfCache);
+        s = getOrCreateShelf(canonicalCode, "Acero", desc, "Planta Baja", posX, posY, w, h, session, shelfCache);
+        shelfCache.put(canonicalCode, s);
+        shelfCache.put(String.format("PB-ACE-%02d", num), s);
+        shelfCache.put(String.format("PB-ACE-%d", num), s);
+        shelfCache.put(String.format("PB3-%d", num), s);
+        shelfCache.put(String.valueOf(num), s);
+        return s;
     }
 
     public Shelf getOrCreateKuriyamaShelf(String side, int num, InventorySession session, Map<String, Shelf> shelfCache) {
@@ -1200,13 +1222,13 @@ public class CountService {
                         .computeIfAbsent(cu, k -> new ArrayList<>())
                         .add(r);
 
-                boolean isPhantomPb3 = sCode.matches("^PB-?3-?\\d+$");
+                boolean isLegacyAce = sCode.startsWith("PB-ACE-");
                 boolean isPendingBucket = sCode.contains("PEN") || sCode.contains("GEN");
                 boolean isStrandedOnSingleDump = isMultiShelfPhysicalImport
-                        && (sCode.equals("PB-ACE-01") || (effectiveDefaultShelf != null && effectiveDefaultShelf.getId().equals(sId)))
+                        && (sCode.equals("PB3-01") || sCode.equals("PB-ACE-01") || (effectiveDefaultShelf != null && effectiveDefaultShelf.getId().equals(sId)))
                         && !codesNeededPerExplicitShelf.getOrDefault(sId, Collections.emptySet()).contains(cu);
 
-                if (isPhantomPb3 || isPendingBucket || isStrandedOnSingleDump) {
+                if (isLegacyAce || isPendingBucket || isStrandedOnSingleDump) {
                     relocatableByCode.computeIfAbsent(cu, k -> new ArrayDeque<>()).add(r);
                 }
             }
@@ -1526,34 +1548,20 @@ public class CountService {
             }
         }
 
-        // Reconcile leftover unclaimed records ONLY on full covered rack sheets and phantom PB3-* shelves
-        // (eliminates old trapped records on Anaquel 1 / PB3-01 and old duplicate merges when re-importing full rack sheets)
+        // Reconcile leftover unclaimed records ONLY on full covered physical shelves
+        // (eliminates old trapped records and old duplicate merges when re-importing full rack sheets)
         if (isMultiShelfPhysicalImport) {
             List<CountRecord> staleToDelete = new ArrayList<>();
-            Set<Long> phantomPb3ShelfIds = new HashSet<>();
             for (CountRecord r : sessionRecordsAll) {
                 if (r.getId() != null && claimedPreexistingIds.contains(r.getId())) continue;
                 if (r.getShelf() == null) continue;
-                String sCode = r.getShelf().getCode().toUpperCase();
-                boolean isPhantomPb3 = sCode.matches("^PB-?3-?\\d+$");
                 boolean isCoveredFullShelf = fullPhysicalShelfIds.contains(r.getShelf().getId());
-                if (isPhantomPb3) {
-                    phantomPb3ShelfIds.add(r.getShelf().getId());
-                    staleToDelete.add(r);
-                } else if (isCoveredFullShelf) {
+                if (isCoveredFullShelf) {
                     staleToDelete.add(r);
                 }
             }
             if (!staleToDelete.isEmpty()) {
                 countRepo.deleteAll(staleToDelete);
-            }
-            for (Long phId : phantomPb3ShelfIds) {
-                ShelfAssignment saPh = assignmentMap.get(phId);
-                if (saPh != null) {
-                    saPh.setStatus(ShelfAssignment.Status.PENDIENTE);
-                    saPh.setCompletedAt(null);
-                    assignmentsToSave.put(phId, saPh);
-                }
             }
         }
 

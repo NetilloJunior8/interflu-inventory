@@ -7473,7 +7473,7 @@ export class CroquisComponent implements OnInit {
     const zone = (s.shelfZone || '').toUpperCase();
 
     // Planta Baja
-    if (code.includes('ACE') || zone.includes('ACERO')) return 'acero';
+    if (code.includes('ACE') || zone.includes('ACERO') || code.startsWith('PB3-')) return 'acero';
     if (code.includes('KUR') || zone.includes('KURIYAMA')) return 'kuriyama';
     if (code.includes('YPC') || zone.includes('YPC')) return 'ypc';
     if (code.includes('DIX') || zone.includes('DIXON')) return 'dixon';
@@ -7536,7 +7536,7 @@ export class CroquisComponent implements OnInit {
 
     const defs = isPB
       ? [
-          { id: 'acero', name: 'Acero (1-19)', codePrefix: 'PB-ACE', color: '#1d4ed8', lightBg: '#eff6ff', borderColor: '#2563eb' },
+          { id: 'acero', name: 'Acero / PB3 (1-19)', codePrefix: 'PB3', color: '#1d4ed8', lightBg: '#eff6ff', borderColor: '#2563eb' },
           { id: 'kuriyama', name: 'Kuriyama (A | B)', codePrefix: 'PB-KUR', color: '#ea580c', lightBg: '#fff7ed', borderColor: '#f97316' },
           { id: 'ypc', name: 'YPC (Pasillo & B|C)', codePrefix: 'PB-YPC', color: '#7c3aed', lightBg: '#f5f3ff', borderColor: '#8b5cf6' },
           { id: 'dixon', name: 'Dixon (1-2)', codePrefix: 'PB-DIX', color: '#db2777', lightBg: '#fdf2f8', borderColor: '#ec4899' },
@@ -7755,9 +7755,9 @@ export class CroquisComponent implements OnInit {
     if (!s || !s.shelfCode) return '';
     const code = s.shelfCode;
     // Acero pasillo: show clean number matching blueprint (1..19)
-    if (code.startsWith('PB-ACE-')) {
-      const num = parseInt(code.replace('PB-ACE-', ''), 10);
-      return isNaN(num) ? code.replace('PB-ACE-', '') : String(num);
+    if (code.startsWith('PB-ACE-') || code.startsWith('PB3-')) {
+      const num = parseInt(code.replace(/^(?:PB-ACE-|PB3-)/, ''), 10);
+      return isNaN(num) ? code.replace(/^(?:PB-ACE-|PB3-)/, '') : String(num);
     }
     // Dixon in vertical column: D1, D2
     if (code.startsWith('PB-DIX-')) {

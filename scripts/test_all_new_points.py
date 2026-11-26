@@ -77,7 +77,7 @@ assert res["shelvesUpdated"] == 16, f"Expected 16 shelves, got {res['shelvesUpda
 
 # Verify pieces in Acero shelves
 shelves_after = requests.get(f"{BASE_URL}/api/sessions/1/shelves", headers=headers).json()
-acero_after = [s for s in shelves_after if "ACE" in s["shelfCode"]]
+acero_after = [s for s in shelves_after if s["shelfCode"].startswith("PB3-") or "ACE" in s["shelfCode"]]
 total_pieces_acero = sum((s.get("totalPieces") or 0) for s in acero_after)
 print(f"   Total pieces in Acero shelves: {total_pieces_acero}")
 assert total_pieces_acero == 18015.0, f"Expected 18015.0 in Acero shelves, got {total_pieces_acero}"
@@ -100,7 +100,7 @@ print("8. Imported SAE extra SKU (without shelf location): OK")
 
 # Verify Acero shelves DID NOT get this item and physical piece total remains strictly 18,015.0
 shelves_check = requests.get(f"{BASE_URL}/api/sessions/1/shelves", headers=headers).json()
-acero_check = [s for s in shelves_check if "ACE" in s["shelfCode"]]
+acero_check = [s for s in shelves_check if s["shelfCode"].startswith("PB3-") or "ACE" in s["shelfCode"]]
 total_acero_check = sum((s.get("totalPieces") or 0) for s in acero_check)
 print(f"   Acero pieces after unlocated SAE import: {total_acero_check}")
 assert total_acero_check == 18015.0, f"Expected Acero to remain untouched at 18015.0, got {total_acero_check}"
