@@ -1073,7 +1073,7 @@ export interface LocationAssignerRow {
                   <span class="c-kpi-val mono">{{ inspectedMaterials().length || inspectedShelf.recordCount || 0 }}</span>
                 </div>
               </div>
-              <button class="btn btn-sm btn-outline" (click)="openCroquisImportModal(inspectedShelf.shelfId)" title="Importar conteo semanal directo a este anaquel">
+              <button class="btn btn-sm btn-outline" (click)="openCroquisImportModal(inspectedShelf.shelfId, getSectionType(inspectedShelf))" title="Importar conteo semanal directo a este anaquel">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                   <polyline points="7 10 12 15 17 10"></polyline>
@@ -2515,15 +2515,47 @@ export interface LocationAssignerRow {
                 </button>
               </div>
 
-              <!-- Destination Shelf -->
-              <div class="form-group mt-3">
-                <label class="field-label">Anaquel Destino:</label>
-                <select class="select select-sm" [ngModel]="importTargetShelfId()" (ngModelChange)="importTargetShelfId.set(+$event || 0)">
-                  <option [ngValue]="0">Detectar automáticamente (por hoja, columna ESTANTE/ANAQUEL o códigos SAE)</option>
-                  <option *ngFor="let sh of allShelves()" [ngValue]="sh.shelfId">
-                    [{{ sh.plant || 'Planta Baja' }}] {{ sh.shelfCode }} &bull; {{ sh.shelfDescription || sh.shelfZone }}
-                  </option>
-                </select>
+              <!-- Destination Family & Shelf (Explicit Indicator to Prevent Misrouting) -->
+              <div class="import-destination-panel mt-3" style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 12px 14px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
+                  <div class="form-group" style="margin: 0;">
+                    <label class="field-label" style="font-size: 0.78rem; font-weight: 700; color: #334155;">Familia / Pasillo Destino:</label>
+                    <select class="select select-sm" [ngModel]="importTargetFamily()" (ngModelChange)="onImportTargetFamilyChange($event)">
+                      <option value="">Detectar automáticamente (Todas las familias)</option>
+                      <option value="ypc">YPC (Pasillo 2 · PB-YPC)</option>
+                      <option value="acero">Acero (Pasillo 3 · PB3 1-19)</option>
+                      <option value="kuriyama">Kuriyama (Pasillo 4 · PB-KUR A|B)</option>
+                      <option value="chid">Conexiones Hidráulicas (Pasillo 1 · PB-CHID)</option>
+                      <option value="dixon">Dixon (PB-DIX)</option>
+                      <option value="cyber">Cybermatics / Universal (PB-CYB / PB-UNI)</option>
+                      <option value="inox">Parker Inox (PB-INOX)</option>
+                      <option value="pvc">Planta Alta PVC (PA-PVC)</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="margin: 0;">
+                    <label class="field-label" style="font-size: 0.78rem; font-weight: 700; color: #334155;">Anaquel Destino:</label>
+                    <select class="select select-sm" [ngModel]="importTargetShelfId()" (ngModelChange)="onImportTargetShelfChange(+$event || 0)">
+                      <option [ngValue]="0">Detectar automáticamente (por hoja o columna ESTANTE/PB2/PB3)</option>
+                      <option *ngFor="let sh of filteredShelvesForImport()" [ngValue]="sh.shelfId">
+                        [{{ sh.shelfZone || 'General' }}] {{ sh.shelfCode }} &bull; {{ sh.shelfDescription || sh.plant }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Live Visual Destination Confirmation Badge -->
+                <div style="margin-top: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <span
+                    class="badge"
+                    [style.background]="getImportDestinationInfo().bg"
+                    [style.color]="getImportDestinationInfo().color"
+                    [style.border]="'1px solid ' + getImportDestinationInfo().border"
+                    style="padding: 5px 10px; font-size: 0.78rem; font-weight: 800; border-radius: 6px;"
+                  >
+                    {{ getImportDestinationInfo().badgeText }}
+                  </span>
+                  <span class="font-xs text-muted">{{ getImportDestinationInfo().hintText }}</span>
+                </div>
               </div>
 
               <!-- Import Mode Selector -->
@@ -2733,11 +2765,23 @@ export interface LocationAssignerRow {
                 </div>
               </div>
 
-              <div class="affected-shelves-bar" *ngIf="res.affectedShelves && res.affectedShelves.length > 0">
-                <span class="affected-lbl">Anaqueles actualizados ({{ res.shelvesUpdated }}):</span>
-                <div class="affected-chips">
-                  <span class="affected-chip mono" *ngFor="let shCode of res.affectedShelves">{{ shCode }}</span>
+              <div class="affected-shelves-bar" *ngIf="(res.affectedShelvesDetails && res.affectedShelvesDetails.length > 0) || (res.affectedShelves && res.affectedShelves.length > 0)">
+                <span class="affected-lbl">
+                  Anaqueles actualizados ({{ res.shelvesUpdated }}):
+                  <span *ngIf="res.effectiveFamily" class="badge" style="margin-left: 6px; background: #eff6ff; color: #1d4ed8; font-size: 0.72rem;">
+                    Familia: {{ res.effectiveFamily }}
+                  </span>
+                </span>
+                <div class="affected-chips" *ngIf="res.affectedShelvesDetails && res.affectedShelvesDetails.length > 0; else legacyChips">
+                  <span class="affected-chip mono" *ngFor="let shDet of res.affectedShelvesDetails" [title]="shDet.description + ' (' + shDet.plant + ')'">
+                    {{ shDet.code }} &bull; {{ shDet.zone || shDet.plant }}
+                  </span>
                 </div>
+                <ng-template #legacyChips>
+                  <div class="affected-chips">
+                    <span class="affected-chip mono" *ngFor="let shCode of res.affectedShelves">{{ shCode }}</span>
+                  </div>
+                </ng-template>
               </div>
             </div>
 
@@ -7861,7 +7905,7 @@ export class CroquisComponent implements OnInit {
           { id: 'chid', name: 'Conex. Hidráulicas', codePrefix: 'PB-CHID', color: '#0891b2', lightBg: '#ecfeff', borderColor: '#06b6d4' },
           { id: 'cyber', name: 'Cybermatics / Univ.', codePrefix: 'PB-CYB', color: '#e11d48', lightBg: '#fff1f2', borderColor: '#f43f5e' },
           { id: 'inox', name: 'Parker Inox', codePrefix: 'PB-INOX', color: '#475569', lightBg: '#f1f5f9', borderColor: '#64748b' },
-          { id: 'default', name: 'Pendientes / Sin Asignar', codePrefix: 'PB-GEN', color: '#94a3b8', lightBg: '#ffffff', borderColor: '#cbd5e1' }
+          { id: 'pendiente', name: 'Pendientes (1-9)', codePrefix: 'PB-PEN', color: '#475569', lightBg: '#f8fafc', borderColor: '#64748b' }
         ]
       : [
           { id: 'sellos', name: 'Sellos (P4, P5, Muro)', codePrefix: 'PA-SEL', color: '#9333ea', lightBg: '#faf5ff', borderColor: '#c084fc' },
@@ -8602,12 +8646,102 @@ export class CroquisComponent implements OnInit {
       this.toast.warning('No hay inventario activo. Selecciona o inicia una sesión primero.');
       return;
     }
-    this.importTargetShelfId.set(shelfId || 0);
-    this.importTargetFamily.set(familyId || '');
+    const targetSh = shelfId || 0;
+    let effectiveFam = (familyId || '').toLowerCase();
+    if (!effectiveFam && targetSh > 0) {
+      const shObj = this.allShelves().find(s => s.shelfId === targetSh);
+      if (shObj) {
+        const secType = this.getSectionType(shObj);
+        if (secType !== 'default') effectiveFam = secType;
+      }
+    }
+    this.importTargetShelfId.set(targetSh);
+    this.importTargetFamily.set(effectiveFam);
     this.importMode.set('SMART_MERGE');
     this.selectedExcelFile = null;
     this.importResult = null;
     this.showImportExcelModal = true;
+  }
+
+  filteredShelvesForImport(): ShelfAssignmentDto[] {
+    const fam = (this.importTargetFamily() || '').toLowerCase();
+    const list = this.allShelves();
+    if (!fam) return list;
+    return list.filter(s => this.getSectionType(s) === fam);
+  }
+
+  onImportTargetFamilyChange(newFam: string) {
+    const cleanFam = (newFam || '').toLowerCase();
+    this.importTargetFamily.set(cleanFam);
+    const curShId = this.importTargetShelfId();
+    if (curShId > 0 && cleanFam) {
+      const shObj = this.allShelves().find(s => s.shelfId === curShId);
+      if (!shObj || this.getSectionType(shObj) !== cleanFam) {
+        this.importTargetShelfId.set(0);
+      }
+    }
+  }
+
+  onImportTargetShelfChange(newShelfId: number) {
+    this.importTargetShelfId.set(newShelfId || 0);
+    if (newShelfId > 0) {
+      const shObj = this.allShelves().find(s => s.shelfId === newShelfId);
+      if (shObj) {
+        const sec = this.getSectionType(shObj);
+        if (sec && sec !== 'default') {
+          this.importTargetFamily.set(sec);
+        }
+      }
+    }
+  }
+
+  getImportDestinationInfo(): { badgeText: string; hintText: string; bg: string; color: string; border: string } {
+    const shId = this.importTargetShelfId();
+    const fam = (this.importTargetFamily() || '').toLowerCase();
+    const shObj = shId > 0 ? this.allShelves().find(s => s.shelfId === shId) : null;
+
+    const famColors: Record<string, { name: string; bg: string; color: string; border: string }> = {
+      ypc: { name: 'YPC (Pasillo 2)', bg: '#f5f3ff', color: '#6d28d9', border: '#c4b5fd' },
+      acero: { name: 'Acero (Pasillo 3)', bg: '#eff6ff', color: '#1d4ed8', border: '#93c5fd' },
+      kuriyama: { name: 'Kuriyama (Pasillo 4)', bg: '#fff7ed', color: '#c2410c', border: '#fdba74' },
+      chid: { name: 'Conexiones Hidráulicas (Pasillo 1)', bg: '#ecfeff', color: '#0e7490', border: '#67e8f9' },
+      dixon: { name: 'Dixon', bg: '#fdf2f8', color: '#be185d', border: '#f9a8d4' },
+      cyber: { name: 'Cybermatics / Universal', bg: '#fff1f2', color: '#be123c', border: '#fda4af' },
+      inox: { name: 'Parker Inox', bg: '#f1f5f9', color: '#334155', border: '#cbd5e1' },
+      pvc: { name: 'Planta Alta PVC', bg: '#ecfeff', color: '#0e7490', border: '#67e8f9' },
+      pendiente: { name: 'Zona Pendiente', bg: '#f8fafc', color: '#475569', border: '#cbd5e1' }
+    };
+
+    const style = famColors[fam] || { name: 'Detección Automática', bg: '#f1f5f9', color: '#0f172a', border: '#cbd5e1' };
+
+    if (shObj) {
+      const zoneName = shObj.shelfZone || style.name;
+      return {
+        badgeText: `DESTINO FIJO: ${zoneName.toUpperCase()} · ${shObj.shelfCode}`,
+        hintText: `Las partidas sin otra indicación se guardarán directo en ${shObj.shelfCode} (${shObj.plant || 'Planta Baja'}).`,
+        bg: style.bg,
+        color: style.color,
+        border: style.border
+      };
+    }
+
+    if (fam && famColors[fam]) {
+      return {
+        badgeText: `FAMILIA DESTINO: ${style.name.toUpperCase()}`,
+        hintText: `Cualquier hoja o estante numérico del Excel (ej. "15" o "Estante 15") se ubicará en ${style.name}.`,
+        bg: style.bg,
+        color: style.color,
+        border: style.border
+      };
+    }
+
+    return {
+      badgeText: 'DETECCIÓN AUTOMÁTICA MULTI-FAMILIA',
+      hintText: 'Respeta prefijos PB2 (YPC), PB3 (Acero), PB4 (Kuriyama), PB1 (CHID), o nombres de hoja.',
+      bg: '#f1f5f9',
+      color: '#334155',
+      border: '#cbd5e1'
+    };
   }
 
   closeCroquisImportModal() {
@@ -9517,17 +9651,26 @@ export class CroquisComponent implements OnInit {
 
     // 1. Notes matching PB\d+-\d+[SA-J]-?\d* (exact imported/assigned location)
     if (item.notes && typeof item.notes === 'string') {
-      const match = item.notes.match(/P[BA]\d+-\d+[SA-J]-?\d*/i);
+      const match = item.notes.match(/P[BA]\d+-[A-Z]?\d+[SA-J]-?\d*/i);
       if (match) return match[0].toUpperCase();
     }
 
-    // 2. Direct Acero Master Catalog lookup by code, shelf, and section
-    const aceroMeta = findAceroLocation(code, shelfCode, section);
-    if (aceroMeta) {
-      return aceroMeta.ubicacion;
+    // 2. Direct Acero Master Catalog lookup ONLY if item is on an Acero shelf or has no non-Acero shelf
+    const isExplicitOtherFamilyShelf = shelfCode.length > 0 && !shelfCode.startsWith('PB3') && !shelfCode.startsWith('PB-ACE');
+    if (!isExplicitOtherFamilyShelf) {
+      const aceroMeta = findAceroLocation(code, shelfCode, section);
+      if (aceroMeta) {
+        return aceroMeta.ubicacion;
+      }
     }
 
-    // 3. Fallback for other families: shelf code + section
+    // 3. Build location code cleanly for YPC / Kuriyama / CHID / other families
+    if (shelfCode.startsWith('PB-YPC-')) {
+      const sNum = shelfCode.replace('PB-YPC-', '').replace(/^0+/, '') || '1';
+      return `PB2-${sNum}${section || 'A'}-1`;
+    }
+
+    // 4. Fallback for other families: shelf code + section
     if (item.locations && item.locations.length > 0) {
       const first = item.locations[0];
       return `${first.shelfCode}${first.section ? '-' + first.section : ''}`;
@@ -9611,42 +9754,100 @@ export class CroquisComponent implements OnInit {
     return 'Conexión Industrial ' + c;
   }
 
+  private resolveAisleLabel(plantCode: string, rawAisle: string, shelfHint: string = ''): { aisleCode: string; aisleLabel: string } {
+    const a = (rawAisle || '').trim().toUpperCase();
+    const sh = (shelfHint || '').trim().toUpperCase();
+
+    if (plantCode === 'PA') {
+      if (a === '1' || sh.includes('PA-P1')) return { aisleCode: '1', aisleLabel: 'Pasillo 1 (HCO / Hidr.)' };
+      if (a === '2' || sh.includes('PA-P2')) return { aisleCode: '2', aisleLabel: 'Pasillo 2 (Neumática)' };
+      if (a === '3' || sh.includes('PA-P3')) return { aisleCode: '3', aisleLabel: 'Pasillo 3 (Festo / SMC)' };
+      if (a === '4' || sh.includes('PA-P4') || sh.includes('SEL-1')) return { aisleCode: '4', aisleLabel: 'Pasillo 4 (Sellos 1)' };
+      if (a === '5' || sh.includes('PA-P5') || sh.includes('SEL-2')) return { aisleCode: '5', aisleLabel: 'Pasillo 5 (Sellos 2)' };
+      if (sh.includes('PVC')) return { aisleCode: 'PVC', aisleLabel: 'Pasillo PVC' };
+      if (sh.includes('RES')) return { aisleCode: 'RES', aisleLabel: 'Reserva Acero (PA)' };
+      if (sh.includes('SEL')) return { aisleCode: 'SEL', aisleLabel: 'Sellos (Planta Alta)' };
+      return { aisleCode: a || 'PA', aisleLabel: a ? `Pasillo ${a} (Planta Alta)` : 'Planta Alta' };
+    }
+
+    // Planta Baja: Explicit shelf code hint overrides generic defaults
+    if (sh.includes('YPC') || a === '2' || a === '5' || a === 'YPC') {
+      const code = (a === '5') ? '5' : '2';
+      return { aisleCode: code, aisleLabel: `Pasillo ${code} (YPC)` };
+    }
+    if (sh.includes('KUR') || a === '4' || a === 'KUR') {
+      return { aisleCode: '4', aisleLabel: 'Pasillo 4 (Kuriyama)' };
+    }
+    if (sh.includes('CHID') || sh.includes('HID') || a === '1' || a === 'CHID') {
+      return { aisleCode: '1', aisleLabel: 'Pasillo 1 (Conex. Hidráulicas)' };
+    }
+    if (sh.includes('DIX') || a === 'DIX') {
+      return { aisleCode: 'DIX', aisleLabel: 'Zona Dixon' };
+    }
+    if (sh.includes('CYB') || a === 'CYB') {
+      return { aisleCode: 'CYB', aisleLabel: 'Gabinetes Cybermatics' };
+    }
+    if (sh.includes('UNI') || a === 'UNI') {
+      return { aisleCode: 'UNI', aisleLabel: 'Zona Universal' };
+    }
+    if (sh.includes('INOX') || a === 'INOX') {
+      return { aisleCode: 'INOX', aisleLabel: 'Parker Inox' };
+    }
+    if (sh.includes('PEN') || a === 'PEN') {
+      return { aisleCode: 'PEN', aisleLabel: 'Zona Pendiente' };
+    }
+    if (sh.includes('ACE') || sh.startsWith('PB3') || a === '3' || a === 'ACE') {
+      return { aisleCode: '3', aisleLabel: 'Pasillo 3 (Acero)' };
+    }
+
+    return { aisleCode: a || 'GEN', aisleLabel: a ? `Pasillo ${a}` : 'Ubicación General' };
+  }
+
   decodeLocation(locStr: string, sectionFallback?: string, productCode?: string, shelfCodeFallback?: string): DecodedLocation {
     const code = (productCode || '').trim().toUpperCase();
     const sec = (sectionFallback || '').trim().toUpperCase();
     const sh = (shelfCodeFallback || '').trim().toUpperCase();
+    const locClean = (locStr || '').trim().toUpperCase();
 
-    // 1. Check master Acero catalog
-    const meta = findAceroLocation(code, sh, sec) || findAceroLocation(locStr);
-    if (meta) {
-      const plant = meta.planta === 'PB' ? 'Planta Baja' : 'Planta Alta';
-      const aisle = `Pasillo ${meta.pasillo} (Acero)`;
-      const shelf = `Estante ${meta.estante} (Anaquel ${meta.estante})`;
-      const level = `Nivel ${meta.nivel}`;
-      const pos = `Posición ${meta.posicion}`;
-      return {
-        plant,
-        plantCode: meta.planta,
-        aisle,
-        aisleCode: meta.pasillo,
-        shelf,
-        shelfCode: meta.estante,
-        level,
-        levelCode: meta.nivel,
-        position: pos,
-        positionCode: meta.posicion,
-        summary: `${meta.planta} = ${plant} · ${meta.pasillo} = ${aisle} · ${meta.estante} = ${shelf} · ${meta.nivel} = ${level} · ${meta.posicion} = ${pos}`
-      };
+    // 1. Check master Acero catalog ONLY if shelf/location actually belongs to Acero (never override YPC / Kuriyama / CHID!)
+    const isNonAceroContext = (sh.length > 0 && !sh.startsWith('PB3') && !sh.startsWith('PB-ACE'))
+      || (locClean.length > 0 && !locClean.startsWith('PB3') && !locClean.startsWith('PB-ACE') && locClean !== '--');
+    if (!isNonAceroContext) {
+      const meta = findAceroLocation(code, sh, sec) || findAceroLocation(locStr);
+      if (meta) {
+        const plant = meta.planta === 'PB' ? 'Planta Baja' : 'Planta Alta';
+        const aisle = `Pasillo ${meta.pasillo} (Acero)`;
+        const shelf = `Estante ${meta.estante} (Anaquel ${meta.estante})`;
+        const level = `Nivel ${meta.nivel}`;
+        const pos = `Posición ${meta.posicion}`;
+        return {
+          plant,
+          plantCode: meta.planta,
+          aisle,
+          aisleCode: meta.pasillo,
+          shelf,
+          shelfCode: meta.estante,
+          level,
+          levelCode: meta.nivel,
+          position: pos,
+          positionCode: meta.posicion,
+          summary: `${meta.planta} = ${plant} · ${meta.pasillo} = ${aisle} · ${meta.estante} = ${shelf} · ${meta.nivel} = ${level} · ${meta.posicion} = ${pos}`
+        };
+      }
     }
 
     if (!locStr || locStr === '--') {
+      const plantCode = sh.startsWith('PA') ? 'PA' : 'PB';
+      const plant = plantCode === 'PA' ? 'Planta Alta' : 'Planta Baja';
+      const aisleInfo = this.resolveAisleLabel(plantCode, '', sh);
+      const shelfNum = sh ? (sh.replace(/^[A-Z-]+0*/, '') || '1') : '1';
       return {
-        plant: 'Planta Baja',
-        plantCode: 'PB',
-        aisle: 'Pasillo 3 (Acero)',
-        aisleCode: '3',
-        shelf: 'Estante 1 (Anaquel 1)',
-        shelfCode: '1',
+        plant,
+        plantCode,
+        aisle: aisleInfo.aisleLabel,
+        aisleCode: aisleInfo.aisleCode,
+        shelf: `Estante ${shelfNum} (Anaquel ${shelfNum})`,
+        shelfCode: shelfNum,
         level: sec ? `Nivel ${sec}` : 'Nivel A',
         levelCode: sec || 'A',
         position: 'Posición 1',
@@ -9654,61 +9855,67 @@ export class CroquisComponent implements OnInit {
         summary: 'Ubicación General'
       };
     }
-    const loc = locStr.trim().toUpperCase();
+    const loc = locClean;
 
-    // Pattern 1: PB3-1A-1 or PB3-1S-1 or PB3-10B-2
-    const m1 = loc.match(/^(P[BA])(\d+)-(\d+)([SA-J])-?(\d+)?$/);
+    // Pattern 1: PB2-15A-1 (YPC), PB3-1A-1 (Acero), PB4-1A-1 (Kuriyama), etc.
+    const m1 = loc.match(/^(P[BA])(\d+)-([A-Z]?\d+)([SA-J])-?(\d+)?$/);
     if (m1) {
-      const plant = m1[1] === 'PB' ? 'Planta Baja' : 'Planta Alta';
-      const aisle = `Pasillo ${m1[2]} (Acero)`;
-      const shelf = `Estante ${m1[3]} (Anaquel ${m1[3]})`;
+      const plantCode = m1[1];
+      const plant = plantCode === 'PB' ? 'Planta Baja' : 'Planta Alta';
+      const aisleInfo = this.resolveAisleLabel(plantCode, m1[2], sh);
+      const shelfNum = m1[3];
+      const shelf = `Estante ${shelfNum} (Anaquel ${shelfNum})`;
       const level = m1[4] === 'S' ? 'Nivel S (Superior)' : `Nivel ${m1[4]}`;
       const pos = m1[5] ? `Posición ${m1[5]}` : 'Posición 1';
       return {
         plant,
-        plantCode: m1[1],
-        aisle,
-        aisleCode: m1[2],
+        plantCode,
+        aisle: aisleInfo.aisleLabel,
+        aisleCode: aisleInfo.aisleCode,
         shelf,
-        shelfCode: m1[3],
+        shelfCode: shelfNum,
         level,
         levelCode: m1[4],
         position: pos,
         positionCode: m1[5] || '1',
-        summary: `${m1[1]} = ${plant} · ${m1[2]} = ${aisle} · ${m1[3]} = ${shelf} · ${m1[4]} = ${level} · ${m1[5] || '1'} = ${pos}`
+        summary: `${plantCode} = ${plant} · ${aisleInfo.aisleCode} = ${aisleInfo.aisleLabel} · ${shelfNum} = ${shelf} · ${m1[4]} = ${level} · ${m1[5] || '1'} = ${pos}`
       };
     }
 
-    // Pattern 2: PB-ACE-01 or PB-ACE-01-A or PB-ACE-01-S
-    const m2 = loc.match(/^(P[BA])-([A-Z0-9]+)-(\d+)(?:-([SA-J]))?$/);
+    // Pattern 2: PB-YPC-15, PB-ACE-01, PB-KUR-A01, etc.
+    const m2 = loc.match(/^(P[BA])-([A-Z0-9-]+?)-(\d+)(?:-([SA-J]))?$/);
     if (m2) {
-      const plant = m2[1] === 'PB' ? 'Planta Baja' : 'Planta Alta';
+      const plantCode = m2[1];
+      const plant = plantCode === 'PB' ? 'Planta Baja' : 'Planta Alta';
       const fam = m2[2];
-      const famName = fam.includes('ACE') ? 'Pasillo 3 (Acero)' : (fam.includes('KUR') ? 'Pasillo Kuriyama' : `Pasillo ${fam}`);
+      const aisleInfo = this.resolveAisleLabel(plantCode, fam, sh || loc);
       const shelfNum = m2[3].replace(/^0+/, '') || m2[3];
       const shelf = `Estante ${shelfNum} (Anaquel ${shelfNum})`;
       const lvlCode = m2[4] || sec || 'A';
       const level = lvlCode === 'S' ? 'Nivel S (Superior)' : `Nivel ${lvlCode}`;
       return {
         plant,
-        plantCode: m2[1],
-        aisle: famName,
-        aisleCode: fam.includes('ACE') ? '3' : fam,
+        plantCode,
+        aisle: aisleInfo.aisleLabel,
+        aisleCode: aisleInfo.aisleCode,
         shelf,
         shelfCode: shelfNum,
         level,
         levelCode: lvlCode,
         position: 'Posición 1',
         positionCode: '1',
-        summary: `${m2[1]} = ${plant} · ${fam} = ${famName} · ${shelfNum} = ${shelf} · ${lvlCode} = ${level}`
+        summary: `${plantCode} = ${plant} · ${aisleInfo.aisleCode} = ${aisleInfo.aisleLabel} · ${shelfNum} = ${shelf} · ${lvlCode} = ${level}`
       };
     }
 
+    const fallbackPlantCode = (sh.startsWith('PA') || loc.startsWith('PA')) ? 'PA' : 'PB';
+    const fallbackPlant = fallbackPlantCode === 'PA' ? 'Planta Alta' : 'Planta Baja';
+    const fallbackAisle = this.resolveAisleLabel(fallbackPlantCode, '', sh || loc);
     return {
-      plant: 'Planta Baja',
-      plantCode: 'PB',
-      aisle: 'Pasillo 3 (Acero)',
-      aisleCode: '3',
+      plant: fallbackPlant,
+      plantCode: fallbackPlantCode,
+      aisle: fallbackAisle.aisleLabel,
+      aisleCode: fallbackAisle.aisleCode,
       shelf: `Estante ${loc}`,
       shelfCode: loc,
       level: sec ? `Nivel ${sec}` : 'Nivel A',
@@ -9825,10 +10032,20 @@ export class CroquisComponent implements OnInit {
       ? `${decoded.plantCode}${decoded.aisleCode}-${decoded.shelfCode}${decoded.levelCode}-${decoded.positionCode}`
       : locCode;
 
+    const resolvedCategory = this.activeFamilyExplorer()?.name
+      || (this.inspectedShelf?.shelfZone ? `${this.inspectedShelf.shelfZone} (${this.inspectedShelf.shelfCode})` : '')
+      || decoded.aisle
+      || 'General';
+    const resolvedSupplier = resolvedCategory.toUpperCase().includes('YPC') ? 'YPC'
+      : (resolvedCategory.toUpperCase().includes('KUR') ? 'Kuriyama'
+      : (resolvedCategory.toUpperCase().includes('CHID') || resolvedCategory.toUpperCase().includes('HIDR') ? 'Conexiones Hidráulicas'
+      : (resolvedCategory.toUpperCase().includes('DIX') ? 'Dixon'
+      : (resolvedCategory.toUpperCase().includes('ACE') ? 'Acero / SAE' : 'Interflu SAE'))));
+
     this.selectedProductPlanning.set({
       code,
       description: desc,
-      category: this.activeFamilyExplorer()?.name || 'Acero (1-19)',
+      category: resolvedCategory,
       unit: item.unit || 'Piezas',
       lastMovementDate: 'Corte al 19 nov 2026',
       locationCode: finalLocationCode,
@@ -9846,7 +10063,7 @@ export class CroquisComponent implements OnInit {
       status,
       statusLabel,
       statusColor,
-      supplierName: 'YPC',
+      supplierName: resolvedSupplier,
       leadTimeDays: 10,
       minOrder: 10,
       packageSize,
@@ -9888,7 +10105,10 @@ export class CroquisComponent implements OnInit {
 
     this.bulkPlant.set('PB');
     const famIdLower = (fam.id || '').toLowerCase();
-    const defaultAisle = famIdLower === 'acero' ? '3' : (fam.codePrefix || '1');
+    const defaultAisle = famIdLower === 'acero' ? '3'
+      : (famIdLower === 'ypc' ? '2'
+      : (famIdLower === 'kuriyama' ? '4'
+      : (famIdLower === 'chid' ? '1' : (fam.codePrefix || '1'))));
     this.bulkAisle.set(defaultAisle);
     const famShelves = this.familyShelves();
     if (famShelves.length > 0) {
@@ -10319,11 +10539,9 @@ export class CroquisComponent implements OnInit {
 
   openImportSaeForFamily(fam: SectionStat) {
     if (!fam) return;
-    const famShelves = this.familyShelves();
-    const firstShelfId = famShelves.length > 0 ? famShelves[0].shelfId : 0;
-    this.openCroquisImportModal(firstShelfId, fam.id.toLowerCase());
+    this.openCroquisImportModal(0, fam.id.toLowerCase());
     this.importMode.set('SMART_MERGE');
-    this.toast.info(`Importador SAE listo para la seccion ${fam.name}. Selecciona el archivo de Excel o CSV.`);
+    this.toast.info(`Importador SAE listo para la familia ${fam.name}. Selecciona el archivo de Excel o CSV.`);
   }
 
   exportProductPlanningCsv(plan: ProductPlanningData) {

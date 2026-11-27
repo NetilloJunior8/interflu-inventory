@@ -72,12 +72,12 @@ public class MultiSheetImportVerificationTest {
         assertEquals(697L, dbCount1, "DB must hold all 697 rows without losing multi-level duplicates");
         assertEquals(18015.0, dbTotal1, 0.01, "DB total pieces must match Excel 18,015.0 exactly");
 
-        // Verify PB-ACE-01 has ONLY its 61 items (2,397 pcs), NOT everything
-        Shelf ace01 = shelfRepo.findByCodeIgnoreCase("PB-ACE-01").orElseThrow();
-        Shelf ace02 = shelfRepo.findByCodeIgnoreCase("PB-ACE-02").orElseThrow();
-        Shelf ace08 = shelfRepo.findByCodeIgnoreCase("PB-ACE-08").orElseThrow();
-        Shelf ace09 = shelfRepo.findByCodeIgnoreCase("PB-ACE-09").orElseThrow();
-        Shelf ace19 = shelfRepo.findByCodeIgnoreCase("PB-ACE-19").orElseThrow();
+        // Verify PB3-01 has ONLY its 61 items (2,397 pcs), NOT everything
+        Shelf ace01 = shelfRepo.findByCodeIgnoreCase("PB3-01").orElseThrow();
+        Shelf ace02 = shelfRepo.findByCodeIgnoreCase("PB3-02").orElseThrow();
+        Shelf ace08 = shelfRepo.findByCodeIgnoreCase("PB3-08").orElseThrow();
+        Shelf ace09 = shelfRepo.findByCodeIgnoreCase("PB3-09").orElseThrow();
+        Shelf ace19 = shelfRepo.findByCodeIgnoreCase("PB3-19").orElseThrow();
 
         assertEquals(61L, countRepo.countBySessionIdAndShelfId(session.getId(), ace01.getId()));
         assertEquals(2397.0, countRepo.sumQuantityBySessionAndShelf(session.getId(), ace01.getId()), 0.01);
@@ -103,9 +103,9 @@ public class MultiSheetImportVerificationTest {
         assertTrue(nn80Recs.stream().anyMatch(r -> "G".equals(r.getSection()) && r.getQuantity() == 13.0));
 
         // Verify all 16 affected shelves are marked COMPLETADO (green)
-        for (String code : Arrays.asList("PB-ACE-01", "PB-ACE-02", "PB-ACE-03", "PB-ACE-04", "PB-ACE-05",
-                "PB-ACE-06", "PB-ACE-07", "PB-ACE-08", "PB-ACE-09", "PB-ACE-10", "PB-ACE-11",
-                "PB-ACE-15", "PB-ACE-16", "PB-ACE-17", "PB-ACE-18", "PB-ACE-19")) {
+        for (String code : Arrays.asList("PB3-01", "PB3-02", "PB3-03", "PB3-04", "PB3-05",
+                "PB3-06", "PB3-07", "PB3-08", "PB3-09", "PB3-10", "PB3-11",
+                "PB3-15", "PB3-16", "PB3-17", "PB3-18", "PB3-19")) {
             Shelf sh = shelfRepo.findByCodeIgnoreCase(code).orElseThrow();
             ShelfAssignment sa = assignmentRepo.findBySessionIdAndShelfId(session.getId(), sh.getId()).orElseThrow();
             assertEquals(ShelfAssignment.Status.COMPLETADO, sa.getStatus(), "Shelf " + code + " must be COMPLETADO (green)");
@@ -174,5 +174,34 @@ public class MultiSheetImportVerificationTest {
         assertTrue(supRec.isPresent());
         assertEquals("S", supRec.get().getSection());
         assertEquals("PB3-1S-1", supRec.get().getNotes());
+
+        // SCENARIO 6: YPC Estante 15 (PB2-15A-1 / Pasillo 2 / targetFamily=ypc) NEVER goes to Acero PB3-15
+        Shelf pb3_15 = shelfRepo.findByCodeIgnoreCase("PB3-15").orElseThrow();
+        Shelf ypc15 = shelfRepo.findByCodeIgnoreCase("PB-YPC-15").orElseThrow();
+        long ace15Before = countRepo.countBySessionIdAndShelfId(session.getId(), pb3_15.getId());
+
+        String csvYpc15 = "CLAVE,DESCRIPCION,PLANTA,PASILLO,ESTANTE,NIVEL,POSICION,UBICACION,EXISTENCIAS\n"
+                + "MF2300-M02,VALVULA YPC,PB,2,15,A,1,PB2-15A-1,14\n";
+        MockMultipartFile ypcFile1 = new MockMultipartFile(
+            "file", "ypc_estante_15.csv", "text/csv", csvYpc15.getBytes(StandardCharsets.UTF_8)
+        );
+        Map<String, Object> resYpc = countService.importExcelCounts(
+            session.getId(), null, "SMART_MERGE", true, "", ypcFile1, user
+        );
+        Optional<CountRecord> ypcRec = countRepo.findBySessionIdAndShelfIdAndCapturedCodeIgnoreCase(session.getId(), ypc15.getId(), "MF2300-M02");
+        assertTrue(ypcRec.isPresent(), "MF2300-M02 with PB2-15A-1 must land in PB-YPC-15");
+        assertEquals(14.0, ypcRec.get().getQuantity(), 0.01);
+        assertEquals(ace15Before, countRepo.countBySessionIdAndShelfId(session.getId(), pb3_15.getId()), "PB3-15 (Acero) must NOT receive YPC items");
+        assertEquals("YPC", resYpc.get("effectiveFamily"));
+
+        // Direct shelfId import to PB-YPC-15 with generic CSV (no Estante column) also stays in PB-YPC-15
+        String csvYpcDirect = "CLAVE,NIVEL,CANTIDAD\nYPC-DIRECT-01,B,9\n";
+        MockMultipartFile ypcFile2 = new MockMultipartFile(
+            "file", "conteo.csv", "text/csv", csvYpcDirect.getBytes(StandardCharsets.UTF_8)
+        );
+        countService.importExcelCounts(session.getId(), ypc15.getId(), "SMART_MERGE", true, "ypc", ypcFile2, user);
+        Optional<CountRecord> ypcDirectRec = countRepo.findBySessionIdAndShelfIdAndCapturedCodeIgnoreCase(session.getId(), ypc15.getId(), "YPC-DIRECT-01");
+        assertTrue(ypcDirectRec.isPresent(), "Direct shelf import into PB-YPC-15 must stay in PB-YPC-15 even without Estante column");
+        assertEquals(9.0, ypcDirectRec.get().getQuantity(), 0.01);
     }
 }

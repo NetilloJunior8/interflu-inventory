@@ -663,7 +663,6 @@ public class CountService {
         shelfCache.put(String.format("PB-ACE-%02d", num), s);
         shelfCache.put(String.format("PB-ACE-%d", num), s);
         shelfCache.put(String.format("PB3-%d", num), s);
-        shelfCache.put(String.valueOf(num), s);
         return s;
     }
 
@@ -691,13 +690,55 @@ public class CountService {
         return getOrCreateShelf(canonicalCode, "Planta Alta PVC", "PVC Pasillo " + num, "Planta Alta", 300.0, 150.0 + ((num - 1) * 45.0), 25.0, 54.0, session, shelfCache);
     }
 
-    private SheetHeaderResolution resolveSheetHeaderShelf(String rawSheetName, Shelf userSelectedDefaultShelf, InventorySession session, Map<String, Shelf> shelfCache) {
+    private String normalizeFamilyHint(String raw) {
+        if (raw == null || raw.isBlank()) return "";
+        String up = raw.trim().toUpperCase();
+        if (up.contains("YPC") || up.contains("PB-YPC")) return "YPC";
+        if (up.contains("KUR")) return "KURIYAMA";
+        if (up.contains("CHID") || up.contains("HIDR") || up.contains("CONEX")) return "CHID";
+        if (up.contains("DIX")) return "DIXON";
+        if (up.contains("CYB")) return "CYBER";
+        if (up.contains("UNI")) return "UNIVERSAL";
+        if (up.contains("INOX")) return "INOX";
+        if (up.contains("PVC")) return "PVC";
+        if (up.contains("ACE") || up.contains("PB3")) return "ACERO";
+        return "";
+    }
+
+    private String inferEffectiveFamily(String targetFamily, Shelf userSelectedDefaultShelf, String fileName) {
+        if (userSelectedDefaultShelf != null) {
+            String zoneStr = userSelectedDefaultShelf.getZone() != null ? userSelectedDefaultShelf.getZone() : "";
+            String shFam = normalizeFamilyHint(userSelectedDefaultShelf.getCode() + " " + zoneStr);
+            if (!shFam.isEmpty()) return shFam;
+        }
+        String tf = normalizeFamilyHint(targetFamily);
+        if (!tf.isEmpty()) return tf;
+        return normalizeFamilyHint(fileName);
+    }
+
+    private Shelf resolveShelfByFamilyAndNumber(String family, String subSide, int num, InventorySession session, Map<String, Shelf> shelfCache) {
+        if (num <= 0 || family == null || family.isBlank()) return null;
+        return switch (family) {
+            case "YPC" -> getOrCreateYpcShelf(num, session, shelfCache);
+            case "KURIYAMA" -> getOrCreateKuriyamaShelf(subSide != null && !subSide.isBlank() ? subSide : "A", num, session, shelfCache);
+            case "CHID" -> getOrCreateChidShelf(subSide != null && !subSide.isBlank() ? subSide : "A", num, session, shelfCache);
+            case "DIXON" -> getOrCreateShelf(String.format("PB-DIX-%02d", num), "Dixon", "Dixon " + num, "Planta Baja", null, null, null, null, session, shelfCache);
+            case "CYBER" -> getOrCreateShelf(String.format("PB-CYB-%02d", num), "Cybermatics", "Cybermatics " + num, "Planta Baja", null, null, null, null, session, shelfCache);
+            case "UNIVERSAL" -> getOrCreateShelf(String.format("PB-UNI-%02d", num), "Universal", "Universal " + num, "Planta Baja", null, null, null, null, session, shelfCache);
+            case "INOX" -> getOrCreateShelf("PB-INOX-01", "Parker Inox", "Parker Inox", "Planta Baja", null, null, null, null, session, shelfCache);
+            case "PVC" -> getOrCreatePvcShelf(num, session, shelfCache);
+            case "ACERO" -> getOrCreateAceroShelf(num, session, shelfCache);
+            default -> null;
+        };
+    }
+
+    private SheetHeaderResolution resolveSheetHeaderShelf(String rawSheetName, Shelf userSelectedDefaultShelf, String familyHint, InventorySession session, Map<String, Shelf> shelfCache) {
         if (rawSheetName == null || rawSheetName.isBlank()) {
             return new SheetHeaderResolution(userSelectedDefaultShelf, false);
         }
         String sName = rawSheetName.trim().toUpperCase();
 
-        // 1. Direct shelf code in sheet name (e.g. "PB-ACE-02", "PB-KUR-A01", "PA-PVC-01")
+        // 1. Direct shelf code in sheet name (e.g. "PB-ACE-02", "PB-YPC-15", "PB-KUR-A01", "PA-PVC-01")
         Shelf direct = shelfCache.get(sName);
         if (direct != null) {
             return new SheetHeaderResolution(direct, true);
@@ -719,21 +760,22 @@ public class CountService {
             return new SheetHeaderResolution(getOrCreateChidShelf(col, num, session, shelfCache), true);
         }
 
-        // 4. Explicit Acero pattern in sheet name ("ACEROS 5", "PB-ACE-5", "ACE-05", "PB3-05")
+        // 4. Explicit YPC pattern in sheet name ("YPC 5", "PB-YPC-15", "PB2-15", "PASILLO 2 ESTANTE 15")
+        java.util.regex.Matcher mYpc = java.util.regex.Pattern.compile("(?:PB-)?YPC-?(?:ESTANTE|ANAQUEL)?\\s*(\\d+)|PB-?2-?(?:ESTANTE|ANAQUEL)?0*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
+        if (mYpc.find()) {
+            try {
+                String nStr = mYpc.group(1) != null ? mYpc.group(1) : mYpc.group(2);
+                int num = Integer.parseInt(nStr);
+                return new SheetHeaderResolution(getOrCreateYpcShelf(num, session, shelfCache), true);
+            } catch (Exception ignored) {}
+        }
+
+        // 5. Explicit Acero pattern in sheet name ("ACEROS 5", "PB-ACE-5", "ACE-05", "PB3-05")
         java.util.regex.Matcher mAce = java.util.regex.Pattern.compile("(?:ACEROS?|PB-ACE-|ACE-|PB-?3-?)\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
         if (mAce.find()) {
             try {
                 int num = Integer.parseInt(mAce.group(1));
                 return new SheetHeaderResolution(getOrCreateAceroShelf(num, session, shelfCache), true);
-            } catch (Exception ignored) {}
-        }
-
-        // 5. Explicit YPC pattern in sheet name ("YPC 5", "PB-YPC-05")
-        java.util.regex.Matcher mYpc = java.util.regex.Pattern.compile("(?:PB-)?YPC-?\\s*(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
-        if (mYpc.find()) {
-            try {
-                int num = Integer.parseInt(mYpc.group(1));
-                return new SheetHeaderResolution(getOrCreateYpcShelf(num, session, shelfCache), true);
             } catch (Exception ignored) {}
         }
 
@@ -770,21 +812,24 @@ public class CountService {
             return new SheetHeaderResolution(getOrCreateShelf(code, "Reserva Acero", "Reserva Acero " + num, "Planta Alta", null, null, null, null, session, shelfCache), true);
         }
 
-        // 8. Numbered sheet ("1", "2", ..., "19", "ANAQUEL 3", "ESTANTE 4")
+        // 8. Numbered sheet ("1", "2", ..., "21", "ANAQUEL 15", "ESTANTE 15")
         java.util.regex.Matcher mNum = java.util.regex.Pattern.compile("^(?:(?:ANAQUEL|ESTANTE)\\s*)?0*(\\d{1,2})$", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(sName);
         if (mNum.find()) {
             try {
                 int num = Integer.parseInt(mNum.group(1));
                 String defCode = userSelectedDefaultShelf != null ? userSelectedDefaultShelf.getCode().toUpperCase() : "";
-                if (defCode.startsWith("PB-YPC-")) {
-                    return new SheetHeaderResolution(getOrCreateYpcShelf(num, session, shelfCache), true);
-                } else if (defCode.startsWith("PB-CHID-") || defCode.startsWith("PB-CON-")) {
-                    return new SheetHeaderResolution(getOrCreateChidShelf("A", num, session, shelfCache), true);
-                } else if (defCode.startsWith("PB-KUR-")) {
-                    char side = defCode.contains("-B") ? 'B' : 'A';
-                    return new SheetHeaderResolution(getOrCreateKuriyamaShelf(String.valueOf(side), num, session, shelfCache), true);
-                } else if (defCode.startsWith("PA-PVC-")) {
-                    return new SheetHeaderResolution(getOrCreatePvcShelf(num, session, shelfCache), true);
+                String defSubSide = defCode.contains("-B") ? "B" : (defCode.contains("-W") ? "W" : "A");
+
+                // Prioritize selected shelf's family first, then explicit familyHint (e.g. "YPC")
+                String resolvedFam = normalizeFamilyHint(defCode);
+                if (resolvedFam.isEmpty() && familyHint != null && !familyHint.isBlank()) {
+                    resolvedFam = normalizeFamilyHint(familyHint);
+                }
+                if (!resolvedFam.isEmpty()) {
+                    Shelf famShelf = resolveShelfByFamilyAndNumber(resolvedFam, defSubSide, num, session, shelfCache);
+                    if (famShelf != null) {
+                        return new SheetHeaderResolution(famShelf, true);
+                    }
                 } else if (num >= 1 && num <= 19) {
                     return new SheetHeaderResolution(getOrCreateAceroShelf(num, session, shelfCache), true);
                 }
@@ -795,14 +840,18 @@ public class CountService {
     }
 
     private SheetHeaderResolution resolveSheetHeaderShelf(String rawSheetName, Shelf userSelectedDefaultShelf, Map<String, Shelf> shelfCache) {
-        return resolveSheetHeaderShelf(rawSheetName, userSelectedDefaultShelf, null, shelfCache);
+        return resolveSheetHeaderShelf(rawSheetName, userSelectedDefaultShelf, "", null, shelfCache);
     }
 
     public Shelf resolveExplicitShelf(ImportedItem item, Shelf userSelectedDefaultShelf, Map<String, Shelf> shelfCache) {
-        return resolveExplicitShelf(item, userSelectedDefaultShelf, null, shelfCache);
+        return resolveExplicitShelf(item, userSelectedDefaultShelf, "", null, shelfCache);
     }
 
     public Shelf resolveExplicitShelf(ImportedItem item, Shelf userSelectedDefaultShelf, InventorySession session, Map<String, Shelf> shelfCache) {
+        return resolveExplicitShelf(item, userSelectedDefaultShelf, "", session, shelfCache);
+    }
+
+    public Shelf resolveExplicitShelf(ImportedItem item, Shelf userSelectedDefaultShelf, String familyHint, InventorySession session, Map<String, Shelf> shelfCache) {
         List<String> candidates = new ArrayList<>();
         if (item.shelfName != null && !item.shelfName.isBlank()) {
             candidates.add(item.shelfName.trim().toUpperCase());
@@ -811,12 +860,21 @@ public class CountService {
             candidates.add(item.locationCode.trim().toUpperCase());
         }
 
+        String normalizedFamilyHint = normalizeFamilyHint(familyHint);
+
         for (String candidateCode : candidates) {
-            // Direct exact shelf code (PB-ACE-02, PB-KUR-A01, PA-P1-03, etc.)
+            // Direct exact shelf code (PB-ACE-02, PB-YPC-15, PB-KUR-A01, PA-P1-03, etc.)
             Shelf direct = shelfCache.get(candidateCode);
             if (direct != null) return direct;
 
-            // Pattern: PB3-01, PB3-1, PB3-1A-1, PB-3-01 -> PB-ACE-01..19
+            // YPC: PB-YPC-15, YPC-15, YPC 15
+            java.util.regex.Matcher mYpc = java.util.regex.Pattern.compile("(?i)^(?:PB-)?YPC-?0*(\\d+)").matcher(candidateCode);
+            if (mYpc.find()) {
+                int num = Integer.parseInt(mYpc.group(1));
+                return getOrCreateYpcShelf(num, session, shelfCache);
+            }
+
+            // Pattern: PB3-01, PB3-1, PB3-1A-1, PB-3-01 -> PB3-01..19 (Acero)
             java.util.regex.Matcher mPb3 = java.util.regex.Pattern.compile("(?i)^PB-?3-?0*(\\d+)").matcher(candidateCode);
             if (mPb3.find()) {
                 int num = Integer.parseInt(mPb3.group(1));
@@ -830,7 +888,7 @@ public class CountService {
                 return getOrCreateAceroShelf(num, session, shelfCache);
             }
 
-            // Kuriyama: PB-KUR-A01, KUR-A1, KURIYAMA A-1, PB4-A1...
+            // Kuriyama: PB-KUR-A01, KUR-A1, KURIYAMA A-1
             java.util.regex.Matcher mKur = java.util.regex.Pattern.compile("(?i)^(?:PB-)?(?:KUR|KURIYAMA)-?([AB])-?0*(\\d+)").matcher(candidateCode);
             if (mKur.find()) {
                 String side = mKur.group(1).toUpperCase();
@@ -844,13 +902,6 @@ public class CountService {
                 String col = mChid.group(1).toUpperCase();
                 int num = Integer.parseInt(mChid.group(2));
                 return getOrCreateChidShelf(col, num, session, shelfCache);
-            }
-
-            // YPC: PB-YPC-01, YPC-1
-            java.util.regex.Matcher mYpc = java.util.regex.Pattern.compile("(?i)^(?:PB-)?YPC-?0*(\\d+)").matcher(candidateCode);
-            if (mYpc.find()) {
-                int num = Integer.parseInt(mYpc.group(1));
-                return getOrCreateYpcShelf(num, session, shelfCache);
             }
 
             // Cybermatics, Dixon, Universal, Parker Inox
@@ -889,16 +940,20 @@ public class CountService {
                 return getOrCreateShelf(code, "Reserva Acero", "Reserva Acero " + num, "Planta Alta", null, null, null, null, session, shelfCache);
             }
 
-            // Pattern: PB-01, PB-1, PB01 -> PB-ACE-01..19
+            // Pattern: PB-01, PB-1, PB01 -> respects familyHint first, else Acero 1..19
             java.util.regex.Matcher mPbDirect = java.util.regex.Pattern.compile("(?i)^PB-?0*(\\d+)$").matcher(candidateCode);
             if (mPbDirect.find()) {
                 int num = Integer.parseInt(mPbDirect.group(1));
+                if (!normalizedFamilyHint.isEmpty()) {
+                    Shelf famShelf = resolveShelfByFamilyAndNumber(normalizedFamilyHint, "A", num, session, shelfCache);
+                    if (famShelf != null) return famShelf;
+                }
                 if (num >= 1 && num <= 19) {
                     return getOrCreateAceroShelf(num, session, shelfCache);
                 }
             }
 
-            // Location code pattern: PB3-1A-1, PB4-A1A-1, PB5-2A-1, PB1-A1A-1
+            // Location code pattern: PB2-15A-1 (YPC!), PB3-15A-1 (Acero), PB4-A1A-1 (Kuriyama), PB5-2A-1 (YPC), PB1-A1A-1 (CHID)
             java.util.regex.Matcher mLoc = java.util.regex.Pattern.compile("(?i)^(P[BA])(\\d+)-([A-Z])?0*(\\d+)").matcher(candidateCode);
             if (mLoc.find()) {
                 String plant = mLoc.group(1).toUpperCase();
@@ -906,14 +961,14 @@ public class CountService {
                 String sub = mLoc.group(3) != null ? mLoc.group(3).toUpperCase() : "";
                 int num = Integer.parseInt(mLoc.group(4));
                 if ("PB".equals(plant)) {
-                    if ("3".equals(aisle) && num >= 1 && num <= 19) {
+                    if ("2".equals(aisle) || "5".equals(aisle)) { // Pasillo 2 / 5 -> YPC
+                        return getOrCreateYpcShelf(num, session, shelfCache);
+                    } else if ("3".equals(aisle) && num >= 1 && num <= 19) { // Pasillo 3 -> Acero
                         return getOrCreateAceroShelf(num, session, shelfCache);
-                    } else if ("4".equals(aisle)) { // Kuriyama
+                    } else if ("4".equals(aisle)) { // Pasillo 4 -> Kuriyama
                         String side = !sub.isEmpty() ? sub : "A";
                         return getOrCreateKuriyamaShelf(side, num, session, shelfCache);
-                    } else if ("5".equals(aisle)) { // YPC
-                        return getOrCreateYpcShelf(num, session, shelfCache);
-                    } else if ("1".equals(aisle)) { // Conexiones Hidráulicas
+                    } else if ("1".equals(aisle)) { // Pasillo 1 -> Conexiones Hidráulicas
                         String side = !sub.isEmpty() ? sub : "A";
                         return getOrCreateChidShelf(side, num, session, shelfCache);
                     }
@@ -922,26 +977,52 @@ public class CountService {
                 }
             }
 
-            // Pure number / Estante / Anaquel: e.g. "1", "2", "19", "1.0", "ESTANTE 2", "ANAQUEL 3"
+            // Pure number / Estante / Anaquel: e.g. "15", "ESTANTE 15", "ANAQUEL 15"
             java.util.regex.Matcher mNum = java.util.regex.Pattern.compile("^(?:(?:ESTANTE|ANAQUEL|RACK|SHELF)\\s*)?0*(\\d+)(?:\\.0+)?$", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(candidateCode);
             if (mNum.find()) {
                 int num = Integer.parseInt(mNum.group(1));
-                String refCode = item.resolvedShelf != null ? item.resolvedShelf.getCode().toUpperCase()
-                        : (userSelectedDefaultShelf != null ? userSelectedDefaultShelf.getCode().toUpperCase() : "");
-                if ("3".equals(item.aisle) || (item.locationCode != null && item.locationCode.toUpperCase().startsWith("PB3"))
-                        || refCode.startsWith("PB-ACE") || refCode.startsWith("PB3") || refCode.contains("ACERO")) {
-                    return getOrCreateAceroShelf(num, session, shelfCache);
-                } else if ("1".equals(item.aisle) || refCode.startsWith("PB-CHID") || refCode.startsWith("PB-CON")) {
-                    char side = refCode.contains("-B") ? 'B' : 'A';
-                    return getOrCreateChidShelf(String.valueOf(side), num, session, shelfCache);
-                } else if ("4".equals(item.aisle) || refCode.startsWith("PB-KUR")) {
-                    char side = refCode.contains("-B") ? 'B' : 'A';
-                    return getOrCreateKuriyamaShelf(String.valueOf(side), num, session, shelfCache);
-                } else if ("5".equals(item.aisle) || refCode.startsWith("PB-YPC")) {
+                String aisleUp = item.aisle != null ? item.aisle.trim().toUpperCase() : "";
+                String locUp = item.locationCode != null ? item.locationCode.trim().toUpperCase() : "";
+                String userDefCode = userSelectedDefaultShelf != null ? userSelectedDefaultShelf.getCode().toUpperCase() : "";
+                String sheetResCode = item.resolvedShelf != null ? item.resolvedShelf.getCode().toUpperCase() : "";
+
+                // 1. Explicit aisle column or location code in row takes priority
+                if ("2".equals(aisleUp) || "5".equals(aisleUp) || aisleUp.contains("YPC") || locUp.startsWith("PB2") || locUp.startsWith("PB5") || locUp.contains("YPC")) {
                     return getOrCreateYpcShelf(num, session, shelfCache);
-                } else if (refCode.startsWith("PA-PVC")) {
-                    return getOrCreatePvcShelf(num, session, shelfCache);
-                } else if (num >= 1 && num <= 19) {
+                } else if ("3".equals(aisleUp) || aisleUp.contains("ACE") || locUp.startsWith("PB3") || locUp.contains("ACE")) {
+                    return getOrCreateAceroShelf(num, session, shelfCache);
+                } else if ("4".equals(aisleUp) || aisleUp.contains("KUR") || locUp.startsWith("PB4") || locUp.contains("KUR")) {
+                    char side = (locUp.contains("-B") || userDefCode.contains("-B") || sheetResCode.contains("-B")) ? 'B' : 'A';
+                    return getOrCreateKuriyamaShelf(String.valueOf(side), num, session, shelfCache);
+                } else if ("1".equals(aisleUp) || aisleUp.contains("CHID") || aisleUp.contains("HID") || locUp.startsWith("PB1") || locUp.contains("CHID")) {
+                    char side = (locUp.contains("-B") || userDefCode.contains("-B") || sheetResCode.contains("-B")) ? 'B' : 'A';
+                    return getOrCreateChidShelf(String.valueOf(side), num, session, shelfCache);
+                }
+
+                // 2. Explicit shelf selected by user in UI (e.g. PB-YPC-15)
+                if (!userDefCode.isEmpty()) {
+                    String defFam = normalizeFamilyHint(userDefCode);
+                    String defSub = userDefCode.contains("-B") ? "B" : (userDefCode.contains("-W") ? "W" : "A");
+                    Shelf s = resolveShelfByFamilyAndNumber(defFam, defSub, num, session, shelfCache);
+                    if (s != null) return s;
+                }
+
+                // 3. Explicit family hint from UI or filename (e.g. "YPC")
+                if (!normalizedFamilyHint.isEmpty()) {
+                    Shelf s = resolveShelfByFamilyAndNumber(normalizedFamilyHint, "A", num, session, shelfCache);
+                    if (s != null) return s;
+                }
+
+                // 4. Resolved sheet shelf
+                if (!sheetResCode.isEmpty()) {
+                    String shFam = normalizeFamilyHint(sheetResCode);
+                    String shSub = sheetResCode.contains("-B") ? "B" : (sheetResCode.contains("-W") ? "W" : "A");
+                    Shelf s = resolveShelfByFamilyAndNumber(shFam, shSub, num, session, shelfCache);
+                    if (s != null) return s;
+                }
+
+                // 5. Safe fallback for unprefixed 1..19 sheets only when no other family is active
+                if (num >= 1 && num <= 19) {
                     return getOrCreateAceroShelf(num, session, shelfCache);
                 }
             }
@@ -952,11 +1033,15 @@ public class CountService {
             return item.resolvedShelf;
         }
 
-        // Final fallback: if aisle is 3 and we have a numeric hint anywhere
-        if ("3".equals(item.aisle) && item.shelfName != null && item.shelfName.matches("^0*(\\d+)(?:\\.0+)?$")) {
+        // Final aisle fallback
+        if (item.shelfName != null && item.shelfName.matches("^0*(\\d+)(?:\\.0+)?$")) {
             try {
                 int num = Integer.parseInt(item.shelfName.replaceAll("\\.0+$", ""));
-                return getOrCreateAceroShelf(num, session, shelfCache);
+                if ("2".equals(item.aisle) || "5".equals(item.aisle)) {
+                    return getOrCreateYpcShelf(num, session, shelfCache);
+                } else if ("3".equals(item.aisle)) {
+                    return getOrCreateAceroShelf(num, session, shelfCache);
+                }
             } catch (Exception ignored) {}
         }
 
@@ -1015,11 +1100,40 @@ public class CountService {
         Shelf filenameInferredShelf = null;
         if (userSelectedDefaultShelf == null && file.getOriginalFilename() != null) {
             String cleanName = file.getOriginalFilename().toUpperCase();
-            java.util.regex.Matcher m = java.util.regex.Pattern.compile("ACEROS?\\s*(\\d+)|PB-ACE-(\\d+)|ACE-(\\d+)", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(cleanName);
-            if (m.find()) {
-                String numStr = m.group(1) != null ? m.group(1) : (m.group(2) != null ? m.group(2) : m.group(3));
+            java.util.regex.Matcher mYpcFile = java.util.regex.Pattern.compile("(?:PB-)?YPC[\\s\\-_]*(?:ESTANTE|ANAQUEL)?[\\s\\-_]*0*(\\d+)").matcher(cleanName);
+            java.util.regex.Matcher mKurFile = java.util.regex.Pattern.compile("(?:PB-)?KUR(?:IYAMA)?[\\s\\-_]*([AB])[\\s\\-_]*0*(\\d+)").matcher(cleanName);
+            java.util.regex.Matcher mChidFile = java.util.regex.Pattern.compile("(?:PB-)?(?:CHID|HIDRAULIC[AO]S?)[\\s\\-_]*([ABW])[\\s\\-_]*0*(\\d+)").matcher(cleanName);
+            java.util.regex.Matcher mDixFile = java.util.regex.Pattern.compile("(?:PB-)?DIX(?:ON)?[\\s\\-_]*0*(\\d+)").matcher(cleanName);
+            java.util.regex.Matcher mCybFile = java.util.regex.Pattern.compile("(?:PB-)?CYB(?:ERMATICS)?[\\s\\-_]*0*(\\d+)").matcher(cleanName);
+            java.util.regex.Matcher mUniFile = java.util.regex.Pattern.compile("(?:PB-)?UNI(?:VERSAL)?[\\s\\-_]*0*(\\d+)").matcher(cleanName);
+            java.util.regex.Matcher mPvcFile = java.util.regex.Pattern.compile("(?:PA-)?PVC[\\s\\-_]*0*(\\d+)").matcher(cleanName);
+            java.util.regex.Matcher mAceFile = java.util.regex.Pattern.compile("ACEROS?[\\s\\-_]*(\\d+)|PB-?ACE-?(\\d+)|ACE-?(\\d+)|PB-?3-?(\\d+)").matcher(cleanName);
+            if (mYpcFile.find()) {
+                int num = Integer.parseInt(mYpcFile.group(1));
+                filenameInferredShelf = shelfCache.get(String.format("PB-YPC-%02d", num));
+            } else if (mKurFile.find()) {
+                int num = Integer.parseInt(mKurFile.group(2));
+                filenameInferredShelf = shelfCache.get(String.format("PB-KUR-%s%02d", mKurFile.group(1), num));
+            } else if (mChidFile.find()) {
+                int num = Integer.parseInt(mChidFile.group(2));
+                filenameInferredShelf = shelfCache.get(String.format("PB-CHID-%s%02d", mChidFile.group(1), num));
+            } else if (mDixFile.find()) {
+                int num = Integer.parseInt(mDixFile.group(1));
+                filenameInferredShelf = shelfCache.get(String.format("PB-DIX-%02d", num));
+            } else if (mCybFile.find()) {
+                int num = Integer.parseInt(mCybFile.group(1));
+                filenameInferredShelf = shelfCache.get(String.format("PB-CYB-%02d", num));
+            } else if (mUniFile.find()) {
+                int num = Integer.parseInt(mUniFile.group(1));
+                filenameInferredShelf = shelfCache.get(String.format("PB-UNI-%02d", num));
+            } else if (mPvcFile.find()) {
+                int num = Integer.parseInt(mPvcFile.group(1));
+                filenameInferredShelf = shelfCache.get(String.format("PA-PVC-%02d", num));
+            } else if (mAceFile.find()) {
+                String numStr = mAceFile.group(1) != null ? mAceFile.group(1) : (mAceFile.group(2) != null ? mAceFile.group(2) : (mAceFile.group(3) != null ? mAceFile.group(3) : mAceFile.group(4)));
                 int num = Integer.parseInt(numStr);
-                filenameInferredShelf = shelfCache.get(String.format("PB-ACE-%02d", num));
+                filenameInferredShelf = shelfCache.get(String.format("PB3-%02d", num));
+                if (filenameInferredShelf == null) filenameInferredShelf = shelfCache.get(String.format("PB-ACE-%02d", num));
             }
         }
         Shelf pendingShelf = shelfCache.get("PB-PEN-01");
@@ -1031,6 +1145,7 @@ public class CountService {
         }
 
         Shelf effectiveDefaultShelf = userSelectedDefaultShelf != null ? userSelectedDefaultShelf : filenameInferredShelf;
+        String effectiveFamily = inferEffectiveFamily(targetFamily, effectiveDefaultShelf, file.getOriginalFilename());
 
         List<ImportedItem> itemsToProcess = new ArrayList<>();
 
@@ -1084,7 +1199,7 @@ public class CountService {
                 }
 
                 for (Sheet sheet : sheetsToRead) {
-                    SheetHeaderResolution sheetRes = resolveSheetHeaderShelf(sheet.getSheetName(), effectiveDefaultShelf, session, shelfCache);
+                    SheetHeaderResolution sheetRes = resolveSheetHeaderShelf(sheet.getSheetName(), effectiveDefaultShelf, effectiveFamily, session, shelfCache);
 
                     List<String[]> sheetRows = new ArrayList<>();
                     for (Row row : sheet) {
@@ -1174,7 +1289,10 @@ public class CountService {
 
         for (ImportedItem item : itemsToProcess) {
             rowCountPerCodeInFile.merge(item.code, 1, Integer::sum);
-            Shelf s = resolveExplicitShelf(item, effectiveDefaultShelf, session, shelfCache);
+            Shelf s = resolveExplicitShelf(item, effectiveDefaultShelf, effectiveFamily, session, shelfCache);
+            if (s == null && userSelectedDefaultShelf != null && !"WEEKLY_UPDATE".equals(mode)) {
+                s = userSelectedDefaultShelf;
+            }
             if (s != null) {
                 explicitShelfMap.put(item, s);
                 explicitShelfIds.add(s.getId());
@@ -1476,12 +1594,27 @@ public class CountService {
                 assignmentMap.put(finalShelf.getId(), sa);
             }
 
+            String targetZone = (finalShelf.getZone() != null && !finalShelf.getZone().isBlank()) ? finalShelf.getZone() : "GENERAL";
+            String targetLocRef = (item.locationCode != null && !item.locationCode.isBlank()) ? item.locationCode : finalShelf.getCode();
             Product product = productCache.get(code);
             if (product == null) {
                 String desc = (item.description != null && !item.description.isBlank()) ? item.description : parseIndustrialDescription(code);
-                product = new Product(code, desc, "PZA", "GENERAL", finalShelf.getCode(), 0.0);
+                product = new Product(code, desc, "PZA", targetZone, targetLocRef, 0.0);
                 productCache.put(code, product);
                 newProductsToSave.add(product);
+            } else {
+                boolean changed = false;
+                if (!targetZone.equalsIgnoreCase("GENERAL") && !targetZone.equalsIgnoreCase(product.getLine())) {
+                    product.setLine(targetZone);
+                    changed = true;
+                }
+                if (item.locationCode != null && !item.locationCode.isBlank() && !item.locationCode.equalsIgnoreCase(product.getLocationSaE())) {
+                    product.setLocationSaE(item.locationCode);
+                    changed = true;
+                }
+                if (changed) {
+                    newProductsToSave.add(product);
+                }
             }
 
             // Find an UNCLAIMED preexisting record on finalShelf first (exact section match preferred!)
@@ -1537,10 +1670,20 @@ public class CountService {
                 double newQty = item.hasExplicitQuantity ? qty : 0.0;
                 rec.setPreviousQuantity(oldQty);
                 rec.setQuantity(newQty);
-                if (item.description != null && !item.description.isBlank() && rec.getProduct() != null) {
-                    rec.getProduct().setDescription(item.description);
-                    productCache.put(code, rec.getProduct());
-                    newProductsToSave.add(rec.getProduct());
+                if (rec.getProduct() != null) {
+                    boolean pMod = false;
+                    if (item.description != null && !item.description.isBlank()) {
+                        rec.getProduct().setDescription(item.description);
+                        pMod = true;
+                    }
+                    if (!targetZone.equalsIgnoreCase("GENERAL")) {
+                        rec.getProduct().setLine(targetZone);
+                        pMod = true;
+                    }
+                    if (pMod) {
+                        productCache.put(code, rec.getProduct());
+                        newProductsToSave.add(rec.getProduct());
+                    }
                 }
                 rec.setSection(normalizedSec);
                 if (item.locationCode != null && !item.locationCode.isBlank()) {
@@ -1638,15 +1781,24 @@ public class CountService {
         if (sessionTotalPieces == null) sessionTotalPieces = 0.0;
 
         List<String> affectedCodes = new ArrayList<>();
+        List<Map<String, String>> affectedDetails = new ArrayList<>();
         for (Long sId : affectedShelves) {
-            shelfRepo.findById(sId).ifPresent(s -> affectedCodes.add(s.getCode()));
+            shelfRepo.findById(sId).ifPresent(s -> {
+                affectedCodes.add(s.getCode());
+                Map<String, String> d = new LinkedHashMap<>();
+                d.put("code", s.getCode());
+                d.put("zone", s.getZone() != null ? s.getZone() : "");
+                d.put("plant", s.getPlant() != null ? s.getPlant() : "Planta Baja");
+                d.put("description", s.getDescription() != null ? s.getDescription() : s.getCode());
+                affectedDetails.add(d);
+            });
         }
 
         auditService.log(session.getId(), session.getFolio(), user.getUsername(), user.getFullName(),
                 "IMPORTAR_CONTEOS_EXCEL", "CountRecord", null,
                 mode, String.valueOf(importedCount),
-                String.format("Importación (%s): %d partidas (%d nuevas, %d actualizadas, %d con nivel S/A-J, %.2f pzas físicas, %.2f pzas pendientes, %d obsoletas) en %d anaqueles desde %s",
-                        mode, importedCount, addedRecords, updatedRecords, withSectionCount, totalPiecesImported, totalPendingPiecesImported, obsoleteFilteredCount, affectedShelves.size(), file.getOriginalFilename()));
+                String.format("Importación (%s): %d partidas (%d nuevas, %d actualizadas, %d con nivel S/A-J, %.2f pzas físicas, %.2f pzas pendientes, %d obsoletas) en %d anaqueles [%s] desde %s",
+                        mode, importedCount, addedRecords, updatedRecords, withSectionCount, totalPiecesImported, totalPendingPiecesImported, obsoleteFilteredCount, affectedShelves.size(), String.join(",", affectedCodes), file.getOriginalFilename()));
 
         Map<String, Object> resp = new HashMap<>();
         resp.put("importedRecords", importedCount);
@@ -1661,6 +1813,8 @@ public class CountService {
         resp.put("sessionTotalPieces", sessionTotalPieces);
         resp.put("shelvesUpdated", affectedShelves.size());
         resp.put("affectedShelves", affectedCodes);
+        resp.put("affectedShelvesDetails", affectedDetails);
+        resp.put("effectiveFamily", effectiveFamily);
         resp.put("obsoleteFiltered", obsoleteFilteredCount);
         resp.put("importMode", mode);
         return resp;

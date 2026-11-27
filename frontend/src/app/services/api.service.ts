@@ -414,6 +414,13 @@ export class ApiService {
     sessionTotalPieces?: number;
     shelvesUpdated: number;
     affectedShelves?: string[];
+    affectedShelvesDetails?: Array<{
+      code: string;
+      zone: string;
+      plant: string;
+      description: string;
+    }>;
+    effectiveFamily?: string;
     importMode?: string;
     obsoleteFiltered?: number;
     message?: string;
